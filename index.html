@@ -85,13 +85,27 @@ tr.sel td{background:var(--soft)}
 .page.over{outline:2px dashed var(--accent)}
 .page .pn{font:800 18px var(--display)}
 .chip{font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:3px 6px;cursor:grab}
-.kan{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:start}
+.kan{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(190px,1fr);gap:10px;align-items:start;overflow-x:auto;padding-bottom:4px}
 .col{background:var(--soft);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .col h3{display:flex;justify-content:space-between}
 .sup{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:13px}
 input[aria-invalid],textarea[aria-invalid]{border-color:var(--crit)}
 .ferr{color:var(--crit);font-size:12px;font-weight:400}
 .ferr:empty{display:none}
+.jal{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-top:6px}
+.j{display:flex;flex-direction:column;gap:1px;padding:6px 8px;border-radius:6px;background:var(--soft);border-top:3px solid var(--line);color:inherit;text-decoration:none;font-size:12px;min-width:0}
+.j b{font-family:var(--display);font-size:12px}
+.j span{color:var(--muted);overflow-wrap:anywhere}
+.j.ok{border-top-color:var(--ok)}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line)}
+.tabs a{padding:8px 12px;color:var(--muted);text-decoration:none;font-weight:500;white-space:nowrap;border-bottom:3px solid transparent}
+.tabs a[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.supp{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.sub2{border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
+a.btn{text-decoration:none;color:inherit;display:inline-block}
+.tl a.bar,.tl span.bar{text-decoration:none;display:block}
+button.chip{font:inherit;font-size:12px;color:inherit;text-align:left}
+@media (max-width:760px){.jal{grid-template-columns:repeat(3,minmax(0,1fr))}.kan{grid-auto-flow:row!important;grid-template-columns:1fr!important;overflow:visible!important}}
 .note{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:10px 12px;font-size:14px}
 .muted{color:var(--muted)} .small{font-size:13px}
 dialog{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:20px;width:min(520px,calc(100vw - 32px));max-height:90vh;overflow:auto}
@@ -117,10 +131,10 @@ dialog label.ck{flex-direction:row;align-items:center;gap:8px;font-weight:400;fo
 <div class="app">
   <nav aria-label="Sections">
     <div class="brand">BigOne <b>Studio</b></div>
-    <a href="#accueil"><span class="n">0</span>Accueil</a>
-    <a href="#pilotage"><span class="n">1</span>Pilotage</a>
-    <a href="#preparation"><span class="n">2</span>Préparation</a>
-    <a href="#production"><span class="n">3</span>Production</a>
+    <a href="#accueil" data-v="accueil">Accueil</a>
+    <a href="#pilotage" data-v="pilotage">Pilotage</a>
+    <a href="#preparation" data-v="preparation">Préparation</a>
+    <a href="#production" data-v="production">Production</a>
   </nav>
   <main id="view"></main>
 </div>
@@ -130,14 +144,23 @@ dialog label.ck{flex-direction:row;align-items:center;gap:8px;font-weight:400;fo
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ETAPES=['Cadrage','Données','Chemin de fer','Maquette','BAT','Livraison','Diffusion'];
+const PUBLIC=true;
+const VERSION='2026-11-14.4';
 const STATUTS=[['amonter','À monter'],['maquette','En maquette'],['bat','BAT prêt pour revue'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
 const ORIGINE=['Fruits et légumes','Boucherie','Poissonnerie'];
 const ENG=[['engage','Engagé'],['attente','En attente'],['non','Non participant']];
+/* Familles de supports : elles décident du calendrier, du chemin de fer et des contrôles. */
+const TYPES={'Prospectus':{f:'imprime',pagine:1},'E-catalogue':{f:'numerique',pagine:1},'Affiche':{f:'imprime'},'Affiche A1':{f:'imprime'},'PLV':{f:'imprime'},'Flux Bonial':{f:'flux'},'Flux Tiendeo':{f:'flux'},'Bannières Meta':{f:'numerique'},'Bannières display':{f:'numerique'},'SMS / RCS':{f:'numerique'}};
+const FAMILLES={imprime:'Imprimé',numerique:'Numérique',flux:'Flux'};
+/* Jalons proposés par famille, en jours ouvrés avant l'échéance du support. */
+const MODELES={imprime:[['donnees','Données reçues',-15],['cdf','Chemin de fer validé',-12,1],['bat1','BAT 1 prêt pour revue',-8],['retours','Retours client',-6],['approb','BAT final approuvé',-2],['remise','Fichiers remis à l\'imprimeur',0]],
+  numerique:[['donnees','Données reçues',-10],['cdf','Chemin de fer validé',-8,1],['bat1','BAT 1 prêt pour revue',-6],['approb','Approbation',-3],['remise','Remise pour mise en ligne',0]],
+  flux:[['donnees','Offres prêtes pour le flux',-4],['approb','Contrôle du flux',-2],['remise','Flux déposé',0]]};
+const TABS=[['cadrage','Cadrage'],['offres','Offres'],['magasins','Magasins'],['dispositif','Dispositif'],['calendrier','Calendrier']];
 const S={operations:[],produits:[],magasins:[],supports:[],taches:[],journal:[],chemins:[],engagements:[]};
-let db=null,status='loading',cur=null,timer=null;
+let db=null,status='loading',cur=null,compo=null,timer=null;
 try{cur=localStorage.getItem('bos-op')}catch(e){}
 
 /* ---------- dates ---------- */
@@ -150,13 +173,8 @@ function feries(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=
   return [y+'-01-01',add(1),y+'-05-01',y+'-05-08',add(39),add(50),y+'-07-14',y+'-08-15',y+'-11-01',y+'-11-11',y+'-12-25'];}
 function ouvre(d){const w=d.getDay();return w!==0&&w!==6&&!feries(d.getFullYear()).includes(iso(d))}
 function decale(s,n){const d=pd(s),st=n<0?-1:1;let k=Math.abs(n);while(!ouvre(d))d.setDate(d.getDate()-1);while(k>0){d.setDate(d.getDate()+st);if(ouvre(d))k--}return iso(d)}
-/* Règles de rétroplanning proposées : jours ouvrés avant la remise à l'imprimeur, puis avant le début de l'opération. */
-function retro(remise,debut){const R=[['Brief et cadrage validés',1,-22],['Données produits reçues',2,-15],['Chemin de fer validé',3,-12],['BAT 1 déposé au client',5,-8],['Retours client sur BAT 1',5,-6],['BAT 2 déposé au client',5,-5],['BAT final validé',5,-2],["Fichiers remis à l'imprimeur",6,0]];
-  const t=R.map(([l,e,n])=>({libelle:l,etape:e,echeance:decale(remise,n),fait:false}));
-  if(debut){t.push({libelle:'Flux Bonial et Tiendeo déposés',etape:6,echeance:decale(debut,-2),fait:false});t.push({libelle:'E-catalogue mis en ligne',etape:7,echeance:decale(debut,-1),fait:false})}
-  return t}
 
-/* ---------- contrôles des données ---------- */
+/* ---------- lecture des données (tolérante aux fiches créées avant la refonte) ---------- */
 function controles(p){const b=[],a=[];
   if(!p.libelle)b.push('Libellé manquant');
   if(p.prix==null||!(p.prix>0))b.push('Prix manquant');
@@ -164,106 +182,182 @@ function controles(p){const b=[],a=[];
   if(p.rayon==='Vins et alcools'&&!p.mention)b.push('Mention légale alcool manquante');
   if(ORIGINE.includes(p.rayon)&&!p.origine)b.push('Origine manquante');
   if(!p.rayon)a.push('Rayon non renseigné');
-  if(p.page==null)a.push('Non placé dans le chemin de fer');
   return {b,a}}
+const nbBloq=ps=>ps.reduce((n,p)=>n+controles(p).b.length,0);
+const opById=id=>S.operations.find(o=>o.id===id);
+const suivi=o=>o.suivi??o.source!=='public';
+const sorted=()=>[...S.operations].sort((a,b)=>(a.debut||'').localeCompare(b.debut||''));
 const prodsOf=id=>S.produits.filter(p=>p.op===id);
-const bloquants=id=>prodsOf(id).reduce((n,p)=>n+controles(p).b.length,0);
+const supsOf=id=>S.supports.filter(s=>s.op===id).sort((a,b)=>a.id.localeCompare(b.id));
+const typ=s=>TYPES[s.type]||{f:'numerique'};
+const enProd=s=>s.prod??true;
+const premierPagine=s=>{const l=supsOf(s.op).filter(x=>typ(x).pagine),f=l.find(x=>typ(x).f==='imprime')||l[0];return !!f&&f.id===s.id};
+const chemin=s=>S.chemins.find(c=>c.id===s.id)||(premierPagine(s)?S.chemins.find(c=>c.id===s.op):null);
+const pagesDe=s=>(chemin(s)||{}).pages||[];
+const place=(p,s)=>{const pl=p.placements||{};return s.id in pl?pl[s.id]:premierPagine(s)?p.page??null:null};
+const utilise=(s,p)=>typ(s).pagine?place(p,s)!=null:s.produits?s.produits.includes(p.id):true;
+const offresDe=s=>s.institutionnel?[]:prodsOf(s.op).filter(p=>utilise(s,p));
+const echeance=(s,o)=>s.remise||(typ(s).f==='imprime'?o.remise||decale(o.debut,-8):decale(o.debut,typ(s).f==='flux'?-2:-1));
+const resOp=o=>o.reseau||((o.enseignes||[]).some(e=>/(^|\s)U(\s|$)/.test(e))?'Magasins U':(o.enseignes||[])[0]||'Réseau à préciser');
+const magsDe=o=>S.magasins.filter(m=>(m.reseau||'Magasins U')===resOp(o));
+const engDoc=o=>S.engagements.find(e=>e.id===o.id)||{};
+const eng=(o,m)=>{const v=engDoc(o)[m.id];return typeof v==='string'?{statut:v,supports:null}:v||{statut:'attente',supports:null}};
+const libStat=k=>STATUTS.find(x=>x[0]===k)[1],sansCoche=()=>Object.fromEntries(CHECKS.map(([k])=>[k,false]));
+const FIGE=['bat','valide','livre'];
+const tachesDe=o=>S.taches.filter(t=>t.op===o.id).sort((a,b)=>a.echeance.localeCompare(b.echeance));
+const enRetard=t=>!t.fait&&t.echeance<today();
+/* Les six jalons du dossier : chacun a un état propre, aucun ne résume les autres. */
+function jalons(o){const b=o.brief||{},ps=prodsOf(o.id),ss=supsOf(o.id),ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='engage').length,nb=nbBloq(ps),rem=ss.filter(s=>s.statut==='livre').length,pr=ss.filter(enProd).length;
+  return [['cadrage','Brief',!!(b.objectif&&b.responsable),b.objectif&&b.responsable?'Complet':'À compléter','preparation'],
+    ['offres','Offres',ps.length>0&&!nb,ps.length+' offre(s)'+(nb?', '+nb+' anomalie(s)':''),'preparation'],
+    ['magasins','Magasins',ne>0,ne+' engagé(s) sur '+ms.length,'preparation'],
+    ['dispositif','Dispositif',ss.length>0&&pr===ss.length,ss.length?pr+'/'+ss.length+' en production':'Aucun support','preparation'],
+    ['','Production',ss.length>0&&rem===ss.length,rem+'/'+ss.length+' remis','production'],
+    ['','Clôture',!!o.cloture,o.cloture?'Clôturée':'Ouverte','production']]}
+function phase(o){const ss=supsOf(o.id),b=o.brief||{};if(!suivi(o))return 'Relevé public';if(o.cloture)return 'Clôturée';
+  if(ss.length&&ss.every(s=>s.statut==='livre'))return 'Remise';if(ss.some(enProd))return 'Production';return b.objectif&&b.responsable?'Préparation':'Cadrage'}
+const enCours=o=>o.debut<=today()&&o.fin>=today();
+function alertes(o){const ss=supsOf(o.id);return {retard:tachesDe(o).filter(enRetard).length,bloq:nbBloq(prodsOf(o.id)),perime:ss.filter(s=>s.perime).length}}
+function pretProd(s,o){const b=o.brief||{},e=echeance(s,o),ps=offresDe(s),pg=pagesDe(s),sur=pg.some(p=>prodsOf(o.id).filter(x=>place(x,s)===p.n).length>p.cases),r=[[!!(b.objectif&&b.responsable),'Brief complet'],[typ(s).f==='imprime'?e<o.debut:e<=o.fin,'Échéance du support cohérente avec l\'opération']];
+  if(!s.institutionnel){r.push(typ(s).pagine?[pg.length>0&&ps.length>0&&!sur,'Chemin de fer créé, au moins une offre placée, aucune page surchargée']:[ps.length>0,'Au moins une offre utilisée']);r.push([nbBloq(ps)===0,'Aucune anomalie bloquante sur les offres utilisées'])}
+  return r}
 
 /* ---------- base de données ---------- */
-function toast(m){$('#toast').textContent=m;clearTimeout(toast.t);toast.t=setTimeout(()=>$('#toast').textContent='',4000)}
+function toast(m){$('#toast').textContent=m;clearTimeout(toast.t);toast.t=setTimeout(()=>$('#toast').textContent='',4500)}
 const SB='https://etmuhdohnalwxlqhsfnf.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bXVoZG9obmFsd3hscWhzZm5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NDUxMzUsImV4cCI6MjExMDIyMTEzNX0.Jiy4H8jHLm3ykZF-673Lu_RGyhEc9YDre9LitZ6w5tg',HD={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
-let CODE=null;try{CODE=localStorage.getItem('bos-code')}catch(e){}
+let CODE=null;try{CODE=PUBLIC?localStorage.getItem('bos-code'):null}catch(e){}
 const rpc=async b=>{const r=await fetch(SB+'/rest/v1/rpc/studio_write',{method:'POST',headers:HD,body:JSON.stringify(b)});if(!r.ok)throw new Error('rpc');return r.json()};
-async function w(path,data,mode){if(!CODE){toast('Saisissez le code de test pour modifier.');return false}
-  const [col,id]=path.split('/'),op=mode==='set'?'set':mode==='delete'?'delete':'update';
-  try{const ok=await rpc({p_code:CODE,p_op:op,p_col:col,p_id:id,p_data:data||{}});
-    if(ok!==true){CODE=null;try{localStorage.removeItem('bos-code')}catch(e){}toast('Code refusé. Saisissez-le à nouveau.');schedule();return false}
-    const a=S[col],i=a.findIndex(x=>x.id===id);if(op==='delete'){if(i>=0)a.splice(i,1)}else if(op==='set'){const d=Object.assign({id},data);if(i>=0)a[i]=d;else a.push(d)}else if(i>=0)a[i]=Object.assign({},a[i],data);
-    schedule();return true}
-  catch(e){toast('Enregistrement impossible. Réessayez dans un instant.');return false}}
+async function w(path,data,mode){const [col,id]=path.split('/'),op=mode==='set'?'set':mode==='delete'?'delete':'update';
+  if(PUBLIC){if(!CODE){toast('Saisissez le code de test pour modifier.');return false}
+    try{const ok=await rpc({p_code:CODE,p_op:op,p_col:col,p_id:id,p_data:data||{}});
+      if(ok!==true){CODE=null;try{localStorage.removeItem('bos-code')}catch(e){}toast('Code refusé. Saisissez-le à nouveau.');schedule();return false}
+      const a=S[col],i=a.findIndex(x=>x.id===id);if(op==='delete'){if(i>=0)a.splice(i,1)}else if(op==='set'){const d=Object.assign({id},data);if(i>=0)a[i]=d;else a.push(d)}else if(i>=0)a[i]=Object.assign({},a[i],data);
+      schedule();return true}
+    catch(e){toast('Enregistrement impossible. Réessayez dans un instant.');return false}}
+  if(!db){toast('Base indisponible : modification non enregistrée.');return false}
+  try{const r=db.doc(path);if(op==='set')await r.set(data);else if(op==='delete')await r.delete();else await r.update(data);
+    const a=S[col],i=a.findIndex(x=>x.id===id);if(op==='set'&&i<0)a.push(Object.assign({id},data));else if(op==='update'&&i>=0)a[i]=Object.assign({},a[i],data);return true}
+  catch(e){toast(e&&e.code==='invalid_argument'?'Écriture refusée : vous consultez cette page en lecture seule.':'Enregistrement impossible. Réessayez dans un instant.');return false}}
 const uid=p=>p+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-const log=(op,texte)=>w('journal/'+uid('j'),{op,date:new Date().toISOString().slice(0,16),texte},'set');
+const log=(op,texte,type)=>w('journal/'+uid('j'),Object.assign({op,date:new Date().toISOString().slice(0,16),texte},type?{type}:{}),'set');
 let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
 async function charger(){try{const r=await fetch(SB+'/rest/v1/docs?select=col,id,data&order=col,id',{headers:HD});if(!r.ok)throw 0;const rows=await r.json(),N={},sig=JSON.stringify(rows);if(sig===charger.sig&&status==='ok')return;charger.sig=sig;Object.keys(S).forEach(k=>N[k]=[]);
     rows.forEach(x=>{if(N[x.col])N[x.col].push(Object.assign({id:x.id},x.data))});Object.assign(S,N);status='ok'}catch(e){if(status!=='ok')status='err'}schedule()}
-async function init(){render();await charger();setInterval(()=>{if(!document.hidden&&!$('#dlg').open)charger()},20000)}
+async function init(){render();
+  if(PUBLIC){await charger();setInterval(()=>{if(!document.hidden&&!$('#dlg').open)charger()},20000);return}
+  let n=0;while(!(window.claude&&window.claude.use)&&n++<30)await new Promise(r=>setTimeout(r,100));
+  if(!(window.claude&&window.claude.use)){status='nodb';return render()}
+  timer=setTimeout(()=>{if(status==='loading'){status='slow';render()}},10000);
+  db=await window.claude.use('db');
+  if(!db){clearTimeout(timer);status='nodb';return render()}
+  const seen=new Set();
+  Object.keys(S).forEach(k=>db.collection(k).onSnapshot(q=>{S[k]=q.docs.map(d=>Object.assign({id:d.id},d.data()));seen.add(k);
+    if(seen.size===Object.keys(S).length){clearTimeout(timer);status='ok'}schedule()},()=>{clearTimeout(timer);status='err';schedule()}))}
+
+/* ---------- navigation : la vue, l'opération et l'onglet sont dans l'adresse ---------- */
+const lien=(v,id,tab)=>'#'+v+(id?'--'+id+(tab?'--'+tab:''):'');
+function route(){const [v,oid,tab]=(location.hash.slice(1)||'accueil').split('--');if(oid&&opById(oid)&&oid!==cur){cur=oid;compo=null;try{localStorage.setItem('bos-op',cur)}catch(e){}}
+  return {v:VUES[v]?v:'accueil',tab:TABS.some(t=>t[0]===tab)?tab:'cadrage'}}
+function aller(v,id,tab){const h=lien(v,id,tab);if(location.hash===h)render();else location.hash=h}
+function curOp(){let o=opById(cur);if(!o||!suivi(o)){o=sorted().find(x=>suivi(x)&&!x.cloture)||sorted().find(suivi);cur=o?o.id:null}return o}
 
 /* ---------- composants ---------- */
-const opById=id=>S.operations.find(o=>o.id===id);
-const sorted=()=>[...S.operations].sort((a,b)=>(a.debut||'').localeCompare(b.debut||''));
-function curOp(){let o=opById(cur);if(!o){o=sorted().find(x=>x.etape<6)||sorted()[0];cur=o?o.id:null}return o}
-const src=s=>s==='public'?'<span class="pill src" title="Relevé sur les sites publics le 14/11/2026">Relevé public</span>':s==='demo'?'<span class="pill src">Démo</span>':s==='drive'?'<span class="pill src">Drive</span>':s==='matrice'?'<span class="pill src">Matrice</span>':'';
-const steps=e=>'<div class="steps" title="'+esc(ETAPES[e-1])+'">'+ETAPES.map((_,i)=>'<i class="'+(i<e?'on':'')+'"></i>').join('')+'</div>';
+const src=s=>s==='public'?'<span class="pill src" title="Relevé sur les sites publics le 14/11/2026">Relevé public</span>':s==='demo'?'<span class="pill src">Démo</span>':s==='matrice'?'<span class="pill src">Matrice</span>':'';
 const periode=o=>fd(o.debut)+' → '+fd(o.fin);
-function opSelect(){const f=sorted().filter(o=>o.etape<6),d=sorted().filter(o=>o.etape>=6),opt=o=>'<option value="'+esc(o.id)+'"'+(o.id===cur?' selected':'')+'>'+esc(o.nom)+' ('+periode(o)+')</option>';
-  return '<select id="opsel" aria-label="Opération">'+(f.length?'<optgroup label="En fabrication">'+f.map(opt).join('')+'</optgroup>':'')+(d.length?'<optgroup label="Livrées ou diffusées">'+d.map(opt).join('')+'</optgroup>':'')+'</select>'}
-function banner(){if(status==='ok')return CODE?'':'<div class="note row" style="justify-content:space-between"><span>Prototype en consultation libre, données de démonstration. Un code de test est nécessaire pour modifier.</span><button class="btn sm" data-act="code">Saisir le code</button></div>';
-  const m={loading:'Chargement des données…',slow:"Les données ne répondent pas encore. La page se mettra à jour dès qu'elles arrivent.",nodb:"La base de données n'est pas accessible dans cette vue. Ouvrez la page connecté à votre compte Claude.",err:"La base de données ne répond pas. Rechargez la page pour réessayer."}[status];
+const prixTxt=v=>v==null?'aucun':v.toFixed(2).replace('.',',')+' €';
+function opSelect(v,tab){const ops=sorted().filter(suivi),opt=o=>`<option value="${esc(o.id)}"${o.id===cur?' selected':''}>${esc(o.nom)} (${periode(o)})</option>`,a=ops.filter(o=>!o.cloture),c=ops.filter(o=>o.cloture);
+  return `<select id="opsel" data-v="${v}" data-tab="${tab||''}" aria-label="Opération">${a.length?'<optgroup label="Dossiers ouverts">'+a.map(opt).join('')+'</optgroup>':''}${c.length?'<optgroup label="Clôturés">'+c.map(opt).join('')+'</optgroup>':''}</select>`}
+function banner(){if(status==='ok')return PUBLIC&&!CODE?'<div class="note row" style="justify-content:space-between"><span>Prototype en consultation libre, données de démonstration. Un code de test est nécessaire pour modifier.</span><button class="btn sm" data-act="code">Saisir le code</button></div>':'';
+  const m={loading:'Chargement des données…',slow:"Les données ne répondent pas encore. La page se mettra à jour dès qu'elles arrivent.",nodb:"La base de données n'est pas accessible dans cette vue. Ouvrez la page connecté à votre compte Claude.",err:'La base de données ne répond pas. Rechargez la page pour réessayer.'}[status];
   return '<div class="note">'+m+'</div>'}
-function vide(t){return '<p class="muted">'+t+'</p>'}
+const vide=t=>'<p class="muted" style="margin:0">'+t+'</p>';
+const jalStrip=o=>'<div class="jal">'+jalons(o).map(([tab,l,ok,d,v],i)=>`<a class="j ${ok?'ok':''}" href="${lien(v,o.id,tab)}"><b>${i+1}. ${l}</b><span>${esc(d)}</span></a>`).join('')+'</div>';
+const phasePill=o=>`<span class="pill ${phase(o)==='Clôturée'||phase(o)==='Remise'?'ok':''}">${phase(o)}</span>${enCours(o)?' <span class="pill warn">Période en cours</span>':''}`;
+function alertPills(o){const a=alertes(o);return (a.retard?`<span class="pill crit">${a.retard} retard(s)</span> `:'')+(a.bloq?`<span class="pill crit">${a.bloq} anomalie(s)</span> `:'')+(a.perime?`<span class="pill crit">${a.perime} à revalider</span>`:'')||'<span class="pill ok">Aucune alerte</span>'}
 
-/* ---------- vues ---------- */
-function vAccueil(){const t=today(),ops=sorted(),fab=ops.filter(o=>o.etape<6),enc=ops.filter(o=>o.debut<=t&&o.fin>=t);
-  const bat=S.supports.filter(s=>s.statut==='bat'),ano=fab.reduce((n,o)=>n+bloquants(o.id),0),ret=S.taches.filter(x=>!x.fait&&x.echeance<t&&opById(x.op));
-  const todo=[...ret.map(x=>({c:'crit',t:'Tâche en retard',d:x.libelle+' (échéance '+fd(x.echeance)+')',op:x.op,h:'pilotage'})),
-    ...fab.filter(o=>bloquants(o.id)).map(o=>({c:'crit',t:bloquants(o.id)+' anomalie(s) bloquante(s)',d:'Données produits à corriger',op:o.id,h:'preparation'})),
-    ...bat.map(s=>({c:'warn',t:'BAT '+s.bat+' prêt pour revue',d:s.type,op:s.op,h:'production'})),
-    ...S.supports.filter(s=>s.perime&&opById(s.op)).map(s=>({c:'crit',t:s.statut==='livre'?'Nouvelle révision requise':'Support à revalider',d:s.type+' : '+(s.perimeMotif||''),op:s.op,h:'production'})),
-    ...S.supports.filter(s=>s.statut==='corrections').map(s=>({c:'warn',t:'Corrections en cours',d:s.type,op:s.op,h:'production'}))];
-  const jr=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
-  return '<div class="hd"><div><h1>Accueil</h1><p class="sub">'+new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</p></div></div>'+banner()+
-  '<div class="grid tiles"><div class="tile ok"><b>'+enc.length+'</b><span>opérations en diffusion</span></div><div class="tile"><b>'+fab.length+'</b><span>en fabrication</span></div><div class="tile '+(bat.length?'warn':'')+'"><b>'+bat.length+'</b><span>BAT prêts pour revue</span></div><div class="tile '+(ano?'crit':'ok')+'"><b>'+ano+'</b><span>anomalies bloquantes</span></div><div class="tile '+(ret.length?'crit':'ok')+'"><b>'+ret.length+'</b><span>tâches en retard</span></div></div>'+
-  '<div class="grid two"><section class="card"><h2>À traiter</h2><div class="list">'+(todo.map(x=>{const o=opById(x.op);return '<a href="#'+x.h+'" data-go="'+esc(x.op)+'" style="color:inherit;text-decoration:none"><span><span class="pill '+x.c+'">'+esc(x.t)+'</span><br>'+esc(x.d)+'<br><span class="muted small">'+esc(o?o.nom:'')+'</span></span><span aria-hidden="true">›</span></a>'}).join('')||vide('Rien à traiter.'))+'</div></section>'+
-  '<section class="card"><h2>En fabrication</h2><div class="list">'+(fab.map(o=>'<a href="#pilotage" data-go="'+esc(o.id)+'" style="color:inherit;text-decoration:none"><span style="flex:1"><b>'+esc(o.nom)+'</b> '+src(o.source)+'<br><span class="muted small">'+periode(o)+' · étape '+esc(ETAPES[o.etape-1])+'</span>'+steps(o.etape)+'</span></a>').join('')||vide('Aucune opération en fabrication.'))+'</div></section></div>'+
-  '<section class="card"><h2>Journal des opérations</h2><div class="list">'+(jr.map(j=>{const o=opById(j.op);return '<div><span>'+esc(j.texte)+'<br><span class="muted small">'+esc(o?o.nom:'')+'</span></span><span class="muted small" style="white-space:nowrap">'+fd(j.date)+'</span></div>'}).join('')||vide('Aucune note.'))+'</div></section>'}
+/* ---------- Accueil : ce qu'il faut traiter maintenant ---------- */
+function vAccueil(){const ops=sorted().filter(suivi).filter(o=>!o.cloture),todo=[];
+  ops.forEach(o=>{const b=o.brief||{},ss=supsOf(o.id),nb=nbBloq(prodsOf(o.id));
+    tachesDe(o).filter(enRetard).forEach(t=>{const s=S.supports.find(x=>x.id===t.support);todo.push({c:'crit',t:'Jalon en retard',d:(s?s.type+' : ':'')+t.libelle+' (échéance '+fd(t.echeance)+')',o,h:lien('preparation',o.id,'calendrier')})});
+    if(nb)todo.push({c:'crit',t:nb+' anomalie(s) bloquante(s)',d:'Offres à corriger',o,h:lien('preparation',o.id,'offres')});
+    ss.filter(s=>s.perime).forEach(s=>todo.push({c:'crit',t:s.statut==='livre'?'Nouvelle révision requise':'Support à revalider',d:s.type+' : '+(s.perimeMotif||''),o,h:lien('production',o.id)}));
+    ss.filter(s=>enProd(s)&&s.statut==='bat').forEach(s=>todo.push({c:'warn',t:'BAT '+s.bat+' prêt pour revue',d:s.type+' : décision attendue de '+(s.destinataire||'destinataire non renseigné'),o,h:lien('production',o.id)}));
+    ss.filter(s=>!enProd(s)&&pretProd(s,o).every(x=>x[0])).forEach(s=>todo.push({c:'ok',t:'Prêt à ouvrir en production',d:s.type,o,h:lien('preparation',o.id,'dispositif')}));
+    if(!(b.objectif&&b.responsable))todo.push({c:'warn',t:'Brief à compléter',d:'Objectif ou responsable manquant',o,h:lien('preparation',o.id,'cadrage')});
+    if(ss.length&&ss.every(s=>s.statut==='livre'))todo.push({c:'ok',t:'Opération à clôturer',d:'Tous les supports sont remis',o,h:lien('production',o.id)})});
+  const sp=S.supports.filter(s=>{const o=opById(s.op);return o&&suivi(o)&&!o.cloture&&enProd(s)}),jr=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6),ret=todo.filter(x=>x.t==='Jalon en retard').length,ano=ops.reduce((n,o)=>n+nbBloq(prodsOf(o.id)),0);
+  return `<div class="hd"><div><h1>Accueil</h1><p class="sub">${new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div></div>${banner()}
+  <div class="grid tiles"><div class="tile"><b>${ops.length}</b><span>dossiers ouverts</span></div><div class="tile"><b>${sp.filter(s=>s.statut!=='livre').length}</b><span>supports en production</span></div><div class="tile ${sp.some(s=>s.statut==='bat')?'warn':''}"><b>${sp.filter(s=>s.statut==='bat').length}</b><span>BAT prêts pour revue</span></div><div class="tile ${ano?'crit':'ok'}"><b>${ano}</b><span>anomalies bloquantes</span></div><div class="tile ${ret?'crit':'ok'}"><b>${ret}</b><span>jalons en retard</span></div><div class="tile"><b>${S.operations.filter(enCours).length}</b><span>périodes commerciales en cours</span></div></div>
+  <div class="grid two"><section class="card"><h2>À traiter</h2><div class="list">${todo.map(x=>`<a href="${x.h}" style="color:inherit;text-decoration:none"><span><span class="pill ${x.c}">${esc(x.t)}</span><br>${esc(x.d)}<br><span class="muted small">${esc(x.o.nom)}</span></span><span aria-hidden="true">›</span></a>`).join('')||vide('Rien à traiter.')}</div></section>
+  <section class="card"><h2>Dossiers ouverts</h2><div class="list">${ops.map(o=>`<div style="display:block"><a href="${lien('preparation',o.id)}" style="color:inherit"><b>${esc(o.nom)}</b></a> ${src(o.source)} ${phasePill(o)}<br><span class="muted small">${periode(o)} · ${esc(resOp(o))}</span>${jalStrip(o)}</div>`).join('')||vide('Aucun dossier ouvert.')}</div></section></div>
+  <section class="card"><h2>Journal</h2><div class="list">${jr.map(j=>{const o=opById(j.op);return `<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(j.texte)}<br><span class="muted small">${esc(o?o.nom:'')}</span></span><span class="muted small" style="white-space:nowrap">${fd(j.date)}</span></div>`}).join('')||vide('Aucune note.')}</div></section>`}
 
+/* ---------- Pilotage : le portefeuille d'opérations ---------- */
 function timeline(){const ops=sorted();if(!ops.length)return vide('Aucune opération.');
   const a=pd(ops[0].debut),b=pd(ops.reduce((m,o)=>o.fin>m?o.fin:m,ops[0].fin));a.setDate(1);b.setMonth(b.getMonth()+1,0);
   const tot=(b-a)/864e5+1,x=s=>((pd(s)-a)/864e5)/tot*100;let ax='';
-  for(const m=new Date(a);m<=b;m.setMonth(m.getMonth()+1))ax+='<div class="ax" style="left:'+x(iso(m))+'%">'+m.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})+'</div>';
-  const t=today(),now=t>=iso(a)&&t<=iso(b)?'<div class="now" style="left:'+x(t)+'%" title="Aujourd\'hui"></div>':'';
-  return '<div class="scroll"><div class="tl">'+ax+now+ops.map(o=>'<div class="r"><button class="bar '+(o.etape<6?'fab ':'')+(o.source==='demo'?'demo':'')+'" data-pick="'+esc(o.id)+'" style="left:'+x(o.debut)+'%;width:'+Math.max(2,x(o.fin)-x(o.debut)+100/tot)+'%" title="'+esc(o.nom)+' · '+periode(o)+'">'+esc(o.nom)+'</button></div>').join('')+'</div></div>'}
-function vPilotage(){const o=curOp(),t=today();
-  const rows=sorted().map(x=>'<tr class="'+(x.id===cur?'sel':'')+'"><td><b>'+esc(x.nom)+'</b><br>'+src(x.source)+'</td><td class="num">'+periode(x)+'</td><td>'+esc((x.enseignes||[]).join(', '))+'</td><td>'+esc(x.portee||'')+'</td><td class="num">'+(x.magasins??'—')+'</td><td style="min-width:120px">'+esc(ETAPES[x.etape-1])+steps(x.etape)+'</td><td><button class="btn sm" data-pick="'+esc(x.id)+'">Ouvrir</button></td></tr>').join('');
-  let detail='';
-  if(o){const ts=S.taches.filter(x=>x.op===o.id).sort((a,b)=>a.echeance.localeCompare(b.echeance)),eg=(S.engagements.find(e=>e.id===o.id))||{};
-    const n=S.magasins.filter(m=>eg[m.id]==='engage').length;
-    detail='<div class="grid two"><section class="card"><div class="row" style="justify-content:space-between"><h2>Rétroplanning</h2><span class="row"><button class="btn sm" data-act="retro">'+(ts.length?'Recalculer':'Générer')+'</button><button class="btn sm" data-act="edit-op">Modifier l\'opération</button></span></div><p class="muted small" style="margin:0">'+esc(o.nom)+' · remise imprimeur '+(o.remise?fd(o.remise):'non définie')+'</p><div class="list">'+
-      (ts.map(x=>'<label><span><input type="checkbox" data-task="'+esc(x.id)+'"'+(x.fait?' checked':'')+'> '+esc(x.libelle)+'</span><span class="pill '+(x.fait?'ok':x.echeance<t?'crit':'')+'">'+(x.fait?'Fait':x.echeance<t?'Retard · '+fd(x.echeance):fd(x.echeance))+'</span></label>').join('')||vide('Aucune échéance. Générez le rétroplanning à partir de la date de remise à l\'imprimeur.'))+'</div></section>'+
-      '<section class="card"><h2>Engagement des magasins</h2><p class="muted small" style="margin:0">'+n+' engagé(s) sur '+S.magasins.length+' magasins suivis</p><div class="list">'+
-      (S.magasins.map(m=>'<div><span>'+esc(m.nom)+'</span><select data-eng="'+esc(m.id)+'" aria-label="Engagement '+esc(m.nom)+'">'+ENG.map(([k,l])=>'<option value="'+k+'"'+((eg[m.id]||'attente')===k?' selected':'')+'>'+l+'</option>').join('')+'</select></div>').join('')||vide('Aucun magasin.'))+'</div></section></div>'}
-  return '<div class="hd"><div><h1>Pilotage</h1><p class="sub">Plan de commerce, échéances et engagement des magasins</p></div><button class="btn pri" data-act="new-op">Nouvelle opération</button></div>'+banner()+
-  '<section class="card"><h2>Plan de commerce</h2>'+timeline()+'</section>'+
-  '<section class="card"><h2>Opérations</h2><div class="scroll"><table><thead><tr><th>Opération</th><th>Période</th><th>Enseignes</th><th>Portée</th><th>Magasins</th><th>Étape</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></section>'+detail}
+  for(const m=new Date(a);m<=b;m.setMonth(m.getMonth()+1))ax+=`<div class="ax" style="left:${x(iso(m))}%">${m.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})}</div>`;
+  const t=today(),now=t>=iso(a)&&t<=iso(b)?`<div class="now" style="left:${x(t)}%" title="Aujourd'hui"></div>`:'';
+  return `<div class="scroll"><div class="tl">${ax}${now}${ops.map(o=>`<div class="r"><${suivi(o)?'a href="'+lien('preparation',o.id)+'"':'span'} class="bar ${suivi(o)?'fab':''}" style="left:${x(o.debut)}%;width:${Math.max(2,x(o.fin)-x(o.debut)+100/tot)}%" title="${esc(o.nom)} · ${periode(o)}">${esc(o.nom)}</${suivi(o)?'a':'span'}></div>`).join('')}</div></div><p class="muted small" style="margin:0">Barres pleines : dossiers suivis dans Studio. Barres claires : opérations relevées sur les sites publics, pour le contexte.</p>`}
+function vPilotage(){const ops=sorted(),su=ops.filter(suivi),pu=ops.filter(o=>!suivi(o));
+  return `<div class="hd"><div><h1>Pilotage</h1><p class="sub">Plan de commerce et état de chaque dossier</p></div><button class="btn pri" data-act="new-op">Nouvelle opération</button></div>${banner()}
+  <section class="card"><h2>Plan de commerce</h2>${timeline()}</section>
+  <section class="card"><h2>Dossiers suivis</h2><div class="list">${su.map(o=>`<div style="display:block"><div class="row" style="justify-content:space-between"><span><b>${esc(o.nom)}</b> ${src(o.source)} ${phasePill(o)}</span><a class="btn sm" href="${lien('preparation',o.id)}">Ouvrir le dossier</a></div><span class="muted small">${periode(o)} · ${esc(resOp(o))} · ${esc(o.portee||'')}</span><div class="row" style="margin:6px 0">${alertPills(o)}</div>${jalStrip(o)}</div>`).join('')||vide('Aucun dossier. Créez une opération pour commencer.')}</div></section>
+  ${pu.length?`<section class="card"><h2>Opérations relevées, hors Studio</h2><div class="scroll"><table><thead><tr><th>Opération</th><th>Période</th><th>Enseignes</th><th>Portée</th><th>Magasins</th></tr></thead><tbody>${pu.map(o=>`<tr><td><b>${esc(o.nom)}</b> ${src(o.source)}</td><td class="num">${periode(o)}${enCours(o)?'<br><span class="pill warn">Période en cours</span>':''}</td><td>${esc((o.enseignes||[]).join(', '))}</td><td>${esc(o.portee||'')}</td><td class="num">${o.magasins??'—'}</td></tr>`).join('')}</tbody></table></div></section>`:''}`}
 
-function vPreparation(){const o=curOp();if(!o)return '<h1>Préparation</h1>'+banner()+vide('Aucune opération.');
-  const ps=prodsOf(o.id),ch=S.chemins.find(c=>c.id===o.id),pages=ch?ch.pages:[],nb=bloquants(o.id),na=ps.reduce((n,p)=>n+controles(p).a.length,0);
-  const rows=ps.map(p=>{const c=controles(p),CT=c.b.map(x=>'<span class="pill crit">'+esc(x)+'</span>').join(' ')+' '+c.a.map(x=>'<span class="pill warn">'+esc(x)+'</span>').join(' ')+(!c.b.length&&!c.a.length?'<span class="pill ok">Conforme</span>':'');return '<tr><td style="min-width:170px"><b>'+esc(p.libelle)+'</b><br><span class="muted small">'+esc(p.marque||'')+'</span> '+src(p.source)+(p.description?'<br><span class="muted small">'+esc(p.description)+'</span>':'')+'<br>'+CT+'</td><td>'+esc(p.rayon||'')+'</td><td class="num">'+(p.prix!=null?p.prix.toFixed(2).replace('.',',')+' €':'—')+(p.barre!=null?'<br><s class="muted small">'+p.barre.toFixed(2).replace('.',',')+' €</s>':'')+'</td><td>'+esc(p.mecanique||'')+'</td><td class="num">'+(p.page??'—')+'</td><td><button class="btn sm" data-prod="'+esc(p.id)+'">Modifier</button></td></tr>'}).join('');
-  const pg=pages.map(p=>{const inn=ps.filter(x=>x.page===p.n);return '<div class="page" data-page="'+p.n+'"><div class="row" style="justify-content:space-between"><span class="pn">'+p.n+'</span><span class="pill '+(inn.length>p.cases?'crit':inn.length===p.cases?'ok':'')+'">'+inn.length+'/'+p.cases+'</span></div><button class="btn sm" data-rub="'+p.n+'" style="text-align:left">'+esc(p.rubrique||'Rubrique')+'</button>'+inn.map(x=>'<div class="chip" draggable="true" data-chip="'+esc(x.id)+'">'+esc(x.libelle)+'</div>').join('')+'</div>'}).join('');
-  const libres=ps.filter(x=>x.page==null);
-  return '<div class="hd"><div><h1>Préparation</h1><p class="sub">Données produits et chemin de fer</p></div>'+opSelect()+'</div>'+banner()+
-  '<div class="row"><span class="pill '+(nb?'crit':'ok')+'">'+nb+' anomalie(s) bloquante(s)</span><span class="pill '+(na?'warn':'ok')+'">'+na+' avertissement(s)</span><span class="pill">'+ps.length+' produit(s)</span><span class="pill">Étape : '+esc(ETAPES[o.etape-1])+'</span></div>'+
-  '<section class="card"><div class="row" style="justify-content:space-between"><h2>Données produits</h2><span class="row"><button class="btn sm" data-act="import">Importer une matrice</button><button class="btn sm" data-act="csv">Copier en CSV</button><button class="btn sm pri" data-act="new-prod">Ajouter un produit</button></span></div>'+(ps.length?'<div class="scroll"><table><thead><tr><th>Produit</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Page</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>':vide('Aucun produit pour cette opération.'))+'</section>'+
-  '<section class="card"><div class="row" style="justify-content:space-between"><h2>Chemin de fer</h2><button class="btn sm" data-act="add-page">'+(pages.length?'Ajouter une page':'Créer le chemin de fer')+'</button></div>'+(pages.length?'<p class="muted small" style="margin:0">Glissez un produit sur une page, ou choisissez sa page dans sa fiche.</p><div class="pages">'+pg+'</div>'+(libres.length?'<div><h3>Produits non placés</h3><div class="row" style="margin-top:6px">'+libres.map(x=>'<div class="chip" draggable="true" data-chip="'+esc(x.id)+'">'+esc(x.libelle)+'</div>').join('')+'</div></div>':''):vide('Pas encore de chemin de fer.'))+'</section>'+
-  (o.etape<4?(()=>{const pr=prerequis(o),ok=pr.every(x=>x[0]);return '<section class="card"><h2>Passage en production</h2><div class="list">'+pr.map(([v,l])=>'<div><span>'+esc(l)+'</span><span class="pill '+(v?'ok':'crit')+'">'+(v?'Satisfait':'Manquant')+'</span></div>').join('')+'</div><div class="row"><button class="btn pri" data-act="to-prod"'+(ok?'':' disabled')+'>Passer en production</button>'+(ok?'':'<span class="muted small">Complétez les éléments manquants pour continuer.</span>')+'</div></section>'})():'')}
+/* ---------- Préparation : le dossier de l'opération ---------- */
+function tCadrage(o){const b=o.brief||{},l=(k,v)=>`<div><span class="muted">${k}</span><span style="text-align:right">${v?esc(v):'<span class="pill crit">À renseigner</span>'}</span></div>`;
+  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Brief</h2><span class="row"><button class="btn sm" data-act="edit-op">Nom, réseau et dates</button><button class="btn sm pri" data-act="brief">Modifier le brief</button></span></div>
+  <div class="list">${l('Objectif commercial',b.objectif)}${l('Responsable Nanotera',b.responsable)}${l('Interlocuteur client',b.client)}<div><span class="muted">Réseau</span><span>${esc(resOp(o))}</span></div><div><span class="muted">Portée</span><span>${esc(o.portee||'—')}</span></div><div><span class="muted">Période commerciale</span><span>${periode(o)}</span></div><div><span class="muted">Contraintes et décisions</span><span style="text-align:right">${esc(b.notes||'—')}</span></div></div></section>`}
+function tOffres(o){const ps=prodsOf(o.id),ss=supsOf(o.id),nb=nbBloq(ps),na=ps.reduce((n,p)=>n+controles(p).a.length,0);
+  const rows=ps.map(p=>{const c=controles(p),us=ss.filter(s=>!s.institutionnel&&utilise(s,p)).map(s=>s.type+(typ(s).pagine?' p. '+place(p,s):'')),CT=c.b.map(x=>`<span class="pill crit">${esc(x)}</span>`).join(' ')+' '+c.a.map(x=>`<span class="pill warn">${esc(x)}</span>`).join(' ')+(!c.b.length&&!c.a.length?'<span class="pill ok">Conforme</span>':'');
+    return `<tr><td style="min-width:170px"><b>${esc(p.libelle)}</b><br><span class="muted small">${esc(p.marque||'')}</span> ${src(p.source)}${p.description?'<br><span class="muted small">'+esc(p.description)+'</span>':''}<br>${CT}</td><td>${esc(p.rayon||'')}</td><td class="num">${p.prix!=null?prixTxt(p.prix):'—'}${p.barre!=null?'<br><s class="muted small">'+prixTxt(p.barre)+'</s>':''}</td><td>${esc(p.mecanique||'')}</td><td class="small">${us.length?esc(us.join(', ')):'<span class="muted">Aucun support</span>'}</td><td><button class="btn sm" data-prod="${esc(p.id)}">Modifier</button></td></tr>`}).join('');
+  return `<div class="row"><span class="pill ${nb?'crit':'ok'}">${nb} anomalie(s) bloquante(s)</span><span class="pill ${na?'warn':'ok'}">${na} avertissement(s)</span><span class="pill">${ps.length} offre(s)</span></div>
+  <section class="card"><div class="row" style="justify-content:space-between"><h2>Offres</h2><span class="row"><button class="btn sm" data-act="import">Importer une matrice</button><button class="btn sm" data-act="csv">Copier en CSV</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${ps.length?`<div class="scroll"><table><thead><tr><th>Produit</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisé dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide('Aucune offre. Les prix peuvent arriver plus tard : ajoutez-les quand ils sont connus.')}</section>`}
+function tMagasins(o){const ms=magsDe(o),ss=supsOf(o.id),ne=ms.filter(m=>eng(o,m).statut==='engage');
+  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Magasins du réseau ${esc(resOp(o))}</h2><button class="btn sm" data-act="new-mag">Ajouter un magasin</button></div><p class="muted small" style="margin:0">${ne.length} engagé(s) sur ${ms.length} magasin(s) éligible(s)</p>
+  <div class="list">${ms.map(m=>{const e=eng(o,m),n=e.supports?e.supports.filter(id=>ss.some(s=>s.id===id)).length:ss.length;return `<div><span>${esc(m.nom)}${e.statut==='engage'?'<br><span class="muted small">'+n+' support(s) sur '+ss.length+'</span>':''}</span><span class="row" style="justify-content:flex-end"><select data-eng="${esc(m.id)}" aria-label="Engagement ${esc(m.nom)}">${ENG.map(([k,l])=>`<option value="${k}"${e.statut===k?' selected':''}>${l}</option>`).join('')}</select>${e.statut==='engage'&&ss.length?`<button class="btn sm" data-engsup="${esc(m.id)}">Supports</button>`:''}</span></div>`}).join('')||vide('Aucun magasin dans ce réseau. Ajoutez les magasins éligibles.')}</div></section>
+  ${ss.length?`<section class="card"><h2>Engagements par support</h2><div class="list">${ss.map(s=>`<div><span>${esc(s.type)}</span><span class="pill">${ne.filter(m=>{const e=eng(o,m);return !e.supports||e.supports.includes(s.id)}).length} magasin(s)</span></div>`).join('')}</div></section>`:''}`}
+function compoHtml(s,o){const ps=prodsOf(o.id);
+  if(!typ(s).pagine){const us=offresDe(s);return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Offres utilisées par ce support</h3><button class="btn sm" data-choix="${esc(s.id)}">Choisir les offres</button></div>${us.length?'<div class="row">'+us.map(p=>`<span class="chip">${esc(p.libelle)}</span>`).join('')+'</div>':vide(s.institutionnel?'Création institutionnelle : aucune offre attendue.':'Aucune offre sélectionnée.')}</div>`}
+  const pg=pagesDe(s),libres=ps.filter(p=>place(p,s)==null);
+  return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Chemin de fer</h3><button class="btn sm" data-addpage="${esc(s.id)}">${pg.length?'Ajouter une page':'Créer le chemin de fer'}</button></div>
+  ${pg.length?`<p class="muted small" style="margin:0">Touchez une offre pour choisir sa page, ou glissez-la sur une page.</p><div class="pages">${pg.map(p=>{const inn=ps.filter(x=>place(x,s)===p.n);return `<div class="page" data-page="${p.n}" data-sup="${esc(s.id)}"><div class="row" style="justify-content:space-between"><span class="pn">${p.n}</span><span class="pill ${inn.length>p.cases?'crit':inn.length===p.cases?'ok':''}">${inn.length}/${p.cases}</span></div><button class="btn sm" data-rub="${p.n}" data-sup="${esc(s.id)}" style="text-align:left">${esc(p.rubrique||'Rubrique')}</button>${inn.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div>`}).join('')}</div>${libres.length?`<div><h3>Offres non placées dans ce support</h3><div class="row" style="margin-top:6px">${libres.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div></div>`:''}`:vide('Pas encore de chemin de fer.')}</div>`}
+function tDispositif(o){const ss=supsOf(o.id);
+  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports du dispositif</h2><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></div>
+  ${ss.length?ss.map(s=>{const pr=pretProd(s,o),ok=pr.every(x=>x[0]),n=offresDe(s).length;return `<div class="supp"><div class="row" style="justify-content:space-between"><span><b>${esc(s.type)}</b> <span class="pill">${FAMILLES[typ(s).f]}</span> ${enProd(s)?`<span class="pill ok">En production · ${libStat(s.statut)}</span>`:'<span class="pill">En préparation</span>'}</span><span class="row"><button class="btn sm" data-compo="${esc(s.id)}">${compo===s.id?'Fermer':'Composer'}</button><button class="btn sm" data-sup-edit="${esc(s.id)}">Modifier</button></span></div>
+    <span class="muted small">${esc(s.format||'Format à préciser')} · versions : ${esc(s.versions||'—')} · échéance ${fd(echeance(s,o))} · ${s.institutionnel?'création institutionnelle':n+' offre(s)'}${typ(s).pagine?' · '+pagesDe(s).length+' page(s)':''}</span>
+    ${enProd(s)?'':`<div class="list">${pr.map(([v,l])=>`<div><span class="small">${esc(l)}</span><span class="pill ${v?'ok':'crit'}">${v?'Satisfait':'Manquant'}</span></div>`).join('')}</div><div class="row"><button class="btn pri sm" data-ouvrir="${esc(s.id)}"${ok?'':' disabled'}>Ouvrir en production</button>${ok?'':'<span class="muted small">Complétez les éléments manquants.</span>'}</div>`}
+    ${compo===s.id?compoHtml(s,o):''}</div>`}).join(''):vide('Aucun support. Composez le dispositif : prospectus, affiche, e-catalogue, bannières, flux.')}</section>`}
+function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><span><input type="checkbox" data-task="${esc(x.id)}"${x.fait?' checked':''}> ${esc(x.libelle)}</span><span class="pill ${x.fait?'ok':enRetard(x)?'crit':''}">${x.fait?'Fait':enRetard(x)?'Retard · '+fd(x.echeance):fd(x.echeance)}</span></label>`,anc=ts.filter(t=>!t.support||!ss.some(s=>s.id===t.support));
+  return ss.map(s=>{const l=ts.filter(t=>t.support===s.id);return `<section class="card"><div class="row" style="justify-content:space-between"><h2>${esc(s.type)}</h2><button class="btn sm" data-retro="${esc(s.id)}">${l.length?'Recalculer':'Générer les jalons'}</button></div><p class="muted small" style="margin:0">Échéance ${fd(echeance(s,o))} · modèle ${FAMILLES[typ(s).f].toLowerCase()}</p><div class="list">${l.map(ligne).join('')||vide('Aucun jalon pour ce support.')}</div></section>`}).join('')+(anc.length?`<section class="card"><h2>Jalons généraux</h2><p class="muted small" style="margin:0">Créés avant le calendrier par support.</p><div class="list">${anc.map(ligne).join('')}</div></section>`:'')||`<section class="card">${vide('Le calendrier se construit à partir des supports du dispositif. Ajoutez un support.')}</section>`}
+function vPreparation(tab){const o=curOp();if(!o)return '<h1>Préparation</h1>'+banner()+vide('Aucun dossier. Créez une opération dans Pilotage.');
+  const T={cadrage:tCadrage,offres:tOffres,magasins:tMagasins,dispositif:tDispositif,calendrier:tCalendrier};
+  return `<div class="hd"><div><h1>Préparation</h1><p class="sub">${esc(o.nom)} · ${periode(o)} · ${phasePill(o)}</p></div>${opSelect('preparation',tab)}</div>${banner()}${jalStrip(o)}
+  <div class="tabs" role="tablist">${TABS.map(([k,l])=>`<a href="${lien('preparation',o.id,k)}" role="tab" ${k===tab?'aria-selected="true"':''}>${l}</a>`).join('')}</div>${T[tab](o)}`}
 
-function vProduction(){const o=curOp();if(!o)return '<h1>Production</h1>'+banner()+vide('Aucune opération.');
-  const ss=S.supports.filter(s=>s.op===o.id),nb=bloquants(o.id);
-  const card=s=>{const n=CHECKS.filter(([k])=>s.checks&&s.checks[k]).length;return '<div class="sup"><b>'+esc(s.type)+'</b><span class="muted">'+esc(s.format||'')+'</span><span class="muted">Versions : '+esc(s.versions||'—')+'</span><span class="muted">Fichier : '+esc(s.fichier||'aucun')+(s.destinataire?' · revue : '+esc(s.destinataire):'')+(s.remiseA?' · remis à : '+esc(s.remiseA):'')+'</span><span class="row">'+(s.perime?'<span class="pill crit" title="'+esc(s.perimeMotif||'')+'">'+(s.statut==='livre'?'Nouvelle révision requise':'À revalider')+'</span>':'')+'<span class="pill">Rév. '+(s.rev||1)+'</span><span class="pill">'+(s.bat?'BAT '+s.bat:'Pas de BAT')+'</span>'+(s.statut==='valide'||s.statut==='livre'?'<span class="pill warn">Déclaré'+((s.mode||'client')==='interne'?', interne':'')+'</span>':'')+'<span class="pill '+(n===CHECKS.length?'ok':'')+'">Contrôles '+n+'/'+CHECKS.length+'</span></span><select data-stat="'+esc(s.id)+'" aria-label="Statut '+esc(s.type)+'">'+STATUTS.map(([k,l])=>'<option value="'+k+'"'+(s.statut===k?' selected':'')+'>'+l+'</option>').join('')+'</select><button class="btn sm" data-chk="'+esc(s.id)+'">Contrôles et fiche</button>'+(FIGE.includes(s.statut)?'<button class="btn sm" data-rev="'+esc(s.id)+'">Nouvelle révision</button>':'')+'</div>'};
-  return '<div class="hd"><div><h1>Production</h1><p class="sub">Supports, BAT et remise</p></div>'+opSelect()+'</div>'+banner()+'<p class="muted small" style="margin:0">Le prototype ne transmet aucun fichier : les statuts enregistrent des déclarations, avec le fichier et le destinataire indiqués.</p>'+
-  (nb?'<div class="note">'+nb+' anomalie(s) bloquante(s) dans les données de cette opération. Aucun support ne peut être approuvé ni remis tant qu\'elles ne sont pas corrigées en Préparation.</div>':'')+
-  '<div class="row" style="justify-content:space-between"><span class="pill">'+ss.length+' support(s)</span><button class="btn pri" data-act="new-sup">Ajouter un support</button></div>'+
-  (ss.length?'<div class="kan">'+STATUTS.map(([k,l])=>{const c=ss.filter(s=>s.statut===k);return '<div class="col"><h3>'+l+'<span class="muted">'+c.length+'</span></h3>'+c.map(card).join('')+'</div>'}).join('')+'</div>':vide('Aucun support. Ajoutez le prospectus, l\'e-catalogue ou les flux à produire.'))+
-  '<section class="card"><div class="row" style="justify-content:space-between"><h2>Journal de l\'opération</h2><button class="btn sm" data-act="note">Ajouter une note</button></div><div class="list">'+(S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date)).map(j=>'<div><span>'+esc(j.texte)+'</span><span class="muted small" style="white-space:nowrap">'+fd(j.date)+'</span></div>').join('')||vide('Aucune note.'))+'</div></section>'}
+/* ---------- Production : les supports ouverts, leurs révisions et leurs preuves ---------- */
+function vProduction(){const o=curOp();if(!o)return '<h1>Production</h1>'+banner()+vide('Aucun dossier.');
+  const tous=supsOf(o.id),ss=tous.filter(enProd),att=tous.filter(s=>!enProd(s)),ts=tachesDe(o),jr=S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date)),rem=tous.filter(s=>s.statut==='livre').length,clo=tous.length>0&&rem===tous.length;
+  const card=s=>{const n=CHECKS.filter(([k])=>s.checks&&s.checks[k]).length,nb=nbBloq(offresDe(s));return `<div class="sup"><b>${esc(s.type)}</b><span class="muted">${esc(s.format||'')} · échéance ${fd(echeance(s,o))}</span><span class="muted">Fichier : ${esc(s.fichier||'aucun')}${s.destinataire?' · revue : '+esc(s.destinataire):''}${s.remiseA?' · remis à : '+esc(s.remiseA):''}</span><span class="row">${s.perime?`<span class="pill crit" title="${esc(s.perimeMotif||'')}">${s.statut==='livre'?'Nouvelle révision requise':'À revalider'}</span>`:''}${nb?`<span class="pill crit">${nb} anomalie(s)</span>`:''}<span class="pill">Rév. ${s.rev||1}</span><span class="pill">${s.bat?'BAT '+s.bat:'Pas de BAT'}</span>${s.statut==='valide'||s.statut==='livre'?`<span class="pill warn">Déclaré${(s.mode||'client')==='interne'?', interne':''}</span>`:''}<span class="pill ${n===CHECKS.length?'ok':''}">Contrôles ${n}/${CHECKS.length}</span></span><select data-stat="${esc(s.id)}" aria-label="Statut ${esc(s.type)}">${STATUTS.map(([k,l])=>`<option value="${k}"${s.statut===k?' selected':''}>${l}</option>`).join('')}</select><span class="row"><button class="btn sm" data-chk="${esc(s.id)}">Contrôles et fiche</button><button class="btn sm" data-brief="${esc(s.id)}">Copier le brief</button>${FIGE.includes(s.statut)?`<button class="btn sm" data-rev="${esc(s.id)}">Nouvelle révision</button>`:''}</span></div>`};
+  return `<div class="hd"><div><h1>Production</h1><p class="sub">${esc(o.nom)} · ${periode(o)} · ${phasePill(o)}</p></div>${opSelect('production')}</div>${banner()}${jalStrip(o)}
+  <p class="muted small" style="margin:0">Le prototype ne transmet aucun fichier : les statuts enregistrent des déclarations, avec le fichier et le destinataire indiqués.</p>
+  ${ss.length?`<div class="kan">${STATUTS.map(([k,l])=>{const c=ss.filter(s=>s.statut===k);return `<div class="col"><h3>${l}<span class="muted">${c.length}</span></h3>${c.map(card).join('')}</div>`}).join('')}</div>`:`<section class="card">${vide('Aucun support en production.')}</section>`}
+  ${att.length?`<section class="card"><h2>Encore en préparation</h2><div class="list">${att.map(s=>`<div><span>${esc(s.type)}</span><a class="btn sm" href="${lien('preparation',o.id,'dispositif')}">Voir les prérequis</a></div>`).join('')}</div></section>`:''}
+  <section class="card"><div class="row" style="justify-content:space-between"><h2>Bilan de l'opération</h2>${o.cloture?'<span class="pill ok">Clôturée</span>':`<button class="btn sm pri" data-act="cloturer"${clo?'':' disabled'}>Clôturer l'opération</button>`}</div>
+  <div class="grid tiles"><div class="tile"><b>${rem}/${tous.length}</b><span>supports remis</span></div><div class="tile"><b>${tous.reduce((n,s)=>n+(s.bat||0),0)}</b><span>BAT préparés</span></div><div class="tile"><b>${tous.reduce((n,s)=>n+(s.rev||1)-1,0)}</b><span>révisions supplémentaires</span></div><div class="tile ${jr.some(j=>j.type==='modif')?'warn':''}"><b>${jr.filter(j=>j.type==='modif').length}</b><span>modifications après revue</span></div><div class="tile ${ts.some(enRetard)?'crit':''}"><b>${ts.filter(t=>t.fait).length}/${ts.length}</b><span>jalons tenus</span></div></div>
+  ${o.cloture&&o.bilanNote?'<p style="margin:0"><b>Enseignements :</b> '+esc(o.bilanNote)+'</p>':clo||o.cloture?'':'<p class="muted small" style="margin:0">La clôture devient possible quand tous les supports du dispositif sont remis.</p>'}</section>
+  <section class="card"><div class="row" style="justify-content:space-between"><h2>Journal de l'opération</h2><button class="btn sm" data-act="note">Ajouter une note</button></div><div class="list">${jr.map(j=>`<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(j.texte)}</span><span class="muted small" style="white-space:nowrap">${fd(j.date)}</span></div>`).join('')||vide('Aucune note.')}</div></section>`}
 
 const VUES={accueil:vAccueil,pilotage:vPilotage,preparation:vPreparation,production:vProduction};
-function render(){const h=(location.hash||'#accueil').slice(1),v=VUES[h]?h:'accueil';
-  document.querySelectorAll('nav a').forEach(a=>a.getAttribute('href')==='#'+v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
-  $('#view').innerHTML=VUES[v]()+'<p class="muted small" style="margin:0">BigOne Studio, prototype · version 2026-11-14.3</p>'}
-function pick(id){cur=id;try{localStorage.setItem('bos-op',id)}catch(e){}render()}
+function render(){const r=route();curOp();
+  document.querySelectorAll('nav a').forEach(a=>{const v=a.dataset.v;a.setAttribute('href',lien(v,v==='preparation'||v==='production'?cur:null));v===r.v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
+  $('#view').innerHTML=VUES[r.v](r.tab)+`<p class="muted small" style="margin:0">BigOne Studio, prototype · version ${VERSION}</p>`}
 
 /* ---------- formulaires ---------- */
-function peutEcrire(){if(CODE)return true;askCode();return false}
+function peutEcrire(){if(!PUBLIC||CODE)return true;askCode();return false}
+function askCode(){form('Code de test',[{k:'i',t:'info',l:'La consultation est libre. Pour modifier, saisissez le code fourni par Nanotera, puis recommencez votre action.'},{k:'code',l:'Code de test',req:1}],async r=>{let ok;try{ok=await rpc({p_code:r.code,p_op:'check'})}catch(e){return 'Vérification impossible. Réessayez dans un instant.'}
+  if(ok!==true)return 'Code refusé. Vérifiez-le puis réessayez.';CODE=r.code;try{localStorage.setItem('bos-code',CODE)}catch(e){}toast('Modifications activées.');render();return true},null,render)}
 function montant(s,ent){s=String(s??'').replace(/[\s  ]/g,'').replace(/€$/,'');if(s==='')return {v:null};
   if(!(ent?/^\d+$/:/^\d+([.,]\d{1,2})?$/).test(s))return {e:ent?'Saisissez un nombre entier.':'Montant non reconnu. Formats acceptés : 12,5 ou 1 299,90 (deux décimales au plus).'};
   return {v:parseFloat(s.replace(',','.'))}}
@@ -291,42 +385,56 @@ function form(titre,champs,ok,suppr,annule){const d=$('#dlg');let fini=false;
     if(res===false||typeof res==='string')return echec(res||'Enregistrement non effectué. Vos saisies sont conservées : réessayez.');
     fini=true;d.close()};
   d.showModal()}
-function fOp(o){form(o?'Modifier l\'opération':'Nouvelle opération',[{k:'nom',l:'Nom',v:o&&o.nom,req:1},{k:'enseignes',l:'Enseignes (séparées par des virgules)',v:o?(o.enseignes||[]).join(', '):'Hyper U, Super U, U Express'},{k:'portee',l:'Portée',t:'select',o:['Nationale','Régionale','Locale'].map(x=>[x,x]),v:o&&o.portee},{k:'debut',l:'Début',t:'date',v:o&&o.debut,req:1},{k:'fin',l:'Fin',t:'date',v:o&&o.fin,req:1},{k:'remise',l:'Remise des fichiers à l\'imprimeur (si le dispositif est imprimé)',t:'date',v:o&&o.remise},...(o?[{k:'etape',l:'Étape',t:'select',o:ETAPES.map((x,i)=>[i+1,x]),v:o.etape}]:[])],async r=>{
-    if(r.fin<r.debut)return 'La date de fin précède la date de début.';
-    if(r.remise&&r.remise>=r.debut)return 'La remise à l\'imprimeur doit précéder le début de l\'opération.';
-    const data={nom:r.nom,enseignes:r.enseignes.split(',').map(x=>x.trim()).filter(Boolean),portee:r.portee,debut:r.debut,fin:r.fin,remise:r.remise||null};
-    if(o){const e=+r.etape;if(e>o.etape&&e>=4){const m=prerequis(o).filter(x=>!x[0]).map(x=>x[1]);if(m.length)return 'Étape « '+ETAPES[e-1]+' » refusée. Prérequis manquants : '+m.join(' ; ')+'.'}
-      data.etape=e;if(!await w('operations/'+o.id,data))return false;if(e!==o.etape)await log(o.id,'Étape modifiée : '+ETAPES[o.etape-1]+' → '+ETAPES[e-1]+'.');return true}
-    const id=uid('op');Object.assign(data,{etape:1,magasins:null,source:null});if(!await w('operations/'+id,data,'set'))return false;
-    pick(id);if(data.remise)await appliquerRetro(id,planRetro(id,data.remise,data.debut));await log(id,'Opération créée.');return true})}
-/* Recalcul sans suppression : les tâches existantes gardent leur identifiant, leur état et leurs ajouts manuels. */
-function planRetro(id,remise,debut){const ex=S.taches.filter(t=>t.op===id),maj=[],crea=[];
-  retro(remise,debut).forEach(t=>{const e=ex.find(x=>x.libelle===t.libelle);if(!e)crea.push(t);else if(e.echeance!==t.echeance)maj.push({id:e.id,libelle:e.libelle,de:e.echeance,a:t.echeance})});return {maj,crea}}
-async function appliquerRetro(id,p){for(const m of p.maj)if(!await w('taches/'+m.id,{echeance:m.a}))return false;
-  for(const t of p.crea)if(!await w('taches/'+uid('t'),Object.assign({op:id},t),'set'))return false;return true}
-function fRetro(o){const txt=p=>(p.maj.length||p.crea.length?'<b>Aperçu.</b> '+(p.maj.map(m=>esc(m.libelle)+' : '+fd(m.de)+' → '+fd(m.a)).concat(p.crea.map(t=>'Nouvelle tâche : '+esc(t.libelle)+' ('+fd(t.echeance)+')')).join('<br>')):'Aucun changement avec cette date.')+'<br>Les tâches terminées restent terminées et les tâches ajoutées à la main sont conservées.';
-  form('Rétroplanning',[{k:'remise',l:'Remise des fichiers à l\'imprimeur',t:'date',v:o.remise,req:1},{k:'prev',t:'info',l:''}],async r=>{
-    if(r.remise>=o.debut)return 'La remise à l\'imprimeur doit précéder le début de l\'opération ('+fd(o.debut)+').';
-    const p=planRetro(o.id,r.remise,o.debut);if(r.remise!==o.remise&&!await w('operations/'+o.id,{remise:r.remise}))return false;
-    if(!await appliquerRetro(o.id,p))return 'Le recalcul s\'est interrompu. Les tâches déjà enregistrées sont conservées : relancez le recalcul.';
-    await log(o.id,'Rétroplanning recalculé : '+p.maj.length+' échéance(s) déplacée(s), '+p.crea.length+' tâche(s) créée(s).');return true});
-  const maj=()=>{const v=$('#f-remise').value;$('#f-prev').innerHTML=v?txt(planRetro(o.id,v,o.debut)):'Choisissez une date pour voir l\'aperçu.'};$('#f-remise').oninput=maj;maj()}
-/* Une donnée modifiée périme les contrôles des supports déjà en revue, approuvés ou remis. */
-async function perimer(opId,motif){const ss=S.supports.filter(s=>s.op===opId&&FIGE.includes(s.statut)&&!s.perime);
+
+/* Registre des modifications : une donnée qui change après une revue périme les supports qui l'utilisent, et eux seuls. */
+async function perimer(o,motif,cible,toujours){const ss=supsOf(o.id).filter(s=>FIGE.includes(s.statut)&&!s.perime&&cible(s));
   for(const s of ss)await w('supports/'+s.id,s.statut==='livre'?{perime:true,perimeMotif:motif}:{perime:true,perimeMotif:motif,statut:'corrections',checks:Object.assign({},s.checks,{donnees:false,comparaison:false})});
-  await log(opId,motif+(ss.length?' '+ss.length+' support(s) à revalider ; les revues et approbations en cours repassent en corrections.':''))}
-const CHAMPS={libelle:'libellé',description:'description',marque:'marque',rayon:'rayon',prix:'prix',barre:'prix barré',mecanique:'mécanique',origine:'origine',mention:'mention légale',page:'page'};
-const prixTxt=v=>v==null?'aucun':v.toFixed(2).replace('.',',')+' €';
-function fProd(p){const o=curOp(),ch=S.chemins.find(c=>c.id===o.id),pg=[['','Non placé'],...(ch?ch.pages:[]).map(x=>[x.n,'Page '+x.n+' · '+(x.rubrique||'')])];
-  form(p?'Modifier le produit':'Ajouter un produit',[{k:'libelle',l:'Libellé',v:p&&p.libelle,req:1},{k:'description',l:'Description',t:'area',v:p&&p.description},{k:'marque',l:'Marque',v:p&&p.marque},{k:'rayon',l:'Rayon',t:'select',o:[['','—'],...[...new Set([...RAYONS,...(p&&p.rayon?[p.rayon]:[])])].map(x=>[x,x])],v:p&&p.rayon},{k:'prix',l:'Prix (€)',t:'number',v:p&&p.prix},{k:'barre',l:'Prix barré (€)',t:'number',v:p&&p.barre},{k:'mecanique',l:'Mécanique',v:p?p.mecanique:'Prix bas'},{k:'origine',l:'Origine',v:p&&p.origine},{k:'mention',l:'Mention légale',v:p&&p.mention},{k:'page',l:'Page',t:'select',o:pg,v:p&&p.page!=null?p.page:''}],async r=>{
-    r.page=r.page===''?null:+r.page;
-    if(!p){if(!await w('produits/'+uid('p'),Object.assign(r,{op:o.id,source:null}),'set'))return false;await perimer(o.id,'Produit « '+r.libelle+' » ajouté.');return true}
-    const ch=Object.keys(CHAMPS).filter(k=>(p[k]??'')!==(r[k]??''));if(!ch.length)return true;
-    if(!await w('produits/'+p.id,r))return false;
-    await perimer(o.id,ch.includes('prix')?'Prix de « '+r.libelle+' » modifié ('+prixTxt(p.prix)+' → '+prixTxt(r.prix)+').':'Fiche de « '+r.libelle+' » modifiée ('+ch.map(k=>CHAMPS[k]).join(', ')+').');return true},
-    p&&(async()=>{if(!await w('produits/'+p.id,null,'delete'))return false;await perimer(o.id,'Produit « '+p.libelle+' » supprimé.')}))}
-function fSup(){const o=curOp();form('Ajouter un support',[{k:'type',l:'Type',t:'select',o:['Prospectus','E-catalogue','Flux Bonial','Flux Tiendeo','Affiche','PLV','Bannières Meta','Bannières display','SMS / RCS'].map(x=>[x,x])},{k:'format',l:'Format'},{k:'versions',l:'Versions'}],r=>w('supports/'+uid('s'),Object.assign(r,{op:o.id,statut:'amonter',bat:0,checks:{},source:null}),'set'))}
-const FIGE=['bat','valide','livre'],libStat=k=>STATUTS.find(x=>x[0]===k)[1],sansCoche=()=>Object.fromEntries(CHECKS.map(([k])=>[k,false]));
+  if(ss.length)await log(o.id,motif+' Supports à revalider : '+ss.map(s=>s.type).join(', ')+'.','modif');else if(toujours)await log(o.id,motif)}
+async function jalon(s,cle){const t=S.taches.find(x=>x.support===s.id&&x.cle===cle);if(t&&!t.fait)await w('taches/'+t.id,{fait:true})}
+function planTaches(s,o,remise){const ex=S.taches.filter(t=>t.support===s.id),maj=[],crea=[];
+  MODELES[typ(s).f].filter(m=>!m[3]||typ(s).pagine).forEach(([cle,libelle,n])=>{const e=ex.find(x=>x.cle===cle),ech=decale(remise,n);if(!e)crea.push({op:o.id,support:s.id,cle,libelle,echeance:ech,fait:false});else if(e.echeance!==ech)maj.push({id:e.id,libelle,de:e.echeance,a:ech})});return {maj,crea}}
+async function appliquerPlan(p){for(const m of p.maj)if(!await w('taches/'+m.id,{echeance:m.a}))return false;for(const t of p.crea)if(!await w('taches/'+uid('t'),t,'set'))return false;return true}
+const refusEch=(s,o,d)=>typ(s).f==='imprime'?(d>=o.debut?'L\'échéance d\'un support imprimé doit précéder le début de l\'opération ('+fd(o.debut)+').':''):(d>o.fin?'L\'échéance doit précéder la fin de l\'opération ('+fd(o.fin)+').':'');
+
+function fOp(o){const res=[...new Set(['Magasins U',...S.operations.map(resOp),...S.magasins.map(m=>m.reseau).filter(Boolean)])];
+  form(o?'Nom, réseau et dates':'Nouvelle opération',[{k:'nom',l:'Nom',v:o&&o.nom,req:1},{k:'reseau',l:'Réseau (existants : '+res.join(', ')+')',v:o?resOp(o):'Magasins U',req:1},{k:'enseignes',l:'Enseignes (séparées par des virgules)',v:o?(o.enseignes||[]).join(', '):''},{k:'portee',l:'Portée',t:'select',o:['Nationale','Régionale','Locale'].map(x=>[x,x]),v:o&&o.portee},{k:'debut',l:'Début de la période commerciale',t:'date',v:o&&o.debut,req:1},{k:'fin',l:'Fin de la période commerciale',t:'date',v:o&&o.fin,req:1}],async r=>{
+    if(r.fin<r.debut)return 'La date de fin précède la date de début.';
+    const data={nom:r.nom,reseau:r.reseau,enseignes:r.enseignes.split(',').map(x=>x.trim()).filter(Boolean),portee:r.portee,debut:r.debut,fin:r.fin};
+    if(o){const bad=supsOf(o.id).map(s=>refusEch(s,data,echeance(s,o))&&s.type).filter(Boolean);if(bad.length)return 'Ces dates rendent incohérente l\'échéance de : '+bad.join(', ')+'. Déplacez d\'abord ces échéances.';
+      if(!await w('operations/'+o.id,data))return false;if(r.debut!==o.debut||r.fin!==o.fin)await perimer(o,'Période commerciale modifiée ('+periode(o)+' → '+periode(data)+').',()=>true,true);return true}
+    const id=uid('op');if(!await w('operations/'+id,Object.assign(data,{suivi:true,brief:{},source:null}),'set'))return false;await log(id,'Dossier créé.');aller('preparation',id,'cadrage');return true})}
+function fBrief(o){const b=o.brief||{};form('Brief de l\'opération',[{k:'objectif',l:'Objectif commercial',t:'area',v:b.objectif,req:1},{k:'responsable',l:'Responsable Nanotera',v:b.responsable,req:1},{k:'client',l:'Interlocuteur client',v:b.client},{k:'notes',l:'Contraintes et décisions à retenir',t:'area',v:b.notes}],async r=>{if(!await w('operations/'+o.id,{brief:r}))return false;if(!b.objectif)await log(o.id,'Brief renseigné (responsable : '+r.responsable+').');return true})}
+function fProd(p){const o=curOp();
+  form(p?'Modifier l\'offre':'Ajouter une offre',[{k:'libelle',l:'Libellé',v:p&&p.libelle,req:1},{k:'description',l:'Description',t:'area',v:p&&p.description},{k:'marque',l:'Marque',v:p&&p.marque},{k:'rayon',l:'Rayon',t:'select',o:[['','—'],...[...new Set([...RAYONS,...(p&&p.rayon?[p.rayon]:[])])].map(x=>[x,x])],v:p&&p.rayon},{k:'prix',l:'Prix (€)',t:'number',v:p&&p.prix},{k:'barre',l:'Prix barré (€)',t:'number',v:p&&p.barre},{k:'mecanique',l:'Mécanique',v:p?p.mecanique:'Prix bas'},{k:'origine',l:'Origine',v:p&&p.origine},{k:'mention',l:'Mention légale',v:p&&p.mention}],async r=>{
+    if(!p){const id=uid('p');if(!await w('produits/'+id,Object.assign(r,{op:o.id,source:null}),'set'))return false;await perimer(o,'Offre « '+r.libelle+' » ajoutée.',s=>!typ(s).pagine&&!s.produits&&!s.institutionnel);return true}
+    const L={libelle:'libellé',description:'description',marque:'marque',rayon:'rayon',prix:'prix',barre:'prix barré',mecanique:'mécanique',origine:'origine',mention:'mention légale'},ch=Object.keys(L).filter(k=>(p[k]??'')!==(r[k]??''));if(!ch.length)return true;
+    const av=supsOf(o.id).filter(s=>utilise(s,p)&&!s.institutionnel).map(s=>s.id);if(!await w('produits/'+p.id,r))return false;
+    await perimer(o,ch.includes('prix')?'Prix de « '+r.libelle+' » modifié ('+prixTxt(p.prix)+' → '+prixTxt(r.prix)+').':'Offre « '+r.libelle+' » modifiée ('+ch.map(k=>L[k]).join(', ')+').',s=>av.includes(s.id),ch.includes('prix'));return true},
+    p&&(async()=>{const av=supsOf(o.id).filter(s=>utilise(s,p)&&!s.institutionnel).map(s=>s.id);if(!await w('produits/'+p.id,null,'delete'))return false;await perimer(o,'Offre « '+p.libelle+' » supprimée.',s=>av.includes(s.id),true)}))}
+function fSup(s){const o=curOp(),fige=s&&FIGE.includes(s.statut);
+  form(s?s.type+' : fiche du support':'Ajouter un support',[...(s?[]:[{k:'type',l:'Type',t:'select',o:Object.keys(TYPES).filter(t=>t!=='Affiche A1').map(x=>[x,x+' ('+FAMILLES[TYPES[x].f].toLowerCase()+')'])}]),...(fige?[{k:'i',t:'info',l:'Statut « '+libStat(s.statut)+' » : le format et les versions ne changent que par une nouvelle révision, depuis Production.'}]:[{k:'format',l:'Format',v:s&&s.format},{k:'versions',l:'Versions',v:s&&s.versions}]),{k:'remise',l:'Échéance de remise (laisser vide pour la date proposée)',t:'date',v:s&&s.remise},{k:'institutionnel',l:'Création institutionnelle, sans offre',t:'check',v:s&&s.institutionnel}],async r=>{
+    const x=s||{type:r.type,op:o.id},d=r.remise||echeance(Object.assign({},x,{remise:''}),o),refus=refusEch(x,o,d);if(refus)return refus;
+    if(s){const data=fige?{remise:d,institutionnel:r.institutionnel}:{format:r.format,versions:r.versions,remise:d,institutionnel:r.institutionnel};if(!await w('supports/'+s.id,data))return false;
+      const p=planTaches(s,o,d);if(p.maj.length){await appliquerPlan({maj:p.maj,crea:[]});await log(o.id,s.type+' : échéance déplacée au '+fd(d)+', '+p.maj.length+' jalon(s) recalculé(s).',enProd(s)?'modif':'')}return true}
+    const id=uid('s'),ns={op:o.id,type:r.type,format:r.format,versions:r.versions,remise:d,institutionnel:r.institutionnel,statut:'amonter',prod:false,bat:0,rev:1,checks:sansCoche(),mode:'client',source:null};
+    if(!await w('supports/'+id,ns,'set'))return false;await appliquerPlan(planTaches(Object.assign({id},ns),o,d));await log(o.id,r.type+' ajouté au dispositif, échéance '+fd(d)+'.');compo=id;return true},
+    s&&!enProd(s)?async()=>{for(const t of S.taches.filter(t=>t.support===s.id))await w('taches/'+t.id,null,'delete');return w('supports/'+s.id,null,'delete')}:null)}
+function fRetro(s){const o=curOp(),txt=p=>(p.maj.length||p.crea.length?'<b>Aperçu.</b> '+p.maj.map(m=>esc(m.libelle)+' : '+fd(m.de)+' → '+fd(m.a)).concat(p.crea.map(t=>'Nouveau jalon : '+esc(t.libelle)+' ('+fd(t.echeance)+')')).join('<br>'):'Aucun changement avec cette date.')+'<br>Les jalons terminés restent terminés.';
+  form(s.type+' : calendrier',[{k:'remise',l:'Échéance de remise',t:'date',v:echeance(s,o),req:1},{k:'prev',t:'info',l:''}],async r=>{const refus=refusEch(s,o,r.remise);if(refus)return refus;
+    const p=planTaches(s,o,r.remise);if(r.remise!==s.remise&&!await w('supports/'+s.id,{remise:r.remise}))return false;
+    if(!await appliquerPlan(p))return 'Le recalcul s\'est interrompu. Les jalons déjà enregistrés sont conservés : relancez le recalcul.';
+    await log(o.id,s.type+' : calendrier recalculé, '+p.maj.length+' échéance(s) déplacée(s), '+p.crea.length+' jalon(s) créé(s).',enProd(s)&&p.maj.length?'modif':'');return true});
+  const maj=()=>{const v=$('#f-remise').value;$('#f-prev').innerHTML=v?txt(planTaches(s,o,v)):'Choisissez une date pour voir l\'aperçu.'};$('#f-remise').oninput=maj;maj()}
+async function ecrirePages(s,pg){return w('chemins/'+s.id,{pages:pg},S.chemins.some(c=>c.id===s.id)?undefined:'set')}
+async function placer(s,pid,n){const p=S.produits.find(x=>x.id===pid),o=opById(s.op),av=place(p,s);if(!p||av===n)return true;
+  if(!await w('produits/'+pid,{placements:Object.assign({},p.placements,{[s.id]:n})}))return false;
+  await perimer(o,'« '+p.libelle+' » '+(n==null?'retiré du':'déplacé dans le')+' support '+s.type+' (page '+(av??'—')+' → '+(n??'—')+').',x=>x.id===s.id);return true}
+function fPlacer(s,pid){const p=S.produits.find(x=>x.id===pid);form('Placer « '+p.libelle+' »',[{k:'page',l:'Page du support '+s.type,t:'select',o:[['','Non placé'],...pagesDe(s).map(x=>[x.n,'Page '+x.n+' · '+(x.rubrique||'')])],v:place(p,s)??''}],r=>placer(s,pid,r.page===''?null:+r.page))}
+function fChoix(s){const o=curOp(),ps=prodsOf(o.id);if(!ps.length)return toast('Ajoutez d\'abord des offres dans l\'onglet Offres.');
+  form(s.type+' : offres utilisées',ps.map(p=>({k:p.id,l:p.libelle+(p.prix!=null?' · '+prixTxt(p.prix):''),t:'check',v:utilise(s,p)})),async r=>{const ids=ps.filter(p=>r[p.id]).map(p=>p.id),av=offresDe(s).map(p=>p.id);if(ids.length===av.length&&ids.every(i=>av.includes(i)))return true;
+    if(!await w('supports/'+s.id,{produits:ids}))return false;await perimer(o,'Sélection d\'offres du support '+s.type+' modifiée.',x=>x.id===s.id);return true})}
+function fEngSup(m){const o=curOp(),ss=supsOf(o.id),e=eng(o,m);form(m.nom+' : supports choisis',ss.map(s=>({k:s.id,l:s.type,t:'check',v:!e.supports||e.supports.includes(s.id)})),async r=>{const ids=ss.filter(s=>r[s.id]).map(s=>s.id);
+    if(!await w('engagements/'+o.id,{[m.id]:{statut:e.statut,supports:ids}},S.engagements.some(x=>x.id===o.id)?undefined:'set'))return false;if(ss.some(enProd))await log(o.id,m.nom+' : '+ids.length+' support(s) retenu(s) sur '+ss.length+'.','modif');return true})}
 function fChk(s){const rem=s.statut==='livre',fige=FIGE.includes(s.statut),arch=(s.archives||[]).map(a=>'rév. '+a.rev+' '+esc(a.etat)+' (« '+esc(a.fichier||'sans fichier')+' »)').join(', ');
   form(s.type+' : contrôles et fiche',[{k:'i0',t:'info',l:'Révision '+(s.rev||1)+(arch?' · historique : '+arch:'')+(fige?'<br>Statut « '+libStat(s.statut)+' » : le fichier, le format et les versions ne changent que par une nouvelle révision.':'')},
     ...(s.perime?[{k:'i',t:'info',l:'<span class="pill crit">'+(rem?'Nouvelle révision requise':'À revalider')+'</span> '+esc(s.perimeMotif||'')+' '+(rem?'Cette révision reste remise telle quelle. Créez une nouvelle révision pour intégrer la modification.':'Recochez « Prix et libellés » et « PDF de comparaison » après vérification.')}]:[]),
@@ -337,33 +445,33 @@ function fChk(s){const rem=s.statut==='livre',fige=FIGE.includes(s.statut),arch=
     if(rem)return 'Ce support est remis : sa fiche et ses contrôles sont figés. Créez une nouvelle révision pour le modifier.';
     if(fige&&(chgF||chgA))return 'Pendant la revue et après approbation, le fichier, le format, les versions, le destinataire et le mode de validation sont figés. Créez une nouvelle révision.';
     const d={checks,fichier:r._fichier,destinataire:r._dest,format:r._format,versions:r._versions,mode:r._mode},lever=s.perime&&checks.donnees&&checks.comparaison&&(!av.donnees||!av.comparaison);if(lever){d.perime=false;d.perimeMotif=''}
-    if(!await w('supports/'+s.id,d))return false;if(lever)await log(s.op,s.type+' : données revérifiées sur la révision '+(s.rev||1)+' après modification.');return true},rem?null:()=>w('supports/'+s.id,null,'delete'))}
+    if(!await w('supports/'+s.id,d))return false;if(lever)await log(s.op,s.type+' : données revérifiées sur la révision '+(s.rev||1)+' après modification.');return true})}
 function fRev(s){const n0=s.rev||1;form(s.type+' : nouvelle révision',[{k:'i',t:'info',l:'La révision '+n0+' (« '+esc(s.fichier||'sans fichier')+' », '+esc(libStat(s.statut).toLowerCase())+') et ses décisions restent dans l\'historique. La nouvelle révision repart en maquette, tous contrôles à refaire.'},{k:'fichier',l:'Fichier de la nouvelle révision (nom ou lien)',req:1},{k:'format',l:'Format',v:s.format},{k:'versions',l:'Versions',v:s.versions}],async r=>{
     if(r.fichier===(s.fichier||''))return 'Indiquez un fichier différent de celui de la révision '+n0+'.';
     const etat=libStat(s.statut).toLowerCase(),archives=[...(s.archives||[]),{rev:n0,fichier:s.fichier||'',format:s.format||'',etat,date:today(),destinataire:s.destinataire||'',remiseA:s.remiseA||''}];
     if(!await w('supports/'+s.id,{rev:n0+1,archives,fichier:r.fichier,format:r.format,versions:r.versions,statut:'maquette',checks:sansCoche(),perime:false,perimeMotif:'',remiseA:''}))return false;
-    await log(s.op,s.type+' : révision '+(n0+1)+' créée (« '+r.fichier+' »), à contrôler. La révision '+n0+' reste « '+etat+' » dans l\'historique.');return true})}
-function refusStat(s,to){const ck=s.checks||{},n=bloquants(s.op);
+    await log(s.op,s.type+' : révision '+(n0+1)+' créée (« '+r.fichier+' »), à contrôler. La révision '+n0+' reste « '+etat+' » dans l\'historique.','modif');return true})}
+function refusStat(s,to){const ck=s.checks||{},n=nbBloq(offresDe(s));
   if(s.statut==='livre')return 'ce support est remis. Créez une nouvelle révision pour le faire évoluer.';
   if(to!=='valide'&&to!=='livre')return '';
   if(to==='livre'&&s.statut!=='valide')return 'le support doit d\'abord être approuvé.';
   if(!CHECKS.filter(([k])=>k!=='natifs').every(([k])=>ck[k]))return 'terminez les contrôles du support.';
   if(!s.fichier)return 'aucun fichier de révision n\'est renseigné dans la fiche du support.';
   if(s.perime)return 'les données ont changé depuis les contrôles. Revérifiez le support.';
-  if(n)return n+' anomalie(s) bloquante(s) restent dans les données de l\'opération.';
+  if(n)return n+' anomalie(s) bloquante(s) restent sur les offres utilisées par ce support.';
   if(to==='valide'&&(s.mode||'client')==='client'){if(s.statut!=='bat')return 'en revue client, le support doit d\'abord passer par « BAT prêt pour revue ». Pour valider sans le client, choisissez « Approbation interne » dans la fiche.';if(!s.destinataire)return 'aucun destinataire de revue n\'est renseigné.'}
   if(to==='livre'&&!ck.natifs)return 'les fichiers natifs ne sont pas déposés.';
   return ''}
 async function setStat(s,to){const rv='révision '+(s.rev||1)+' « '+(s.fichier||'')+' »';
   const refus=refusStat(s,to);if(refus){toast((to==='livre'?'Remise':to==='valide'?'Approbation':'Changement')+' impossible : '+refus);return render()}
   if(to==='bat')return form('BAT prêt pour revue',[{k:'i',t:'info',l:'Le prototype n\'envoie rien. Cette action enregistre qu\'une révision est prête à être transmise au client.'},{k:'fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier,req:1},{k:'dest',l:'Destinataire de la revue',v:s.destinataire,req:1}],async r=>{const n=(s.bat||0)+1;
-    if(!await w('supports/'+s.id,{statut:'bat',bat:n,fichier:r.fichier,destinataire:r.dest}))return false;
+    if(!await w('supports/'+s.id,{statut:'bat',bat:n,fichier:r.fichier,destinataire:r.dest}))return false;await jalon(s,'bat1');
     await log(s.op,s.type+' : BAT '+n+' prêt pour revue (révision '+(s.rev||1)+' « '+r.fichier+' », destinataire '+r.dest+'). Aucun envoi effectué par le prototype.');return true},null,render);
   if(to==='livre')return form('Remise déclarée',[{k:'i',t:'info',l:'Le prototype ne transmet aucun fichier et ne reçoit aucun reçu. Cette action enregistre une déclaration de remise pour la '+esc(rv)+'.'},{k:'a',l:'Destinataire ou canal de remise',req:1}],async r=>{
-    if(!await w('supports/'+s.id,{statut:'livre',remiseA:r.a}))return false;await log(s.op,s.type+' : '+rv+' déclarée remise à '+r.a+'. Aucun reçu : le prototype ne transmet pas de fichier.');return true},null,render);
-  if(await w('supports/'+s.id,{statut:to}))await log(s.op,s.type+' : '+(to==='valide'?rv+((s.mode||'client')==='client'?' déclarée approuvée après revue de '+s.destinataire+'.':' approuvée en interne, sans revue client.'):'passé à « '+libStat(to)+' ».'));else render()}
-async function setPage(pid,n){const p=S.produits.find(x=>x.id===pid);if(p&&p.page!==n&&await w('produits/'+pid,{page:n}))await perimer(p.op,'« '+p.libelle+' » déplacé (page '+(p.page??'—')+' → '+n+').')}
-function prerequis(o){const ps=prodsOf(o.id),ss=S.supports.filter(s=>s.op===o.id);return [[ps.length>0||ss.length>0,'Au moins un produit ou un support défini'],[bloquants(o.id)===0,'Aucune anomalie bloquante dans les données'],[!!o.debut&&!!o.fin&&o.fin>=o.debut,'Période de l\'opération cohérente']]}
+    if(!await w('supports/'+s.id,{statut:'livre',remiseA:r.a}))return false;await jalon(s,'remise');await log(s.op,s.type+' : '+rv+' déclarée remise à '+r.a+'. Aucun reçu : le prototype ne transmet pas de fichier.');return true},null,render);
+  if(await w('supports/'+s.id,{statut:to})){if(to==='valide')await jalon(s,'approb');await log(s.op,s.type+' : '+(to==='valide'?rv+((s.mode||'client')==='client'?' déclarée approuvée après revue de '+s.destinataire+'.':' approuvée en interne, sans revue client.'):'passé à « '+libStat(to)+' ».'))}else render()}
+function brief(s){const o=opById(s.op),b=o.brief||{},ps=offresDe(s);
+  return ['BRIEF · '+s.type+' · '+o.nom,'Réseau : '+resOp(o)+' · période commerciale : '+periode(o),'Échéance de remise : '+fd(echeance(s,o))+' · révision '+(s.rev||1),'Format : '+(s.format||'à préciser')+' · versions : '+(s.versions||'à préciser'),'Objectif : '+(b.objectif||'à préciser'),'Responsable : '+(b.responsable||'à préciser')+(b.client?' · client : '+b.client:''),b.notes?'Contraintes : '+b.notes:'','',s.institutionnel?'Création institutionnelle, sans offre.':'Offres ('+ps.length+') :',...ps.map(p=>'- '+(typ(s).pagine?'p. '+place(p,s)+' · ':'')+p.libelle+' · '+prixTxt(p.prix)+(p.barre!=null?' (barré '+prixTxt(p.barre)+')':'')+(p.mecanique?' · '+p.mecanique:'')+(p.mention?' · mention : '+p.mention:'')+(p.origine?' · origine : '+p.origine:'')),'','Contrôles attendus : '+CHECKS.map(c=>c[1]).join(' ; ')+'.'].filter(x=>x!=='').join('\n')}
 
 /* ---------- import d'une matrice Excel ou CSV ---------- */
 const norm=s=>String(s??'').trim().toLowerCase();
@@ -372,60 +480,64 @@ function lireMatrice(A){const CL=[['barre',/barr/],['prix',/prix|tarif/],['libel
   let h=-1,map={};for(let i=0;i<Math.min(A.length,10)&&h<0;i++){const m={};(A[i]||[]).forEach((c,j)=>{const k=CL.find(([k,re])=>re.test(norm(c))&&!(k in m));if(k)m[k[0]]=j});if(m.libelle!=null&&Object.keys(m).length>=2){h=i;map=m}}
   if(h<0)return [];if(map.rayon==null&&!Object.values(map).includes(0))map.rayon=0;
   const g=(r,k)=>map[k]==null||r[map[k]]==null?'':String(r[map[k]]).trim();
-  return A.slice(h+1).filter(r=>r&&g(r,'libelle')).map(r=>({libelle:g(r,'libelle'),description:g(r,'description'),marque:g(r,'marque'),rayon:g(r,'rayon'),prix:nombre(map.prix==null?null:r[map.prix]),barre:nombre(map.barre==null?null:r[map.barre]),mecanique:g(r,'mecanique'),origine:g(r,'origine'),mention:g(r,'mention'),page:null}))}
+  return A.slice(h+1).filter(r=>r&&g(r,'libelle')).map(r=>({libelle:g(r,'libelle'),description:g(r,'description'),marque:g(r,'marque'),rayon:g(r,'rayon'),prix:nombre(map.prix==null?null:r[map.prix]),barre:nombre(map.barre==null?null:r[map.barre]),mecanique:g(r,'mecanique'),origine:g(r,'origine'),mention:g(r,'mention')}))}
 function fImport(){const o=curOp(),d=$('#dlg');let rows=[];d.onclose=null;
-  d.innerHTML='<form id="f"><h2>Importer une matrice</h2><p class="muted small" style="margin:0">Fichier Excel ou CSV avec une ligne de titres : Titre, Description, Marque, Prix. Une première colonne sans titre reconnu sert de rayon. Les produits déjà présents dans l\'opération sont ignorés.</p><label>Fichier<input type="file" id="f-file" accept=".xlsx,.xls,.csv"></label><p id="f-info" class="small" style="margin:0"></p><div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="f-no">Annuler</button><button class="btn pri" id="f-ok" disabled>Importer</button></div></form>';
+  d.innerHTML='<form id="f"><h2>Importer une matrice</h2><p class="muted small" style="margin:0">Fichier Excel ou CSV avec une ligne de titres : Titre, Description, Marque, Prix. Une première colonne sans titre reconnu sert de rayon. Les offres déjà présentes dans l\'opération sont ignorées.</p><label>Fichier<input type="file" id="f-file" accept=".xlsx,.xls,.csv"></label><p id="f-info" class="small" style="margin:0"></p><div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="f-no">Annuler</button><button class="btn pri" id="f-ok" disabled>Importer</button></div></form>';
   $('#f-no').onclick=()=>d.close();
   $('#f-file').onchange=async e=>{const f=e.target.files[0],info=$('#f-info');rows=[];$('#f-ok').disabled=true;if(!f)return;
     if(!window.XLSX){info.textContent="Le lecteur de fichiers n'a pas pu se charger. Rechargez la page puis réessayez.";return}
     try{const wb=XLSX.read(await f.arrayBuffer()),all=lireMatrice(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null}));
-      if(!all.length){info.textContent='Aucun produit trouvé. Vérifiez que la première feuille contient une ligne de titres avec au moins « Titre » et « Prix ».';return}
+      if(!all.length){info.textContent='Aucune offre trouvée. Vérifiez que la première feuille contient une ligne de titres avec au moins « Titre » et « Prix ».';return}
       const ex=new Set(prodsOf(o.id).map(p=>norm(p.libelle)));rows=all.filter(r=>!ex.has(norm(r.libelle)));
       let ill=0;rows.forEach(r=>['prix','barre'].forEach(k=>{if(Number.isNaN(r[k])){r[k]=null;if(k==='prix')ill++}}));
-      const sp=rows.filter(r=>r.prix==null).length;info.textContent=rows.length+' produit(s) à importer dans « '+o.nom+' »'+(all.length-rows.length?', '+(all.length-rows.length)+' doublon(s) ignoré(s)':'')+(sp?', dont '+sp+' sans prix'+(ill?' ('+ill+' prix illisible(s), à corriger après import)':''):'')+'.';$('#f-ok').disabled=!rows.length}
+      const sp=rows.filter(r=>r.prix==null).length;info.textContent=rows.length+' offre(s) à importer dans « '+o.nom+' »'+(all.length-rows.length?', '+(all.length-rows.length)+' doublon(s) ignoré(s)':'')+(sp?', dont '+sp+' sans prix'+(ill?' ('+ill+' prix illisible(s), à corriger après import)':''):'')+'.';$('#f-ok').disabled=!rows.length}
     catch(x){info.textContent="Ce fichier n'a pas pu être lu. Enregistrez-le au format .xlsx ou .csv puis réessayez."}};
   $('#f').onsubmit=async e=>{e.preventDefault();const b=$('#f-ok');b.disabled=true;b.textContent='Import en cours…';let n=0;for(const r of rows){if(await w('produits/'+uid('p'),Object.assign(r,{op:o.id,source:'matrice'}),'set'))n++;else break}
-    d.close();if(n)await perimer(o.id,n+' produit(s) importé(s) depuis une matrice'+(n<rows.length?' sur '+rows.length+' prévus : import interrompu':'')+'.');toast(n<rows.length?'Import interrompu : '+n+' produit(s) enregistré(s) sur '+rows.length+'.':n+' produit(s) importé(s).')};
+    d.close();if(n)await perimer(o,n+' offre(s) importée(s) depuis une matrice'+(n<rows.length?' sur '+rows.length+' prévues : import interrompu':'')+'.',s=>!typ(s).pagine&&!s.produits&&!s.institutionnel,true);toast(n<rows.length?'Import interrompu : '+n+' offre(s) enregistrée(s) sur '+rows.length+'.':n+' offre(s) importée(s).')};
   d.showModal()}
 
 /* ---------- événements ---------- */
-document.addEventListener('click',async e=>{const t=e.target.closest('[data-act],[data-pick],[data-go],[data-prod],[data-chk],[data-rev],[data-rub]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act;
-  if(d.pick)return pick(d.pick);
-  if(d.go){cur=d.go;try{localStorage.setItem('bos-op',cur)}catch(x){}return}
+const copier=async(t,ok)=>{try{await navigator.clipboard.writeText(t);toast(ok)}catch(x){toast('Copie refusée par le navigateur.')}};
+document.addEventListener('click',async e=>{const t=e.target.closest('[data-act],[data-prod],[data-chk],[data-rev],[data-brief],[data-rub],[data-compo],[data-sup-edit],[data-ouvrir],[data-retro],[data-addpage],[data-chip],[data-choix],[data-engsup]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act,sup=id=>S.supports.find(s=>s.id===id);
   if(a==='code')return askCode();
-  if(a==='csv'){const L=[['libelle','description','marque','rayon','prix','prix_barre','mecanique','origine','mention','page'],...prodsOf(o.id).map(p=>[p.libelle,p.description,p.marque,p.rayon,fmtN(p.prix),fmtN(p.barre),p.mecanique,p.origine,p.mention,p.page])].map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';')).join('\n');
-    try{await navigator.clipboard.writeText(L);toast('Données copiées. Collez-les dans un tableur.')}catch(x){toast('Copie refusée par le navigateur.')}return}
+  if(d.compo){compo=compo===d.compo?null:d.compo;return render()}
+  if(d.brief)return copier(brief(sup(d.brief)),'Brief copié. Collez-le dans votre message ou votre carte de suivi.');
+  if(a==='csv')return copier([['libelle','description','marque','rayon','prix','prix_barre','mecanique','origine','mention'],...prodsOf(o.id).map(p=>[p.libelle,p.description,p.marque,p.rayon,fmtN(p.prix),fmtN(p.barre),p.mecanique,p.origine,p.mention])].map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';')).join('\n'),'Données copiées. Collez-les dans un tableur.');
   if(!peutEcrire())return;
-  if(d.prod)return fProd(S.produits.find(p=>p.id===d.prod));
-  if(d.chk)return fChk(S.supports.find(s=>s.id===d.chk));
-  if(d.rev)return fRev(S.supports.find(s=>s.id===d.rev));
-  if(d.rub){const ch=S.chemins.find(c=>c.id===o.id),p=ch.pages.find(x=>x.n===+d.rub);return form('Page '+p.n,[{k:'rubrique',l:'Rubrique',v:p.rubrique},{k:'cases',l:'Nombre de cases',t:'int',v:p.cases,req:1}],r=>w('chemins/'+o.id,{pages:ch.pages.map(x=>x.n===p.n?{n:x.n,rubrique:r.rubrique,cases:Math.max(1,r.cases)}:x)}))}
   if(a==='new-op')return fOp(null);
   if(!o)return;
+  if(d.prod)return fProd(S.produits.find(p=>p.id===d.prod));
+  if(d.chk)return fChk(sup(d.chk));
+  if(d.rev)return fRev(sup(d.rev));
+  if(d.supEdit)return fSup(sup(d.supEdit));
+  if(d.retro)return fRetro(sup(d.retro));
+  if(d.choix)return fChoix(sup(d.choix));
+  if(d.chip)return fPlacer(sup(d.sup),d.chip);
+  if(d.engsup)return fEngSup(S.magasins.find(m=>m.id===d.engsup));
+  if(d.rub){const s=sup(d.sup),pg=pagesDe(s),p=pg.find(x=>x.n===+d.rub);return form('Page '+p.n,[{k:'rubrique',l:'Rubrique',v:p.rubrique},{k:'cases',l:'Nombre de cases',t:'int',v:p.cases,req:1}],r=>ecrirePages(s,pg.map(x=>x.n===p.n?{n:x.n,rubrique:r.rubrique,cases:Math.max(1,r.cases)}:x)))}
+  if(d.addpage){const s=sup(d.addpage),pg=pagesDe(s);if(pg.length)return ecrirePages(s,[...pg,{n:pg.length+1,rubrique:'',cases:4}]);
+    return form('Créer le chemin de fer',[{k:'n',l:'Nombre de pages',t:'int',v:8,req:1}],r=>r.n<1||r.n>200?'Indiquez entre 1 et 200 pages.':ecrirePages(s,Array.from({length:r.n},(_,i)=>({n:i+1,rubrique:i?'':'Une',cases:i?4:2}))))}
+  if(d.ouvrir){const s=sup(d.ouvrir);if(!pretProd(s,o).every(x=>x[0]))return;if(await w('supports/'+s.id,{prod:true,statut:'amonter'})){await jalon(s,'donnees');if(typ(s).pagine)await jalon(s,'cdf');await log(o.id,s.type+' ouvert en production : '+(s.institutionnel?'création institutionnelle':offresDe(s).length+' offre(s) sans anomalie bloquante')+(typ(s).pagine?', chemin de fer de '+pagesDe(s).length+' page(s)':'')+'.')}return}
   if(a==='edit-op')return fOp(o);
-  if(a==='retro')return fRetro(o);
+  if(a==='brief')return fBrief(o);
   if(a==='new-prod')return fProd(null);
   if(a==='import')return fImport();
-  if(a==='new-sup')return fSup();
+  if(a==='new-sup')return fSup(null);
+  if(a==='new-mag')return form('Ajouter un magasin au réseau '+resOp(o),[{k:'nom',l:'Nom du magasin',req:1}],r=>w('magasins/'+uid('m'),{nom:r.nom,reseau:resOp(o),source:null},'set'));
   if(a==='note')return form('Note au journal',[{k:'texte',l:'Note',t:'area',req:1}],r=>log(o.id,r.texte));
-  if(a==='add-page'){const ch=S.chemins.find(c=>c.id===o.id);if(ch)return w('chemins/'+o.id,{pages:[...ch.pages,{n:ch.pages.length+1,rubrique:'',cases:4}]});
-    return form('Créer le chemin de fer',[{k:'n',l:'Nombre de pages',t:'int',v:8,req:1}],r=>r.n<1||r.n>200?'Indiquez entre 1 et 200 pages.':w('chemins/'+o.id,{pages:Array.from({length:r.n},(_,i)=>({n:i+1,rubrique:i?'':'Une',cases:i?4:2}))},'set'))}
-  if(a==='to-prod'){if(!prerequis(o).every(x=>x[0]))return;const ps=prodsOf(o.id),ch=S.chemins.find(c=>c.id===o.id),ns=S.supports.filter(s=>s.op===o.id).length;
-    if(await w('operations/'+o.id,{etape:4}))await log(o.id,'Passage en production : '+ps.length+' produit(s) sans anomalie bloquante, '+(ch&&ch.pages.length?'chemin de fer de '+ch.pages.length+' page(s)':'sans chemin de fer')+', '+ns+' support(s) défini(s).')}});
+  if(a==='cloturer')return form('Clôturer l\'opération',[{k:'i',t:'info',l:'La clôture fige le bilan : supports remis, BAT, révisions, modifications et jalons tenus.'},{k:'note',l:'Enseignements à retenir pour la prochaine opération',t:'area'}],async r=>{if(!await w('operations/'+o.id,{cloture:true,bilanNote:r.note}))return false;await log(o.id,'Opération clôturée.'+(r.note?' Enseignements : '+r.note:''));return true})});
 document.addEventListener('change',async e=>{const t=e.target,d=t.dataset,o=curOp();
-  if(t.id==='opsel')return pick(t.value);
+  if(t.id==='opsel')return aller(d.v,t.value,d.tab);
   if(!(d.task||d.eng||d.stat))return;
   if(!peutEcrire())return render();
   if(d.task)return w('taches/'+d.task,{fait:t.checked});
-  if(d.eng){const ex=S.engagements.find(x=>x.id===o.id);return w('engagements/'+o.id,{[d.eng]:t.value},ex?undefined:'set')}
+  if(d.eng){const m=S.magasins.find(x=>x.id===d.eng),av=eng(o,m);if(await w('engagements/'+o.id,{[d.eng]:{statut:t.value,supports:av.supports}},S.engagements.some(x=>x.id===o.id)?undefined:'set')&&supsOf(o.id).some(enProd))await log(o.id,m.nom+' : engagement modifié ('+ENG.find(x=>x[0]===av.statut)[1]+' → '+ENG.find(x=>x[0]===t.value)[1]+').','modif');return}
   if(d.stat)return setStat(S.supports.find(s=>s.id===d.stat),t.value)});
 document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('[data-chip]');if(c)e.dataTransfer.setData('text/plain',c.dataset.chip)});
 document.addEventListener('dragover',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();p.classList.add('over')}});
 document.addEventListener('dragleave',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p)p.classList.remove('over')});
-document.addEventListener('drop',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();if(peutEcrire())setPage(e.dataTransfer.getData('text/plain'),+p.dataset.page)}});
+document.addEventListener('drop',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();if(peutEcrire())placer(S.supports.find(s=>s.id===p.dataset.sup),e.dataTransfer.getData('text/plain'),+p.dataset.page)}});
 window.addEventListener('hashchange',render);
-function askCode(){form('Code de test',[{k:'i',t:'info',l:'La consultation est libre. Pour modifier, saisissez le code fourni par Nanotera, puis recommencez votre action.'},{k:'code',l:'Code de test',req:1}],async r=>{let ok;try{ok=await rpc({p_code:r.code,p_op:'check'})}catch(e){return 'Vérification impossible. Réessayez dans un instant.'}
-  if(ok!==true)return 'Code refusé. Vérifiez-le puis réessayez.';CODE=r.code;try{localStorage.setItem('bos-code',CODE)}catch(e){}toast('Modifications activées.');render();return true},null,render)}
 init();
 </script>
 </body>
