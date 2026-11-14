@@ -89,6 +89,9 @@ tr.sel td{background:var(--soft)}
 .col{background:var(--soft);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .col h3{display:flex;justify-content:space-between}
 .sup{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+input[aria-invalid],textarea[aria-invalid]{border-color:var(--crit)}
+.ferr{color:var(--crit);font-size:12px;font-weight:400}
+.ferr:empty{display:none}
 .note{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:10px 12px;font-size:14px}
 .muted{color:var(--muted)} .small{font-size:13px}
 dialog{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:20px;width:min(520px,calc(100vw - 32px));max-height:90vh;overflow:auto}
@@ -128,7 +131,7 @@ dialog label.ck{flex-direction:row;align-items:center;gap:8px;font-weight:400;fo
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ETAPES=['Cadrage','Données','Chemin de fer','Maquette','BAT','Livraison','Diffusion'];
-const STATUTS=[['amonter','À monter'],['maquette','En maquette'],['bat','BAT chez le client'],['corrections','Corrections'],['valide','Validé'],['livre','Livré']];
+const STATUTS=[['amonter','À monter'],['maquette','En maquette'],['bat','BAT prêt pour revue'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
 const ORIGINE=['Fruits et légumes','Boucherie','Poissonnerie'];
@@ -171,11 +174,10 @@ function toast(m){$('#toast').textContent=m;clearTimeout(toast.t);toast.t=setTim
 const SB='https://etmuhdohnalwxlqhsfnf.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bXVoZG9obmFsd3hscWhzZm5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NDUxMzUsImV4cCI6MjExMDIyMTEzNX0.Jiy4H8jHLm3ykZF-673Lu_RGyhEc9YDre9LitZ6w5tg',HD={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
 let CODE=null;try{CODE=localStorage.getItem('bos-code')}catch(e){}
 const rpc=async b=>{const r=await fetch(SB+'/rest/v1/rpc/studio_write',{method:'POST',headers:HD,body:JSON.stringify(b)});if(!r.ok)throw new Error('rpc');return r.json()};
-function askCode(){form('Code de test',[{k:'code',l:'Code fourni par Nanotera',req:1}],async r=>{try{if(await rpc({p_code:r.code,p_op:'check'})===true){CODE=r.code;try{localStorage.setItem('bos-code',CODE)}catch(e){}toast('Modifications activées.');render()}else toast('Code refusé. Vérifiez-le puis réessayez.')}catch(e){toast('Vérification impossible. Réessayez dans un instant.')}})}
-async function w(path,data,mode){if(!CODE){toast('Saisissez le code de test pour modifier, puis recommencez.');askCode();return false}
+async function w(path,data,mode){if(!CODE){toast('Saisissez le code de test pour modifier.');return false}
   const [col,id]=path.split('/'),op=mode==='set'?'set':mode==='delete'?'delete':'update';
   try{const ok=await rpc({p_code:CODE,p_op:op,p_col:col,p_id:id,p_data:data||{}});
-    if(ok!==true){CODE=null;try{localStorage.removeItem('bos-code')}catch(e){}toast('Code refusé. Saisissez-le à nouveau.');askCode();return false}
+    if(ok!==true){CODE=null;try{localStorage.removeItem('bos-code')}catch(e){}toast('Code refusé. Saisissez-le à nouveau.');schedule();return false}
     const a=S[col],i=a.findIndex(x=>x.id===id);if(op==='delete'){if(i>=0)a.splice(i,1)}else if(op==='set'){const d=Object.assign({id},data);if(i>=0)a[i]=d;else a.push(d)}else if(i>=0)a[i]=Object.assign({},a[i],data);
     schedule();return true}
   catch(e){toast('Enregistrement impossible. Réessayez dans un instant.');return false}}
@@ -205,11 +207,12 @@ function vAccueil(){const t=today(),ops=sorted(),fab=ops.filter(o=>o.etape<6),en
   const bat=S.supports.filter(s=>s.statut==='bat'),ano=fab.reduce((n,o)=>n+bloquants(o.id),0),ret=S.taches.filter(x=>!x.fait&&x.echeance<t&&opById(x.op));
   const todo=[...ret.map(x=>({c:'crit',t:'Tâche en retard',d:x.libelle+' (échéance '+fd(x.echeance)+')',op:x.op,h:'pilotage'})),
     ...fab.filter(o=>bloquants(o.id)).map(o=>({c:'crit',t:bloquants(o.id)+' anomalie(s) bloquante(s)',d:'Données produits à corriger',op:o.id,h:'preparation'})),
-    ...bat.map(s=>({c:'warn',t:'BAT '+s.bat+' en attente du client',d:s.type,op:s.op,h:'production'})),
+    ...bat.map(s=>({c:'warn',t:'BAT '+s.bat+' prêt pour revue',d:s.type,op:s.op,h:'production'})),
+    ...S.supports.filter(s=>s.perime&&opById(s.op)).map(s=>({c:'crit',t:s.statut==='livre'?'Nouvelle révision requise':'Support à revalider',d:s.type+' : '+(s.perimeMotif||''),op:s.op,h:'production'})),
     ...S.supports.filter(s=>s.statut==='corrections').map(s=>({c:'warn',t:'Corrections en cours',d:s.type,op:s.op,h:'production'}))];
   const jr=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
   return '<div class="hd"><div><h1>Accueil</h1><p class="sub">'+new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</p></div></div>'+banner()+
-  '<div class="grid tiles"><div class="tile ok"><b>'+enc.length+'</b><span>opérations en diffusion</span></div><div class="tile"><b>'+fab.length+'</b><span>en fabrication</span></div><div class="tile '+(bat.length?'warn':'')+'"><b>'+bat.length+'</b><span>BAT chez le client</span></div><div class="tile '+(ano?'crit':'ok')+'"><b>'+ano+'</b><span>anomalies bloquantes</span></div><div class="tile '+(ret.length?'crit':'ok')+'"><b>'+ret.length+'</b><span>tâches en retard</span></div></div>'+
+  '<div class="grid tiles"><div class="tile ok"><b>'+enc.length+'</b><span>opérations en diffusion</span></div><div class="tile"><b>'+fab.length+'</b><span>en fabrication</span></div><div class="tile '+(bat.length?'warn':'')+'"><b>'+bat.length+'</b><span>BAT prêts pour revue</span></div><div class="tile '+(ano?'crit':'ok')+'"><b>'+ano+'</b><span>anomalies bloquantes</span></div><div class="tile '+(ret.length?'crit':'ok')+'"><b>'+ret.length+'</b><span>tâches en retard</span></div></div>'+
   '<div class="grid two"><section class="card"><h2>À traiter</h2><div class="list">'+(todo.map(x=>{const o=opById(x.op);return '<a href="#'+x.h+'" data-go="'+esc(x.op)+'" style="color:inherit;text-decoration:none"><span><span class="pill '+x.c+'">'+esc(x.t)+'</span><br>'+esc(x.d)+'<br><span class="muted small">'+esc(o?o.nom:'')+'</span></span><span aria-hidden="true">›</span></a>'}).join('')||vide('Rien à traiter.'))+'</div></section>'+
   '<section class="card"><h2>En fabrication</h2><div class="list">'+(fab.map(o=>'<a href="#pilotage" data-go="'+esc(o.id)+'" style="color:inherit;text-decoration:none"><span style="flex:1"><b>'+esc(o.nom)+'</b> '+src(o.source)+'<br><span class="muted small">'+periode(o)+' · étape '+esc(ETAPES[o.etape-1])+'</span>'+steps(o.etape)+'</span></a>').join('')||vide('Aucune opération en fabrication.'))+'</div></section></div>'+
   '<section class="card"><h2>Journal des opérations</h2><div class="list">'+(jr.map(j=>{const o=opById(j.op);return '<div><span>'+esc(j.texte)+'<br><span class="muted small">'+esc(o?o.nom:'')+'</span></span><span class="muted small" style="white-space:nowrap">'+fd(j.date)+'</span></div>'}).join('')||vide('Aucune note.'))+'</div></section>'}
@@ -242,13 +245,13 @@ function vPreparation(){const o=curOp();if(!o)return '<h1>Préparation</h1>'+ban
   '<div class="row"><span class="pill '+(nb?'crit':'ok')+'">'+nb+' anomalie(s) bloquante(s)</span><span class="pill '+(na?'warn':'ok')+'">'+na+' avertissement(s)</span><span class="pill">'+ps.length+' produit(s)</span><span class="pill">Étape : '+esc(ETAPES[o.etape-1])+'</span></div>'+
   '<section class="card"><div class="row" style="justify-content:space-between"><h2>Données produits</h2><span class="row"><button class="btn sm" data-act="import">Importer une matrice</button><button class="btn sm" data-act="csv">Copier en CSV</button><button class="btn sm pri" data-act="new-prod">Ajouter un produit</button></span></div>'+(ps.length?'<div class="scroll"><table><thead><tr><th>Produit</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Page</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>':vide('Aucun produit pour cette opération.'))+'</section>'+
   '<section class="card"><div class="row" style="justify-content:space-between"><h2>Chemin de fer</h2><button class="btn sm" data-act="add-page">'+(pages.length?'Ajouter une page':'Créer le chemin de fer')+'</button></div>'+(pages.length?'<p class="muted small" style="margin:0">Glissez un produit sur une page, ou choisissez sa page dans sa fiche.</p><div class="pages">'+pg+'</div>'+(libres.length?'<div><h3>Produits non placés</h3><div class="row" style="margin-top:6px">'+libres.map(x=>'<div class="chip" draggable="true" data-chip="'+esc(x.id)+'">'+esc(x.libelle)+'</div>').join('')+'</div></div>':''):vide('Pas encore de chemin de fer.'))+'</section>'+
-  (o.etape<4?'<div class="row"><button class="btn pri" data-act="to-prod"'+(nb?' disabled':'')+'>Passer en production</button>'+(nb?'<span class="muted small">Corrigez les anomalies bloquantes pour continuer.</span>':'')+'</div>':'')}
+  (o.etape<4?(()=>{const pr=prerequis(o),ok=pr.every(x=>x[0]);return '<section class="card"><h2>Passage en production</h2><div class="list">'+pr.map(([v,l])=>'<div><span>'+esc(l)+'</span><span class="pill '+(v?'ok':'crit')+'">'+(v?'Satisfait':'Manquant')+'</span></div>').join('')+'</div><div class="row"><button class="btn pri" data-act="to-prod"'+(ok?'':' disabled')+'>Passer en production</button>'+(ok?'':'<span class="muted small">Complétez les éléments manquants pour continuer.</span>')+'</div></section>'})():'')}
 
 function vProduction(){const o=curOp();if(!o)return '<h1>Production</h1>'+banner()+vide('Aucune opération.');
   const ss=S.supports.filter(s=>s.op===o.id),nb=bloquants(o.id);
-  const card=s=>{const n=CHECKS.filter(([k])=>s.checks&&s.checks[k]).length;return '<div class="sup"><b>'+esc(s.type)+'</b><span class="muted">'+esc(s.format||'')+'</span><span class="muted">Versions : '+esc(s.versions||'—')+'</span><span class="row"><span class="pill">'+(s.bat?'BAT '+s.bat:'Pas de BAT')+'</span><span class="pill '+(n===CHECKS.length?'ok':'')+'">Contrôles '+n+'/'+CHECKS.length+'</span></span><select data-stat="'+esc(s.id)+'" aria-label="Statut '+esc(s.type)+'">'+STATUTS.map(([k,l])=>'<option value="'+k+'"'+(s.statut===k?' selected':'')+'>'+l+'</option>').join('')+'</select><button class="btn sm" data-chk="'+esc(s.id)+'">Contrôles et fiche</button></div>'};
-  return '<div class="hd"><div><h1>Production</h1><p class="sub">Supports, BAT et livraison</p></div>'+opSelect()+'</div>'+banner()+
-  (nb?'<div class="note">'+nb+' anomalie(s) bloquante(s) dans les données de cette opération. Les BAT partiront avec ces erreurs tant qu\'elles ne sont pas corrigées en Préparation.</div>':'')+
+  const card=s=>{const n=CHECKS.filter(([k])=>s.checks&&s.checks[k]).length;return '<div class="sup"><b>'+esc(s.type)+'</b><span class="muted">'+esc(s.format||'')+'</span><span class="muted">Versions : '+esc(s.versions||'—')+'</span><span class="muted">Fichier : '+esc(s.fichier||'aucun')+(s.destinataire?' · revue : '+esc(s.destinataire):'')+'</span><span class="row">'+(s.perime?'<span class="pill crit" title="'+esc(s.perimeMotif||'')+'">'+(s.statut==='livre'?'Nouvelle révision requise':'À revalider')+'</span>':'')+'<span class="pill">'+(s.bat?'BAT '+s.bat:'Pas de BAT')+'</span><span class="pill '+(n===CHECKS.length?'ok':'')+'">Contrôles '+n+'/'+CHECKS.length+'</span></span><select data-stat="'+esc(s.id)+'" aria-label="Statut '+esc(s.type)+'">'+STATUTS.map(([k,l])=>'<option value="'+k+'"'+(s.statut===k?' selected':'')+'>'+l+'</option>').join('')+'</select><button class="btn sm" data-chk="'+esc(s.id)+'">Contrôles et fiche</button></div>'};
+  return '<div class="hd"><div><h1>Production</h1><p class="sub">Supports, BAT et remise</p></div>'+opSelect()+'</div>'+banner()+'<p class="muted small" style="margin:0">Le prototype ne transmet aucun fichier : les statuts enregistrent des déclarations, avec le fichier et le destinataire indiqués.</p>'+
+  (nb?'<div class="note">'+nb+' anomalie(s) bloquante(s) dans les données de cette opération. Aucun support ne peut être approuvé ni remis tant qu\'elles ne sont pas corrigées en Préparation.</div>':'')+
   '<div class="row" style="justify-content:space-between"><span class="pill">'+ss.length+' support(s)</span><button class="btn pri" data-act="new-sup">Ajouter un support</button></div>'+
   (ss.length?'<div class="kan">'+STATUTS.map(([k,l])=>{const c=ss.filter(s=>s.statut===k);return '<div class="col"><h3>'+l+'<span class="muted">'+c.length+'</span></h3>'+c.map(card).join('')+'</div>'}).join('')+'</div>':vide('Aucun support. Ajoutez le prospectus, l\'e-catalogue ou les flux à produire.'))+
   '<section class="card"><div class="row" style="justify-content:space-between"><h2>Journal de l\'opération</h2><button class="btn sm" data-act="note">Ajouter une note</button></div><div class="list">'+(S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date)).map(j=>'<div><span>'+esc(j.texte)+'</span><span class="muted small" style="white-space:nowrap">'+fd(j.date)+'</span></div>').join('')||vide('Aucune note.'))+'</div></section>'}
@@ -260,44 +263,98 @@ function render(){const h=(location.hash||'#accueil').slice(1),v=VUES[h]?h:'accu
 function pick(id){cur=id;try{localStorage.setItem('bos-op',id)}catch(e){}render()}
 
 /* ---------- formulaires ---------- */
-function form(titre,champs,ok,suppr){const d=$('#dlg');
-  d.innerHTML='<form id="f"><h2>'+esc(titre)+'</h2>'+champs.map(c=>{const id='f-'+c.k,v=c.v??'';
+function peutEcrire(){if(CODE)return true;askCode();return false}
+function montant(s,ent){s=String(s??'').replace(/[\s  ]/g,'').replace(/€$/,'');if(s==='')return {v:null};
+  if(!(ent?/^\d+$/:/^\d+([.,]\d{1,2})?$/).test(s))return {e:ent?'Saisissez un nombre entier.':'Montant non reconnu. Formats acceptés : 12,5 ou 1 299,90 (deux décimales au plus).'};
+  return {v:parseFloat(s.replace(',','.'))}}
+const fmtN=v=>v==null?'':String(v).replace('.',',');
+function form(titre,champs,ok,suppr,annule){const d=$('#dlg');let fini=false;
+  d.innerHTML='<form id="f" novalidate><h2>'+esc(titre)+'</h2><p id="f-err" class="note" role="alert" hidden></p>'+champs.map(c=>{const id='f-'+c.k,v=c.v??'',num=c.t==='number'||c.t==='int';
+    if(c.t==='info')return '<p class="small muted" id="'+id+'" style="margin:0">'+c.l+'</p>';
     if(c.t==='check')return '<label class="ck"><input type="checkbox" id="'+id+'"'+(c.v?' checked':'')+'> '+esc(c.l)+'</label>';
     if(c.t==='select')return '<label>'+esc(c.l)+'<select id="'+id+'">'+c.o.map(([k,l])=>'<option value="'+esc(k)+'"'+(String(k)===String(v)?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select></label>';
-    if(c.t==='area')return '<label>'+esc(c.l)+'<textarea id="'+id+'" rows="3">'+esc(v)+'</textarea></label>';
-    return '<label>'+esc(c.l)+'<input id="'+id+'" type="'+(c.t==='number'?'text':c.t||'text')+'"'+(c.t==='number'?' inputmode="decimal"':'')+' value="'+esc(v)+'"'+(c.req?' required':'')+'></label>'}).join('')+
-    '<div class="row" style="justify-content:space-between"><span>'+(suppr?'<button type="button" class="btn" id="f-del">Supprimer</button>':'')+'</span><span class="row"><button type="button" class="btn" id="f-no">Annuler</button><button class="btn pri">Enregistrer</button></span></div></form>';
-  $('#f-no').onclick=()=>d.close();if(suppr)$('#f-del').onclick=async()=>{d.close();await suppr()};
-  $('#f').onsubmit=async e=>{e.preventDefault();const r={};champs.forEach(c=>{const el=$('#f-'+c.k);r[c.k]=c.t==='check'?el.checked:c.t==='number'?(el.value===''?null:(x=>isNaN(x)?null:x)(parseFloat(el.value.replace(',','.')))):el.value.trim()});d.close();await ok(r)};
+    if(c.t==='area')return '<label>'+esc(c.l)+'<textarea id="'+id+'" rows="3">'+esc(v)+'</textarea><span class="ferr" id="e-'+c.k+'"></span></label>';
+    return '<label>'+esc(c.l)+'<input id="'+id+'" type="'+(num?'text':c.t||'text')+'"'+(num?' inputmode="decimal"':'')+' value="'+esc(num?fmtN(c.v):v)+'"><span class="ferr" id="e-'+c.k+'"></span></label>'}).join('')+
+    '<div class="row" style="justify-content:space-between"><span>'+(suppr?'<button type="button" class="btn" id="f-del">Supprimer</button>':'')+'</span><span class="row"><button type="button" class="btn" id="f-no">Annuler</button><button class="btn pri" id="f-ok">Enregistrer</button></span></div></form>';
+  const echec=m=>{const e=$('#f-err');e.textContent=m;e.hidden=false;$('#f-ok').disabled=false;$('#f-ok').textContent='Enregistrer'};
+  d.onclose=()=>{d.onclose=null;if(!fini&&annule)annule()};
+  $('#f-no').onclick=()=>d.close();
+  if(suppr)$('#f-del').onclick=async()=>{if(await suppr()!==false){fini=true;d.close()}else echec('Suppression non effectuée. Réessayez.')};
+  $('#f').onsubmit=async e=>{e.preventDefault();const r={};let prem=null;$('#f-err').hidden=true;
+    champs.forEach(c=>{if(c.t==='info')return;const el=$('#f-'+c.k),sp=$('#e-'+c.k);let m='';
+      if(c.t==='check')r[c.k]=el.checked;
+      else if(c.t==='number'||c.t==='int'){const x=montant(el.value,c.t==='int');if(x.e)m=x.e;else if(x.v==null&&c.req)m='Champ obligatoire.';r[c.k]=x.v}
+      else{r[c.k]=el.value.trim();if(c.req&&!r[c.k])m='Champ obligatoire.'}
+      if(sp){sp.textContent=m;m?el.setAttribute('aria-invalid','true'):el.removeAttribute('aria-invalid');if(m&&!prem)prem=el}});
+    if(prem){prem.focus();return}
+    const b=$('#f-ok');b.disabled=true;b.textContent='Enregistrement…';let res;try{res=await ok(r)}catch(x){res=false}
+    if(res===false||typeof res==='string')return echec(res||'Enregistrement non effectué. Vos saisies sont conservées : réessayez.');
+    fini=true;d.close()};
   d.showModal()}
-function fOp(o){form(o?'Modifier l\'opération':'Nouvelle opération',[{k:'nom',l:'Nom',v:o&&o.nom,req:1},{k:'enseignes',l:'Enseignes (séparées par des virgules)',v:o?(o.enseignes||[]).join(', '):'Hyper U, Super U, U Express'},{k:'portee',l:'Portée',t:'select',o:['Nationale','Régionale','Locale'].map(x=>[x,x]),v:o&&o.portee},{k:'debut',l:'Début',t:'date',v:o&&o.debut,req:1},{k:'fin',l:'Fin',t:'date',v:o&&o.fin,req:1},{k:'remise',l:'Remise des fichiers à l\'imprimeur',t:'date',v:o&&o.remise},...(o?[{k:'etape',l:'Étape',t:'select',o:ETAPES.map((x,i)=>[i+1,x]),v:o.etape}]:[])],async r=>{
+function fOp(o){form(o?'Modifier l\'opération':'Nouvelle opération',[{k:'nom',l:'Nom',v:o&&o.nom,req:1},{k:'enseignes',l:'Enseignes (séparées par des virgules)',v:o?(o.enseignes||[]).join(', '):'Hyper U, Super U, U Express'},{k:'portee',l:'Portée',t:'select',o:['Nationale','Régionale','Locale'].map(x=>[x,x]),v:o&&o.portee},{k:'debut',l:'Début',t:'date',v:o&&o.debut,req:1},{k:'fin',l:'Fin',t:'date',v:o&&o.fin,req:1},{k:'remise',l:'Remise des fichiers à l\'imprimeur (si le dispositif est imprimé)',t:'date',v:o&&o.remise},...(o?[{k:'etape',l:'Étape',t:'select',o:ETAPES.map((x,i)=>[i+1,x]),v:o.etape}]:[])],async r=>{
+    if(r.fin<r.debut)return 'La date de fin précède la date de début.';
+    if(r.remise&&r.remise>=r.debut)return 'La remise à l\'imprimeur doit précéder le début de l\'opération.';
     const data={nom:r.nom,enseignes:r.enseignes.split(',').map(x=>x.trim()).filter(Boolean),portee:r.portee,debut:r.debut,fin:r.fin,remise:r.remise||null};
-    if(r.fin<r.debut)return toast('La date de fin précède la date de début.');
-    if(o){data.etape=+r.etape;await w('operations/'+o.id,data)}
-    else{const id=uid('op');Object.assign(data,{etape:1,magasins:null,source:null});if(await w('operations/'+id,data,'set')){cur=id;if(data.remise)await genRetro(id,data.remise,data.debut);await log(id,'Opération créée.')}}})}
-async function genRetro(id,remise,debut){for(const x of S.taches.filter(t=>t.op===id))await w('taches/'+x.id,null,'delete');
-  const t=retro(remise,debut);for(let i=0;i<t.length;i++)await w('taches/'+id+'-t'+String(i+1).padStart(2,'0'),Object.assign({op:id},t[i]),'set')}
+    if(o){data.etape=+r.etape;return w('operations/'+o.id,data)}
+    const id=uid('op');Object.assign(data,{etape:1,magasins:null,source:null});if(!await w('operations/'+id,data,'set'))return false;
+    cur=id;if(data.remise)await appliquerRetro(id,planRetro(id,data.remise,data.debut));await log(id,'Opération créée.');return true})}
+/* Recalcul sans suppression : les tâches existantes gardent leur identifiant, leur état et leurs ajouts manuels. */
+function planRetro(id,remise,debut){const ex=S.taches.filter(t=>t.op===id),maj=[],crea=[];
+  retro(remise,debut).forEach(t=>{const e=ex.find(x=>x.libelle===t.libelle);if(!e)crea.push(t);else if(e.echeance!==t.echeance)maj.push({id:e.id,libelle:e.libelle,de:e.echeance,a:t.echeance})});return {maj,crea}}
+async function appliquerRetro(id,p){for(const m of p.maj)if(!await w('taches/'+m.id,{echeance:m.a}))return false;
+  for(const t of p.crea)if(!await w('taches/'+uid('t'),Object.assign({op:id},t),'set'))return false;return true}
+function fRetro(o){const txt=p=>(p.maj.length||p.crea.length?'<b>Aperçu.</b> '+(p.maj.map(m=>esc(m.libelle)+' : '+fd(m.de)+' → '+fd(m.a)).concat(p.crea.map(t=>'Nouvelle tâche : '+esc(t.libelle)+' ('+fd(t.echeance)+')')).join('<br>')):'Aucun changement avec cette date.')+'<br>Les tâches terminées restent terminées et les tâches ajoutées à la main sont conservées.';
+  form('Rétroplanning',[{k:'remise',l:'Remise des fichiers à l\'imprimeur',t:'date',v:o.remise,req:1},{k:'prev',t:'info',l:''}],async r=>{
+    if(r.remise>=o.debut)return 'La remise à l\'imprimeur doit précéder le début de l\'opération ('+fd(o.debut)+').';
+    const p=planRetro(o.id,r.remise,o.debut);if(r.remise!==o.remise&&!await w('operations/'+o.id,{remise:r.remise}))return false;
+    if(!await appliquerRetro(o.id,p))return 'Le recalcul s\'est interrompu. Les tâches déjà enregistrées sont conservées : relancez le recalcul.';
+    await log(o.id,'Rétroplanning recalculé : '+p.maj.length+' échéance(s) déplacée(s), '+p.crea.length+' tâche(s) créée(s).');return true});
+  const maj=()=>{const v=$('#f-remise').value;$('#f-prev').innerHTML=v?txt(planRetro(o.id,v,o.debut)):'Choisissez une date pour voir l\'aperçu.'};$('#f-remise').oninput=maj;maj()}
+/* Une donnée modifiée périme les contrôles des supports déjà en revue, approuvés ou remis. */
+async function perimer(opId,motif){const ss=S.supports.filter(s=>s.op===opId&&['bat','valide','livre'].includes(s.statut)&&!s.perime);
+  for(const s of ss)await w('supports/'+s.id,s.statut==='livre'?{perime:true,perimeMotif:motif}:{perime:true,perimeMotif:motif,checks:Object.assign({},s.checks,{donnees:false,comparaison:false})});
+  await log(opId,motif+(ss.length?' '+ss.length+' support(s) à revalider.':''))}
+const CHAMPS={libelle:'libellé',description:'description',marque:'marque',rayon:'rayon',prix:'prix',barre:'prix barré',mecanique:'mécanique',origine:'origine',mention:'mention légale',page:'page'};
+const prixTxt=v=>v==null?'aucun':v.toFixed(2).replace('.',',')+' €';
 function fProd(p){const o=curOp(),ch=S.chemins.find(c=>c.id===o.id),pg=[['','Non placé'],...(ch?ch.pages:[]).map(x=>[x.n,'Page '+x.n+' · '+(x.rubrique||'')])];
   form(p?'Modifier le produit':'Ajouter un produit',[{k:'libelle',l:'Libellé',v:p&&p.libelle,req:1},{k:'description',l:'Description',t:'area',v:p&&p.description},{k:'marque',l:'Marque',v:p&&p.marque},{k:'rayon',l:'Rayon',t:'select',o:[['','—'],...[...new Set([...RAYONS,...(p&&p.rayon?[p.rayon]:[])])].map(x=>[x,x])],v:p&&p.rayon},{k:'prix',l:'Prix (€)',t:'number',v:p&&p.prix},{k:'barre',l:'Prix barré (€)',t:'number',v:p&&p.barre},{k:'mecanique',l:'Mécanique',v:p?p.mecanique:'Prix bas'},{k:'origine',l:'Origine',v:p&&p.origine},{k:'mention',l:'Mention légale',v:p&&p.mention},{k:'page',l:'Page',t:'select',o:pg,v:p&&p.page!=null?p.page:''}],async r=>{
-    r.page=r.page===''?null:+r.page;if(p)await w('produits/'+p.id,r);else await w('produits/'+uid('p'),Object.assign(r,{op:o.id,source:null}),'set')},p&&(()=>w('produits/'+p.id,null,'delete')))}
+    r.page=r.page===''?null:+r.page;
+    if(!p){if(!await w('produits/'+uid('p'),Object.assign(r,{op:o.id,source:null}),'set'))return false;await perimer(o.id,'Produit « '+r.libelle+' » ajouté.');return true}
+    const ch=Object.keys(CHAMPS).filter(k=>(p[k]??'')!==(r[k]??''));if(!ch.length)return true;
+    if(!await w('produits/'+p.id,r))return false;
+    await perimer(o.id,ch.includes('prix')?'Prix de « '+r.libelle+' » modifié ('+prixTxt(p.prix)+' → '+prixTxt(r.prix)+').':'Fiche de « '+r.libelle+' » modifiée ('+ch.map(k=>CHAMPS[k]).join(', ')+').');return true},
+    p&&(async()=>{if(!await w('produits/'+p.id,null,'delete'))return false;await perimer(o.id,'Produit « '+p.libelle+' » supprimé.')}))}
 function fSup(){const o=curOp();form('Ajouter un support',[{k:'type',l:'Type',t:'select',o:['Prospectus','E-catalogue','Flux Bonial','Flux Tiendeo','Affiche','PLV','Bannières Meta','Bannières display','SMS / RCS'].map(x=>[x,x])},{k:'format',l:'Format'},{k:'versions',l:'Versions'}],r=>w('supports/'+uid('s'),Object.assign(r,{op:o.id,statut:'amonter',bat:0,checks:{},source:null}),'set'))}
-function fChk(s){form(s.type+' : contrôles',[...CHECKS.map(([k,l])=>({k,l,t:'check',v:s.checks&&s.checks[k]})),{k:'_format',l:'Format',v:s.format},{k:'_versions',l:'Versions',v:s.versions}],async r=>{const checks={};CHECKS.forEach(([k])=>checks[k]=r[k]);await w('supports/'+s.id,{checks,format:r._format,versions:r._versions})},()=>w('supports/'+s.id,null,'delete'))}
-async function setStat(s,to){const ck=s.checks||{},av=CHECKS.filter(([k])=>k!=='natifs').every(([k])=>ck[k]);
-  if((to==='valide'||to==='livre')&&!av){toast('Validation impossible : terminez les contrôles du support.');return render()}
-  if(to==='livre'&&!ck.natifs){toast('Livraison impossible : les fichiers natifs ne sont pas déposés.');return render()}
-  const d={statut:to};if(to==='bat')d.bat=(s.bat||0)+1;
-  if(await w('supports/'+s.id,d)){const l=STATUTS.find(x=>x[0]===to)[1];await log(s.op,s.type+' : '+(to==='bat'?'BAT '+d.bat+' déposé au client.':'passé à « '+l+' ».'))}}
-async function setPage(pid,n){const p=S.produits.find(x=>x.id===pid);if(p&&p.page!==n)await w('produits/'+pid,{page:n})}
+function fChk(s){form(s.type+' : contrôles et fiche',[...(s.perime?[{k:'i',t:'info',l:'<span class="pill crit">À revalider</span> '+esc(s.perimeMotif||'')+' Recochez « Prix et libellés » et « PDF de comparaison » une fois la nouvelle révision vérifiée.'}]:[]),...CHECKS.map(([k,l])=>({k,l,t:'check',v:s.checks&&s.checks[k]})),{k:'_fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier},{k:'_dest',l:'Destinataire de la revue',v:s.destinataire},{k:'_format',l:'Format',v:s.format},{k:'_versions',l:'Versions',v:s.versions}],async r=>{const checks={};CHECKS.forEach(([k])=>checks[k]=r[k]);
+    const d={checks,fichier:r._fichier,destinataire:r._dest,format:r._format,versions:r._versions},lever=s.perime&&r.donnees&&r.comparaison;if(lever){d.perime=false;d.perimeMotif=''}
+    if(!await w('supports/'+s.id,d))return false;if(lever)await log(s.op,s.type+' : données revérifiées après modification'+(r._fichier?' (révision « '+r._fichier+' »)':'')+'.');return true},()=>w('supports/'+s.id,null,'delete'))}
+function refusStat(s,to){const ck=s.checks||{},n=bloquants(s.op);
+  if(to!=='valide'&&to!=='livre')return '';
+  if(!CHECKS.filter(([k])=>k!=='natifs').every(([k])=>ck[k]))return 'terminez les contrôles du support.';
+  if(!s.fichier)return 'aucun fichier de révision n\'est renseigné dans la fiche du support.';
+  if(s.perime)return 'les données ont changé depuis les contrôles. Revérifiez le support.';
+  if(n)return n+' anomalie(s) bloquante(s) restent dans les données de l\'opération.';
+  if(to==='livre'&&s.statut!=='valide')return 'le support doit d\'abord être approuvé.';
+  if(to==='livre'&&!ck.natifs)return 'les fichiers natifs ne sont pas déposés.';
+  return ''}
+async function setStat(s,to){const lib=STATUTS.find(x=>x[0]===to)[1];
+  if(to==='bat')return form('BAT prêt pour revue',[{k:'i',t:'info',l:'Le prototype n\'envoie rien. Cette action enregistre qu\'une révision est prête à être transmise au client.'},{k:'fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier,req:1},{k:'dest',l:'Destinataire de la revue',v:s.destinataire,req:1}],async r=>{const n=(s.bat||0)+1;
+    if(!await w('supports/'+s.id,{statut:'bat',bat:n,fichier:r.fichier,destinataire:r.dest}))return false;
+    await log(s.op,s.type+' : BAT '+n+' prêt pour revue (révision « '+r.fichier+' », destinataire '+r.dest+'). Aucun envoi effectué par le prototype.');return true},null,render);
+  const refus=refusStat(s,to);if(refus){toast((to==='livre'?'Remise':'Approbation')+' impossible : '+refus);return render()}
+  if(await w('supports/'+s.id,{statut:to}))await log(s.op,s.type+' : '+(to==='valide'?'révision « '+s.fichier+' » déclarée approuvée.':to==='livre'?'révision « '+s.fichier+' » déclarée remise. Aucun reçu : le prototype ne transmet pas de fichier.':'passé à « '+lib+' ».'));else render()}
+async function setPage(pid,n){const p=S.produits.find(x=>x.id===pid);if(p&&p.page!==n&&await w('produits/'+pid,{page:n}))await perimer(p.op,'« '+p.libelle+' » déplacé (page '+(p.page??'—')+' → '+n+').')}
+function prerequis(o){const ps=prodsOf(o.id),ss=S.supports.filter(s=>s.op===o.id);return [[ps.length>0||ss.length>0,'Au moins un produit ou un support défini'],[bloquants(o.id)===0,'Aucune anomalie bloquante dans les données'],[!!o.debut&&!!o.fin&&o.fin>=o.debut,'Période de l\'opération cohérente']]}
 
 /* ---------- import d'une matrice Excel ou CSV ---------- */
 const norm=s=>String(s??'').trim().toLowerCase();
-const nombre=v=>{if(v==null||v==='')return null;if(typeof v==='number')return v;const x=parseFloat(String(v).replace(/[^0-9,.-]/g,'').replace(',','.'));return isNaN(x)?null:x};
+const nombre=v=>{if(v==null||v==='')return null;if(typeof v==='number')return v>=0?Math.round(v*100)/100:NaN;const x=montant(v);return x.e?NaN:x.v};
 function lireMatrice(A){const CL=[['barre',/barr/],['prix',/prix|tarif/],['libelle',/titre|libell|d[ée]signation|produit|nom/],['description',/descr/],['marque',/marque/],['rayon',/rayon|cat[ée]gor|famille/],['origine',/origine/],['mention',/mention/],['mecanique',/m[ée]canique|offre/]];
   let h=-1,map={};for(let i=0;i<Math.min(A.length,10)&&h<0;i++){const m={};(A[i]||[]).forEach((c,j)=>{const k=CL.find(([k,re])=>re.test(norm(c))&&!(k in m));if(k)m[k[0]]=j});if(m.libelle!=null&&Object.keys(m).length>=2){h=i;map=m}}
   if(h<0)return [];if(map.rayon==null&&!Object.values(map).includes(0))map.rayon=0;
   const g=(r,k)=>map[k]==null||r[map[k]]==null?'':String(r[map[k]]).trim();
   return A.slice(h+1).filter(r=>r&&g(r,'libelle')).map(r=>({libelle:g(r,'libelle'),description:g(r,'description'),marque:g(r,'marque'),rayon:g(r,'rayon'),prix:nombre(map.prix==null?null:r[map.prix]),barre:nombre(map.barre==null?null:r[map.barre]),mecanique:g(r,'mecanique'),origine:g(r,'origine'),mention:g(r,'mention'),page:null}))}
-function fImport(){const o=curOp(),d=$('#dlg');let rows=[];
+function fImport(){const o=curOp(),d=$('#dlg');let rows=[];d.onclose=null;
   d.innerHTML='<form id="f"><h2>Importer une matrice</h2><p class="muted small" style="margin:0">Fichier Excel ou CSV avec une ligne de titres : Titre, Description, Marque, Prix. Une première colonne sans titre reconnu sert de rayon. Les produits déjà présents dans l\'opération sont ignorés.</p><label>Fichier<input type="file" id="f-file" accept=".xlsx,.xls,.csv"></label><p id="f-info" class="small" style="margin:0"></p><div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="f-no">Annuler</button><button class="btn pri" id="f-ok" disabled>Importer</button></div></form>';
   $('#f-no').onclick=()=>d.close();
   $('#f-file').onchange=async e=>{const f=e.target.files[0],info=$('#f-info');rows=[];$('#f-ok').disabled=true;if(!f)return;
@@ -305,44 +362,50 @@ function fImport(){const o=curOp(),d=$('#dlg');let rows=[];
     try{const wb=XLSX.read(await f.arrayBuffer()),all=lireMatrice(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null}));
       if(!all.length){info.textContent='Aucun produit trouvé. Vérifiez que la première feuille contient une ligne de titres avec au moins « Titre » et « Prix ».';return}
       const ex=new Set(prodsOf(o.id).map(p=>norm(p.libelle)));rows=all.filter(r=>!ex.has(norm(r.libelle)));
-      const sp=rows.filter(r=>r.prix==null).length;info.textContent=rows.length+' produit(s) à importer dans « '+o.nom+' »'+(all.length-rows.length?', '+(all.length-rows.length)+' doublon(s) ignoré(s)':'')+(sp?', dont '+sp+' sans prix':'')+'.';$('#f-ok').disabled=!rows.length}
+      let ill=0;rows.forEach(r=>['prix','barre'].forEach(k=>{if(Number.isNaN(r[k])){r[k]=null;if(k==='prix')ill++}}));
+      const sp=rows.filter(r=>r.prix==null).length;info.textContent=rows.length+' produit(s) à importer dans « '+o.nom+' »'+(all.length-rows.length?', '+(all.length-rows.length)+' doublon(s) ignoré(s)':'')+(sp?', dont '+sp+' sans prix'+(ill?' ('+ill+' prix illisible(s), à corriger après import)':''):'')+'.';$('#f-ok').disabled=!rows.length}
     catch(x){info.textContent="Ce fichier n'a pas pu être lu. Enregistrez-le au format .xlsx ou .csv puis réessayez."}};
-  $('#f').onsubmit=async e=>{e.preventDefault();d.close();let n=0;toast('Import en cours…');for(const r of rows){if(await w('produits/'+uid('p'),Object.assign(r,{op:o.id,source:'matrice'}),'set'))n++;else break}
-    if(n){await log(o.id,n+' produit(s) importé(s) depuis une matrice.');toast(n+' produit(s) importé(s).')}};
+  $('#f').onsubmit=async e=>{e.preventDefault();const b=$('#f-ok');b.disabled=true;b.textContent='Import en cours…';let n=0;for(const r of rows){if(await w('produits/'+uid('p'),Object.assign(r,{op:o.id,source:'matrice'}),'set'))n++;else break}
+    d.close();if(n)await perimer(o.id,n+' produit(s) importé(s) depuis une matrice'+(n<rows.length?' sur '+rows.length+' prévus : import interrompu':'')+'.');toast(n<rows.length?'Import interrompu : '+n+' produit(s) enregistré(s) sur '+rows.length+'.':n+' produit(s) importé(s).')};
   d.showModal()}
 
 /* ---------- événements ---------- */
-document.addEventListener('click',async e=>{const t=e.target.closest('[data-act],[data-pick],[data-go],[data-prod],[data-chk],[data-rub]');if(!t)return;const o=curOp(),d=t.dataset;
+document.addEventListener('click',async e=>{const t=e.target.closest('[data-act],[data-pick],[data-go],[data-prod],[data-chk],[data-rub]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act;
   if(d.pick)return pick(d.pick);
   if(d.go){cur=d.go;try{localStorage.setItem('bos-op',cur)}catch(x){}return}
+  if(a==='code')return askCode();
+  if(a==='csv'){const L=[['libelle','description','marque','rayon','prix','prix_barre','mecanique','origine','mention','page'],...prodsOf(o.id).map(p=>[p.libelle,p.description,p.marque,p.rayon,fmtN(p.prix),fmtN(p.barre),p.mecanique,p.origine,p.mention,p.page])].map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';')).join('\n');
+    try{await navigator.clipboard.writeText(L);toast('Données copiées. Collez-les dans un tableur.')}catch(x){toast('Copie refusée par le navigateur.')}return}
+  if(!peutEcrire())return;
   if(d.prod)return fProd(S.produits.find(p=>p.id===d.prod));
   if(d.chk)return fChk(S.supports.find(s=>s.id===d.chk));
-  if(d.rub){const ch=S.chemins.find(c=>c.id===o.id),p=ch.pages.find(x=>x.n===+d.rub);return form('Page '+p.n,[{k:'rubrique',l:'Rubrique',v:p.rubrique},{k:'cases',l:'Nombre de cases',t:'number',v:p.cases}],r=>w('chemins/'+o.id,{pages:ch.pages.map(x=>x.n===p.n?{n:x.n,rubrique:r.rubrique,cases:Math.max(1,Math.round(r.cases||1))}:x)}))}
-  const a=d.act;
-  if(a==='code')return askCode();
+  if(d.rub){const ch=S.chemins.find(c=>c.id===o.id),p=ch.pages.find(x=>x.n===+d.rub);return form('Page '+p.n,[{k:'rubrique',l:'Rubrique',v:p.rubrique},{k:'cases',l:'Nombre de cases',t:'int',v:p.cases,req:1}],r=>w('chemins/'+o.id,{pages:ch.pages.map(x=>x.n===p.n?{n:x.n,rubrique:r.rubrique,cases:Math.max(1,r.cases)}:x)}))}
   if(a==='new-op')return fOp(null);
   if(!o)return;
   if(a==='edit-op')return fOp(o);
-  if(a==='retro'){if(!o.remise)return form('Rétroplanning',[{k:'remise',l:'Remise des fichiers à l\'imprimeur',t:'date',req:1}],async r=>{await w('operations/'+o.id,{remise:r.remise});await genRetro(o.id,r.remise,o.debut)});return genRetro(o.id,o.remise,o.debut)}
+  if(a==='retro')return fRetro(o);
   if(a==='new-prod')return fProd(null);
   if(a==='import')return fImport();
   if(a==='new-sup')return fSup();
-  if(a==='note')return form('Note au journal',[{k:'texte',l:'Note',t:'area',req:1}],r=>r.texte&&log(o.id,r.texte));
+  if(a==='note')return form('Note au journal',[{k:'texte',l:'Note',t:'area',req:1}],r=>log(o.id,r.texte));
   if(a==='add-page'){const ch=S.chemins.find(c=>c.id===o.id);if(ch)return w('chemins/'+o.id,{pages:[...ch.pages,{n:ch.pages.length+1,rubrique:'',cases:4}]});
-    return form('Créer le chemin de fer',[{k:'n',l:'Nombre de pages',t:'number',v:8,req:1}],r=>w('chemins/'+o.id,{pages:Array.from({length:Math.max(1,Math.min(200,Math.round(r.n||8)))},(_,i)=>({n:i+1,rubrique:i?'':'Une',cases:i?4:2}))},'set'))}
-  if(a==='to-prod'){if(bloquants(o.id))return;if(await w('operations/'+o.id,{etape:4}))await log(o.id,'Données et chemin de fer validés, passage en production.');return}
-  if(a==='csv'){const L=[['libelle','marque','rayon','prix','prix_barre','mecanique','origine','mention','page'],...prodsOf(o.id).map(p=>[p.libelle,p.marque,p.rayon,p.prix,p.barre,p.mecanique,p.origine,p.mention,p.page])].map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';')).join('\n');
-    try{await navigator.clipboard.writeText(L);toast('Données copiées. Collez-les dans un tableur.')}catch(x){toast('Copie refusée par le navigateur.')}}});
+    return form('Créer le chemin de fer',[{k:'n',l:'Nombre de pages',t:'int',v:8,req:1}],r=>r.n<1||r.n>200?'Indiquez entre 1 et 200 pages.':w('chemins/'+o.id,{pages:Array.from({length:r.n},(_,i)=>({n:i+1,rubrique:i?'':'Une',cases:i?4:2}))},'set'))}
+  if(a==='to-prod'){if(!prerequis(o).every(x=>x[0]))return;const ps=prodsOf(o.id),ch=S.chemins.find(c=>c.id===o.id),ns=S.supports.filter(s=>s.op===o.id).length;
+    if(await w('operations/'+o.id,{etape:4}))await log(o.id,'Passage en production : '+ps.length+' produit(s) sans anomalie bloquante, '+(ch&&ch.pages.length?'chemin de fer de '+ch.pages.length+' page(s)':'sans chemin de fer')+', '+ns+' support(s) défini(s).')}});
 document.addEventListener('change',async e=>{const t=e.target,d=t.dataset,o=curOp();
   if(t.id==='opsel')return pick(t.value);
+  if(!(d.task||d.eng||d.stat))return;
+  if(!peutEcrire())return render();
   if(d.task)return w('taches/'+d.task,{fait:t.checked});
   if(d.eng){const ex=S.engagements.find(x=>x.id===o.id);return w('engagements/'+o.id,{[d.eng]:t.value},ex?undefined:'set')}
   if(d.stat)return setStat(S.supports.find(s=>s.id===d.stat),t.value)});
 document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('[data-chip]');if(c)e.dataTransfer.setData('text/plain',c.dataset.chip)});
 document.addEventListener('dragover',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();p.classList.add('over')}});
 document.addEventListener('dragleave',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p)p.classList.remove('over')});
-document.addEventListener('drop',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();setPage(e.dataTransfer.getData('text/plain'),+p.dataset.page)}});
+document.addEventListener('drop',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();if(peutEcrire())setPage(e.dataTransfer.getData('text/plain'),+p.dataset.page)}});
 window.addEventListener('hashchange',render);
+function askCode(){form('Code de test',[{k:'i',t:'info',l:'La consultation est libre. Pour modifier, saisissez le code fourni par Nanotera, puis recommencez votre action.'},{k:'code',l:'Code de test',req:1}],async r=>{let ok;try{ok=await rpc({p_code:r.code,p_op:'check'})}catch(e){return 'Vérification impossible. Réessayez dans un instant.'}
+  if(ok!==true)return 'Code refusé. Vérifiez-le puis réessayez.';CODE=r.code;try{localStorage.setItem('bos-code',CODE)}catch(e){}toast('Modifications activées.');render();return true},null,render)}
 init();
 </script>
 </body>
