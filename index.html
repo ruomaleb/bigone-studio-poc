@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BigOne Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Plan : outil de fabrication. Rail de navigation à gauche (barre basse sur mobile), contenu en colonnes denses.
+   Neutres froids tirés vers le cyan d'imprimerie, un seul accent magenta, couleurs d'état séparées. */
+:root{
+  --bg:#f3f6f7; --surface:#ffffff; --ink:#13262c; --muted:#5d7178; --line:#d7e0e3; --rail:#13262c; --rail-ink:#dfe9ec;
+  --accent:#c2185b; --accent-ink:#ffffff; --soft:#e8eef0;
+  --ok:#1b7f4b; --warn:#a86400; --crit:#c62828; --ok-bg:#e1f3e8; --warn-bg:#fbefd6; --crit-bg:#fbe3e3;
+  --display:"Archivo","Arial Narrow",Arial,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0e1a1e; --surface:#16272d; --ink:#e6eff1; --muted:#9bb0b7; --line:#2a4047; --rail:#0a1417; --rail-ink:#dfe9ec;
+  --accent:#f0669b; --accent-ink:#1a0a11; --soft:#1e343b;
+  --ok:#5fd093; --warn:#f0b445; --crit:#ff8a80; --ok-bg:#143325; --warn-bg:#3a2c0d; --crit-bg:#401a1a; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0e1a1e; --surface:#16272d; --ink:#e6eff1; --muted:#9bb0b7; --line:#2a4047; --rail:#0a1417; --rail-ink:#dfe9ec;
+  --accent:#f0669b; --accent-ink:#1a0a11; --soft:#1e343b;
+  --ok:#5fd093; --warn:#f0b445; --crit:#ff8a80; --ok-bg:#143325; --warn-bg:#3a2c0d; --crit-bg:#401a1a; color-scheme:dark; }
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--body)}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-size:26px;font-weight:800;letter-spacing:-.01em}
+h2{font-size:17px;font-weight:700}
+h3{font-size:14px;font-weight:700}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:grid;grid-template-columns:208px 1fr;min-height:100%}
+nav{background:var(--rail);color:var(--rail-ink);padding:20px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.brand{font:800 19px var(--display);padding:4px 10px 18px;letter-spacing:.01em}
+.brand b{color:#f0669b}
+nav a{color:inherit;text-decoration:none;padding:10px;border-radius:6px;font-weight:500;display:flex;gap:10px;align-items:center}
+nav a .n{font:700 11px var(--display);opacity:.55;width:16px}
+nav a[aria-current="page"]{background:rgba(255,255,255,.1);box-shadow:inset 3px 0 0 #f0669b}
+main{padding:24px 28px 60px;min-width:0;display:flex;flex-direction:column;gap:20px;max-width:1280px}
+.hd{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.sub{color:var(--muted);margin:2px 0 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grid{display:grid;gap:14px}
+.two{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.tiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;border-left:4px solid var(--line)}
+.tile b{font:800 28px var(--display);display:block;font-variant-numeric:tabular-nums}
+.tile span{color:var(--muted);font-size:13px}
+.tile.warn{border-left-color:var(--warn)} .tile.crit{border-left-color:var(--crit)} .tile.ok{border-left-color:var(--ok)}
+.btn{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:8px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--muted)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.sm{padding:4px 8px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+select,input,textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;max-width:100%}
+.pill{display:inline-block;margin:2px 0;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.crit{background:var(--crit-bg);color:var(--crit)}
+.pill.src{border:1px dashed var(--line);background:none}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.sel td{background:var(--soft)}
+.steps{display:flex;gap:3px}
+.steps i{height:6px;flex:1;border-radius:3px;background:var(--line)}
+.steps i.on{background:var(--accent)}
+.list{display:flex;flex-direction:column}
+.list > *{padding:9px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.list > *:last-child{border-bottom:0}
+.tl{position:relative;min-width:720px;padding-top:22px}
+.tl .ax{position:absolute;top:0;font-size:11px;color:var(--muted);border-left:1px solid var(--line);padding-left:4px;height:100%}
+.tl .now{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);z-index:1}
+.tl .r{position:relative;height:30px}
+.tl .bar{position:absolute;top:4px;height:22px;border-radius:4px;background:var(--soft);border:1px solid var(--muted);font-size:12px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;color:var(--ink)}
+.tl .bar.fab{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tl .bar.demo{border-style:dashed}
+.pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.page{border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--bg);min-height:120px;display:flex;flex-direction:column;gap:6px}
+.page.over{outline:2px dashed var(--accent)}
+.page .pn{font:800 18px var(--display)}
+.chip{font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:3px 6px;cursor:grab}
+.kan{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:start}
+.col{background:var(--soft);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.col h3{display:flex;justify-content:space-between}
+.sup{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.note{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:10px 12px;font-size:14px}
+.muted{color:var(--muted)} .small{font-size:13px}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:20px;width:min(520px,calc(100vw - 32px));max-height:90vh;overflow:auto}
+dialog::backdrop{background:rgba(10,20,23,.55)}
+dialog form{display:flex;flex-direction:column;gap:12px}
+dialog label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:500}
+dialog label.ck{flex-direction:row;align-items:center;gap:8px;font-weight:400;font-size:14px}
+#toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:6px;font-size:14px;max-width:calc(100vw - 32px);z-index:9}
+#toast:empty{display:none}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr}
+  nav{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;flex-direction:row;padding:6px;z-index:5;justify-content:space-around}
+  .brand,nav a .n{display:none}
+  nav a{flex-direction:column;font-size:12px;padding:8px 6px;gap:0}
+  nav a[aria-current="page"]{box-shadow:inset 0 3px 0 #f0669b}
+  main{padding:16px 16px 90px}
+  h1{font-size:22px}
+}
+@media (prefers-reduced-motion:no-preference){ .btn,.bar{transition:border-color .15s} }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav aria-label="Sections">
+    <div class="brand">BigOne <b>Studio</b></div>
+    <a href="#accueil"><span class="n">0</span>Accueil</a>
+    <a href="#pilotage"><span class="n">1</span>Pilotage</a>
+    <a href="#preparation"><span class="n">2</span>Préparation</a>
+    <a href="#production"><span class="n">3</span>Production</a>
+  </nav>
+  <main id="view"></main>
+</div>
+<dialog id="dlg"></dialog>
+<div id="toast" role="status"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ETAPES=['Cadrage','Données','Chemin de fer','Maquette','BAT','Livraison','Diffusion'];
+const STATUTS=[['amonter','À monter'],['maquette','En maquette'],['bat','BAT chez le client'],['corrections','Corrections'],['valide','Validé'],['livre','Livré']];
+const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
+const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
+const ORIGINE=['Fruits et légumes','Boucherie','Poissonnerie'];
+const ENG=[['engage','Engagé'],['attente','En attente'],['non','Non participant']];
+const S={operations:[],produits:[],magasins:[],supports:[],taches:[],journal:[],chemins:[],engagements:[]};
+let db=null,status='loading',cur=null,timer=null;
+try{cur=localStorage.getItem('bos-op')}catch(e){}
+
+/* ---------- dates ---------- */
+const pd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today=()=>iso(new Date());
+const fd=s=>s?pd(s.slice(0,10)).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
+function feries(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=(h+l-7*m+114)%31+1;
+  const p=new Date(y,mo-1,da),add=n=>{const x=new Date(p);x.setDate(x.getDate()+n);return iso(x)};
+  return [y+'-01-01',add(1),y+'-05-01',y+'-05-08',add(39),add(50),y+'-07-14',y+'-08-15',y+'-11-01',y+'-11-11',y+'-12-25'];}
+function ouvre(d){const w=d.getDay();return w!==0&&w!==6&&!feries(d.getFullYear()).includes(iso(d))}
+function decale(s,n){const d=pd(s),st=n<0?-1:1;let k=Math.abs(n);while(!ouvre(d))d.setDate(d.getDate()-1);while(k>0){d.setDate(d.getDate()+st);if(ouvre(d))k--}return iso(d)}
+/* Règles de rétroplanning proposées : jours ouvrés avant la remise à l'imprimeur, puis avant le début de l'opération. */
+function retro(remise,debut){const R=[['Brief et cadrage validés',1,-22],['Données produits reçues',2,-15],['Chemin de fer validé',3,-12],['BAT 1 déposé au client',5,-8],['Retours client sur BAT 1',5,-6],['BAT 2 déposé au client',5,-5],['BAT final validé',5,-2],["Fichiers remis à l'imprimeur",6,0]];
+  const t=R.map(([l,e,n])=>({libelle:l,etape:e,echeance:decale(remise,n),fait:false}));
+  if(debut){t.push({libelle:'Flux Bonial et Tiendeo déposés',etape:6,echeance:decale(debut,-2),fait:false});t.push({libelle:'E-catalogue mis en ligne',etape:7,echeance:decale(debut,-1),fait:false})}
+  return t}
+
+/* ---------- contrôles des données ---------- */
+function controles(p){const b=[],a=[];
+  if(!p.libelle)b.push('Libellé manquant');
+  if(p.prix==null||!(p.prix>0))b.push('Prix manquant');
+  if(p.barre!=null&&p.prix!=null&&p.barre<=p.prix)b.push('Prix barré inférieur ou égal au prix');
+  if(p.rayon==='Vins et alcools'&&!p.mention)b.push('Mention légale alcool manquante');
+  if(ORIGINE.includes(p.rayon)&&!p.origine)b.push('Origine manquante');
+  if(!p.rayon)a.push('Rayon non renseigné');
+  if(p.page==null)a.push('Non placé dans le chemin de fer');
+  return {b,a}}
+const prodsOf=id=>S.produits.filter(p=>p.op===id);
+const bloquants=id=>prodsOf(id).reduce((n,p)=>n+controles(p).b.length,0);
+
+/* ---------- base de données ---------- */
+function toast(m){$('#toast').textContent=m;clearTimeout(toast.t);toast.t=setTimeout(()=>$('#toast').textContent='',4000)}
+const SB='https://etmuhdohnalwxlqhsfnf.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bXVoZG9obmFsd3hscWhzZm5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NDUxMzUsImV4cCI6MjExMDIyMTEzNX0.Jiy4H8jHLm3ykZF-673Lu_RGyhEc9YDre9LitZ6w5tg',HD={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
+let CODE=null;try{CODE=localStorage.getItem('bos-code')}catch(e){}
+const rpc=async b=>{const r=await fetch(SB+'/rest/v1/rpc/studio_write',{method:'POST',headers:HD,body:JSON.stringify(b)});if(!r.ok)throw new Error('rpc');return r.json()};
+function askCode(){form('Code de test',[{k:'code',l:'Code fourni par Nanotera',req:1}],async r=>{try{if(await rpc({p_code:r.code,p_op:'check'})===true){CODE=r.code;try{localStorage.setItem('bos-code',CODE)}catch(e){}toast('Modifications activées.');render()}else toast('Code refusé. Vérifiez-le puis réessayez.')}catch(e){toast('Vérification impossible. Réessayez dans un instant.')}})}
+async function w(path,data,mode){if(!CODE){toast('Saisissez le code de test pour modifier, puis recommencez.');askCode();return false}
+  const [col,id]=path.split('/'),op=mode==='set'?'set':mode==='delete'?'delete':'update';
+  try{const ok=await rpc({p_code:CODE,p_op:op,p_col:col,p_id:id,p_data:data||{}});
+    if(ok!==true){CODE=null;try{localStorage.removeItem('bos-code')}catch(e){}toast('Code refusé. Saisissez-le à nouveau.');askCode();return false}
+    const a=S[col],i=a.findIndex(x=>x.id===id);if(op==='delete'){if(i>=0)a.splice(i,1)}else if(op==='set'){const d=Object.assign({id},data);if(i>=0)a[i]=d;else a.push(d)}else if(i>=0)a[i]=Object.assign({},a[i],data);
+    schedule();return true}
+  catch(e){toast('Enregistrement impossible. Réessayez dans un instant.');return false}}
+const uid=p=>p+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const log=(op,texte)=>w('journal/'+uid('j'),{op,date:new Date().toISOString().slice(0,16),texte},'set');
+let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
+async function charger(){try{const r=await fetch(SB+'/rest/v1/docs?select=col,id,data&order=col,id',{headers:HD});if(!r.ok)throw 0;const rows=await r.json(),N={},sig=JSON.stringify(rows);if(sig===charger.sig&&status==='ok')return;charger.sig=sig;Object.keys(S).forEach(k=>N[k]=[]);
+    rows.forEach(x=>{if(N[x.col])N[x.col].push(Object.assign({id:x.id},x.data))});Object.assign(S,N);status='ok'}catch(e){if(status!=='ok')status='err'}schedule()}
+async function init(){render();await charger();setInterval(()=>{if(!document.hidden&&!$('#dlg').open)charger()},20000)}
+
+/* ---------- composants ---------- */
+const opById=id=>S.operations.find(o=>o.id===id);
+const sorted=()=>[...S.operations].sort((a,b)=>(a.debut||'').localeCompare(b.debut||''));
+function curOp(){let o=opById(cur);if(!o){o=sorted().find(x=>x.etape<6)||sorted()[0];cur=o?o.id:null}return o}
+const src=s=>s==='public'?'<span class="pill src" title="Relevé sur les sites publics le 14/11/2026">Relevé public</span>':s==='demo'?'<span class="pill src">Démo</span>':s==='drive'?'<span class="pill src">Drive</span>':s==='matrice'?'<span class="pill src">Matrice</span>':'';
+const steps=e=>'<div class="steps" title="'+esc(ETAPES[e-1])+'">'+ETAPES.map((_,i)=>'<i class="'+(i<e?'on':'')+'"></i>').join('')+'</div>';
+const periode=o=>fd(o.debut)+' → '+fd(o.fin);
+function opSelect(){const f=sorted().filter(o=>o.etape<6),d=sorted().filter(o=>o.etape>=6),opt=o=>'<option value="'+esc(o.id)+'"'+(o.id===cur?' selected':'')+'>'+esc(o.nom)+' ('+periode(o)+')</option>';
+  return '<select id="opsel" aria-label="Opération">'+(f.length?'<optgroup label="En fabrication">'+f.map(opt).join('')+'</optgroup>':'')+(d.length?'<optgroup label="Livrées ou diffusées">'+d.map(opt).join('')+'</optgroup>':'')+'</select>'}
+function banner(){if(status==='ok')return CODE?'':'<div class="note row" style="justify-content:space-between"><span>Prototype en consultation libre, données de démonstration. Un code de test est nécessaire pour modifier.</span><button class="btn sm" data-act="code">Saisir le code</button></div>';
+  const m={loading:'Chargement des données…',slow:"Les données ne répondent pas encore. La page se mettra à jour dès qu'elles arrivent.",nodb:"La base de données n'est pas accessible dans cette vue. Ouvrez la page connecté à votre compte Claude.",err:"La base de données ne répond pas. Rechargez la page pour réessayer."}[status];
+  return '<div class="note">'+m+'</div>'}
+function vide(t){return '<p class="muted">'+t+'</p>'}
+
+/* ---------- vues ---------- */
+function vAccueil(){const t=today(),ops=sorted(),fab=ops.filter(o=>o.etape<6),enc=ops.filter(o=>o.debut<=t&&o.fin>=t);
+  const bat=S.supports.filter(s=>s.statut==='bat'),ano=fab.reduce((n,o)=>n+bloquants(o.id),0),ret=S.taches.filter(x=>!x.fait&&x.echeance<t&&opById(x.op));
+  const todo=[...ret.map(x=>({c:'crit',t:'Tâche en retard',d:x.libelle+' (échéance '+fd(x.echeance)+')',op:x.op,h:'pilotage'})),
+    ...fab.filter(o=>bloquants(o.id)).map(o=>({c:'crit',t:bloquants(o.id)+' anomalie(s) bloquante(s)',d:'Données produits à corriger',op:o.id,h:'preparation'})),
+    ...bat.map(s=>({c:'warn',t:'BAT '+s.bat+' en attente du client',d:s.type,op:s.op,h:'production'})),
+    ...S.supports.filter(s=>s.statut==='corrections').map(s=>({c:'warn',t:'Corrections en cours',d:s.type,op:s.op,h:'production'}))];
+  const jr=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+  return '<div class="hd"><div><h1>Accueil</h1><p class="sub">'+new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</p></div></div>'+banner()+
+  '<div class="grid tiles"><div class="tile ok"><b>'+enc.length+'</b><span>opérations en diffusion</span></div><div class="tile"><b>'+fab.length+'</b><span>en fabrication</span></div><div class="tile '+(bat.length?'warn':'')+'"><b>'+bat.length+'</b><span>BAT chez le client</span></div><div class="tile '+(ano?'crit':'ok')+'"><b>'+ano+'</b><span>anomalies bloquantes</span></div><div class="tile '+(ret.length?'crit':'ok')+'"><b>'+ret.length+'</b><span>tâches en retard</span></div></div>'+
+  '<div class="grid two"><section class="card"><h2>À traiter</h2><div class="list">'+(todo.map(x=>{const o=opById(x.op);return '<a href="#'+x.h+'" data-go="'+esc(x.op)+'" style="color:inherit;text-decoration:none"><span><span class="pill '+x.c+'">'+esc(x.t)+'</span><br>'+esc(x.d)+'<br><span class="muted small">'+esc(o?o.nom:'')+'</span></span><span aria-hidden="true">›</span></a>'}).join('')||vide('Rien à traiter.'))+'</div></section>'+
+  '<section class="card"><h2>En fabrication</h2><div class="list">'+(fab.map(o=>'<a href="#pilotage" data-go="'+esc(o.id)+'" style="color:inherit;text-decoration:none"><span style="flex:1"><b>'+esc(o.nom)+'</b> '+src(o.source)+'<br><span class="muted small">'+periode(o)+' · étape '+esc(ETAPES[o.etape-1])+'</span>'+steps(o.etape)+'</span></a>').join('')||vide('Aucune opération en fabrication.'))+'</div></section></div>'+
+  '<section class="card"><h2>Journal des opérations</h2><div class="list">'+(jr.map(j=>{const o=opById(j.op);return '<div><span>'+esc(j.texte)+'<br><span class="muted small">'+esc(o?o.nom:'')+'</span></span><span class="muted small" style="white-space:nowrap">'+fd(j.date)+'</span></div>'}).join('')||vide('Aucune note.'))+'</div></section>'}
+
+function timeline(){const ops=sorted();if(!ops.length)return vide('Aucune opération.');
+  const a=pd(ops[0].debut),b=pd(ops.reduce((m,o)=>o.fin>m?o.fin:m,ops[0].fin));a.setDate(1);b.setMonth(b.getMonth()+1,0);
+  const tot=(b-a)/864e5+1,x=s=>((pd(s)-a)/864e5)/tot*100;let ax='';
+  for(const m=new Date(a);m<=b;m.setMonth(m.getMonth()+1))ax+='<div class="ax" style="left:'+x(iso(m))+'%">'+m.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})+'</div>';
+  const t=today(),now=t>=iso(a)&&t<=iso(b)?'<div class="now" style="left:'+x(t)+'%" title="Aujourd\'hui"></div>':'';
+  return '<div class="scroll"><div class="tl">'+ax+now+ops.map(o=>'<div class="r"><button class="bar '+(o.etape<6?'fab ':'')+(o.source==='demo'?'demo':'')+'" data-pick="'+esc(o.id)+'" style="left:'+x(o.debut)+'%;width:'+Math.max(2,x(o.fin)-x(o.debut)+100/tot)+'%" title="'+esc(o.nom)+' · '+periode(o)+'">'+esc(o.nom)+'</button></div>').join('')+'</div></div>'}
+function vPilotage(){const o=curOp(),t=today();
+  const rows=sorted().map(x=>'<tr class="'+(x.id===cur?'sel':'')+'"><td><b>'+esc(x.nom)+'</b><br>'+src(x.source)+'</td><td class="num">'+periode(x)+'</td><td>'+esc((x.enseignes||[]).join(', '))+'</td><td>'+esc(x.portee||'')+'</td><td class="num">'+(x.magasins??'—')+'</td><td style="min-width:120px">'+esc(ETAPES[x.etape-1])+steps(x.etape)+'</td><td><button class="btn sm" data-pick="'+esc(x.id)+'">Ouvrir</button></td></tr>').join('');
+  let detail='';
+  if(o){const ts=S.taches.filter(x=>x.op===o.id).sort((a,b)=>a.echeance.localeCompare(b.echeance)),eg=(S.engagements.find(e=>e.id===o.id))||{};
+    const n=S.magasins.filter(m=>eg[m.id]==='engage').length;
+    detail='<div class="grid two"><section class="card"><div class="row" style="justify-content:space-between"><h2>Rétroplanning</h2><span class="row"><button class="btn sm" data-act="retro">'+(ts.length?'Recalculer':'Générer')+'</button><button class="btn sm" data-act="edit-op">Modifier l\'opération</button></span></div><p class="muted small" style="margin:0">'+esc(o.nom)+' · remise imprimeur '+(o.remise?fd(o.remise):'non définie')+'</p><div class="list">'+
+      (ts.map(x=>'<label><span><input type="checkbox" data-task="'+esc(x.id)+'"'+(x.fait?' checked':'')+'> '+esc(x.libelle)+'</span><span class="pill '+(x.fait?'ok':x.echeance<t?'crit':'')+'">'+(x.fait?'Fait':x.echeance<t?'Retard · '+fd(x.echeance):fd(x.echeance))+'</span></label>').join('')||vide('Aucune échéance. Générez le rétroplanning à partir de la date de remise à l\'imprimeur.'))+'</div></section>'+
+      '<section class="card"><h2>Engagement des magasins</h2><p class="muted small" style="margin:0">'+n+' engagé(s) sur '+S.magasins.length+' magasins suivis</p><div class="list">'+
+      (S.magasins.map(m=>'<div><span>'+esc(m.nom)+'</span><select data-eng="'+esc(m.id)+'" aria-label="Engagement '+esc(m.nom)+'">'+ENG.map(([k,l])=>'<option value="'+k+'"'+((eg[m.id]||'attente')===k?' selected':'')+'>'+l+'</option>').join('')+'</select></div>').join('')||vide('Aucun magasin.'))+'</div></section></div>'}
+  return '<div class="hd"><div><h1>Pilotage</h1><p class="sub">Plan de commerce, échéances et engagement des magasins</p></div><button class="btn pri" data-act="new-op">Nouvelle opération</button></div>'+banner()+
+  '<section class="card"><h2>Plan de commerce</h2>'+timeline()+'</section>'+
+  '<section class="card"><h2>Opérations</h2><div class="scroll"><table><thead><tr><th>Opération</th><th>Période</th><th>Enseignes</th><th>Portée</th><th>Magasins</th><th>Étape</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></section>'+detail}
+
+function vPreparation(){const o=curOp();if(!o)return '<h1>Préparation</h1>'+banner()+vide('Aucune opération.');
+  const ps=prodsOf(o.id),ch=S.chemins.find(c=>c.id===o.id),pages=ch?ch.pages:[],nb=bloquants(o.id),na=ps.reduce((n,p)=>n+controles(p).a.length,0);
+  const rows=ps.map(p=>{const c=controles(p),CT=c.b.map(x=>'<span class="pill crit">'+esc(x)+'</span>').join(' ')+' '+c.a.map(x=>'<span class="pill warn">'+esc(x)+'</span>').join(' ')+(!c.b.length&&!c.a.length?'<span class="pill ok">Conforme</span>':'');return '<tr><td style="min-width:170px"><b>'+esc(p.libelle)+'</b><br><span class="muted small">'+esc(p.marque||'')+'</span> '+src(p.source)+(p.description?'<br><span class="muted small">'+esc(p.description)+'</span>':'')+'<br>'+CT+'</td><td>'+esc(p.rayon||'')+'</td><td class="num">'+(p.prix!=null?p.prix.toFixed(2).replace('.',',')+' €':'—')+(p.barre!=null?'<br><s class="muted small">'+p.barre.toFixed(2).replace('.',',')+' €</s>':'')+'</td><td>'+esc(p.mecanique||'')+'</td><td class="num">'+(p.page??'—')+'</td><td><button class="btn sm" data-prod="'+esc(p.id)+'">Modifier</button></td></tr>'}).join('');
+  const pg=pages.map(p=>{const inn=ps.filter(x=>x.page===p.n);return '<div class="page" data-page="'+p.n+'"><div class="row" style="justify-content:space-between"><span class="pn">'+p.n+'</span><span class="pill '+(inn.length>p.cases?'crit':inn.length===p.cases?'ok':'')+'">'+inn.length+'/'+p.cases+'</span></div><button class="btn sm" data-rub="'+p.n+'" style="text-align:left">'+esc(p.rubrique||'Rubrique')+'</button>'+inn.map(x=>'<div class="chip" draggable="true" data-chip="'+esc(x.id)+'">'+esc(x.libelle)+'</div>').join('')+'</div>'}).join('');
+  const libres=ps.filter(x=>x.page==null);
+  return '<div class="hd"><div><h1>Préparation</h1><p class="sub">Données produits et chemin de fer</p></div>'+opSelect()+'</div>'+banner()+
+  '<div class="row"><span class="pill '+(nb?'crit':'ok')+'">'+nb+' anomalie(s) bloquante(s)</span><span class="pill '+(na?'warn':'ok')+'">'+na+' avertissement(s)</span><span class="pill">'+ps.length+' produit(s)</span><span class="pill">Étape : '+esc(ETAPES[o.etape-1])+'</span></div>'+
+  '<section class="card"><div class="row" style="justify-content:space-between"><h2>Données produits</h2><span class="row"><button class="btn sm" data-act="import">Importer une matrice</button><button class="btn sm" data-act="csv">Copier en CSV</button><button class="btn sm pri" data-act="new-prod">Ajouter un produit</button></span></div>'+(ps.length?'<div class="scroll"><table><thead><tr><th>Produit</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Page</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>':vide('Aucun produit pour cette opération.'))+'</section>'+
+  '<section class="card"><div class="row" style="justify-content:space-between"><h2>Chemin de fer</h2><button class="btn sm" data-act="add-page">'+(pages.length?'Ajouter une page':'Créer le chemin de fer')+'</button></div>'+(pages.length?'<p class="muted small" style="margin:0">Glissez un produit sur une page, ou choisissez sa page dans sa fiche.</p><div class="pages">'+pg+'</div>'+(libres.length?'<div><h3>Produits non placés</h3><div class="row" style="margin-top:6px">'+libres.map(x=>'<div class="chip" draggable="true" data-chip="'+esc(x.id)+'">'+esc(x.libelle)+'</div>').join('')+'</div></div>':''):vide('Pas encore de chemin de fer.'))+'</section>'+
+  (o.etape<4?'<div class="row"><button class="btn pri" data-act="to-prod"'+(nb?' disabled':'')+'>Passer en production</button>'+(nb?'<span class="muted small">Corrigez les anomalies bloquantes pour continuer.</span>':'')+'</div>':'')}
+
+function vProduction(){const o=curOp();if(!o)return '<h1>Production</h1>'+banner()+vide('Aucune opération.');
+  const ss=S.supports.filter(s=>s.op===o.id),nb=bloquants(o.id);
+  const card=s=>{const n=CHECKS.filter(([k])=>s.checks&&s.checks[k]).length;return '<div class="sup"><b>'+esc(s.type)+'</b><span class="muted">'+esc(s.format||'')+'</span><span class="muted">Versions : '+esc(s.versions||'—')+'</span><span class="row"><span class="pill">'+(s.bat?'BAT '+s.bat:'Pas de BAT')+'</span><span class="pill '+(n===CHECKS.length?'ok':'')+'">Contrôles '+n+'/'+CHECKS.length+'</span></span><select data-stat="'+esc(s.id)+'" aria-label="Statut '+esc(s.type)+'">'+STATUTS.map(([k,l])=>'<option value="'+k+'"'+(s.statut===k?' selected':'')+'>'+l+'</option>').join('')+'</select><button class="btn sm" data-chk="'+esc(s.id)+'">Contrôles et fiche</button></div>'};
+  return '<div class="hd"><div><h1>Production</h1><p class="sub">Supports, BAT et livraison</p></div>'+opSelect()+'</div>'+banner()+
+  (nb?'<div class="note">'+nb+' anomalie(s) bloquante(s) dans les données de cette opération. Les BAT partiront avec ces erreurs tant qu\'elles ne sont pas corrigées en Préparation.</div>':'')+
+  '<div class="row" style="justify-content:space-between"><span class="pill">'+ss.length+' support(s)</span><button class="btn pri" data-act="new-sup">Ajouter un support</button></div>'+
+  (ss.length?'<div class="kan">'+STATUTS.map(([k,l])=>{const c=ss.filter(s=>s.statut===k);return '<div class="col"><h3>'+l+'<span class="muted">'+c.length+'</span></h3>'+c.map(card).join('')+'</div>'}).join('')+'</div>':vide('Aucun support. Ajoutez le prospectus, l\'e-catalogue ou les flux à produire.'))+
+  '<section class="card"><div class="row" style="justify-content:space-between"><h2>Journal de l\'opération</h2><button class="btn sm" data-act="note">Ajouter une note</button></div><div class="list">'+(S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date)).map(j=>'<div><span>'+esc(j.texte)+'</span><span class="muted small" style="white-space:nowrap">'+fd(j.date)+'</span></div>').join('')||vide('Aucune note.'))+'</div></section>'}
+
+const VUES={accueil:vAccueil,pilotage:vPilotage,preparation:vPreparation,production:vProduction};
+function render(){const h=(location.hash||'#accueil').slice(1),v=VUES[h]?h:'accueil';
+  document.querySelectorAll('nav a').forEach(a=>a.getAttribute('href')==='#'+v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
+  $('#view').innerHTML=VUES[v]()}
+function pick(id){cur=id;try{localStorage.setItem('bos-op',id)}catch(e){}render()}
+
+/* ---------- formulaires ---------- */
+function form(titre,champs,ok,suppr){const d=$('#dlg');
+  d.innerHTML='<form id="f"><h2>'+esc(titre)+'</h2>'+champs.map(c=>{const id='f-'+c.k,v=c.v??'';
+    if(c.t==='check')return '<label class="ck"><input type="checkbox" id="'+id+'"'+(c.v?' checked':'')+'> '+esc(c.l)+'</label>';
+    if(c.t==='select')return '<label>'+esc(c.l)+'<select id="'+id+'">'+c.o.map(([k,l])=>'<option value="'+esc(k)+'"'+(String(k)===String(v)?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select></label>';
+    if(c.t==='area')return '<label>'+esc(c.l)+'<textarea id="'+id+'" rows="3">'+esc(v)+'</textarea></label>';
+    return '<label>'+esc(c.l)+'<input id="'+id+'" type="'+(c.t==='number'?'text':c.t||'text')+'"'+(c.t==='number'?' inputmode="decimal"':'')+' value="'+esc(v)+'"'+(c.req?' required':'')+'></label>'}).join('')+
+    '<div class="row" style="justify-content:space-between"><span>'+(suppr?'<button type="button" class="btn" id="f-del">Supprimer</button>':'')+'</span><span class="row"><button type="button" class="btn" id="f-no">Annuler</button><button class="btn pri">Enregistrer</button></span></div></form>';
+  $('#f-no').onclick=()=>d.close();if(suppr)$('#f-del').onclick=async()=>{d.close();await suppr()};
+  $('#f').onsubmit=async e=>{e.preventDefault();const r={};champs.forEach(c=>{const el=$('#f-'+c.k);r[c.k]=c.t==='check'?el.checked:c.t==='number'?(el.value===''?null:(x=>isNaN(x)?null:x)(parseFloat(el.value.replace(',','.')))):el.value.trim()});d.close();await ok(r)};
+  d.showModal()}
+function fOp(o){form(o?'Modifier l\'opération':'Nouvelle opération',[{k:'nom',l:'Nom',v:o&&o.nom,req:1},{k:'enseignes',l:'Enseignes (séparées par des virgules)',v:o?(o.enseignes||[]).join(', '):'Hyper U, Super U, U Express'},{k:'portee',l:'Portée',t:'select',o:['Nationale','Régionale','Locale'].map(x=>[x,x]),v:o&&o.portee},{k:'debut',l:'Début',t:'date',v:o&&o.debut,req:1},{k:'fin',l:'Fin',t:'date',v:o&&o.fin,req:1},{k:'remise',l:'Remise des fichiers à l\'imprimeur',t:'date',v:o&&o.remise},...(o?[{k:'etape',l:'Étape',t:'select',o:ETAPES.map((x,i)=>[i+1,x]),v:o.etape}]:[])],async r=>{
+    const data={nom:r.nom,enseignes:r.enseignes.split(',').map(x=>x.trim()).filter(Boolean),portee:r.portee,debut:r.debut,fin:r.fin,remise:r.remise||null};
+    if(r.fin<r.debut)return toast('La date de fin précède la date de début.');
+    if(o){data.etape=+r.etape;await w('operations/'+o.id,data)}
+    else{const id=uid('op');Object.assign(data,{etape:1,magasins:null,source:null});if(await w('operations/'+id,data,'set')){cur=id;if(data.remise)await genRetro(id,data.remise,data.debut);await log(id,'Opération créée.')}}})}
+async function genRetro(id,remise,debut){for(const x of S.taches.filter(t=>t.op===id))await w('taches/'+x.id,null,'delete');
+  const t=retro(remise,debut);for(let i=0;i<t.length;i++)await w('taches/'+id+'-t'+String(i+1).padStart(2,'0'),Object.assign({op:id},t[i]),'set')}
+function fProd(p){const o=curOp(),ch=S.chemins.find(c=>c.id===o.id),pg=[['','Non placé'],...(ch?ch.pages:[]).map(x=>[x.n,'Page '+x.n+' · '+(x.rubrique||'')])];
+  form(p?'Modifier le produit':'Ajouter un produit',[{k:'libelle',l:'Libellé',v:p&&p.libelle,req:1},{k:'description',l:'Description',t:'area',v:p&&p.description},{k:'marque',l:'Marque',v:p&&p.marque},{k:'rayon',l:'Rayon',t:'select',o:[['','—'],...[...new Set([...RAYONS,...(p&&p.rayon?[p.rayon]:[])])].map(x=>[x,x])],v:p&&p.rayon},{k:'prix',l:'Prix (€)',t:'number',v:p&&p.prix},{k:'barre',l:'Prix barré (€)',t:'number',v:p&&p.barre},{k:'mecanique',l:'Mécanique',v:p?p.mecanique:'Prix bas'},{k:'origine',l:'Origine',v:p&&p.origine},{k:'mention',l:'Mention légale',v:p&&p.mention},{k:'page',l:'Page',t:'select',o:pg,v:p&&p.page!=null?p.page:''}],async r=>{
+    r.page=r.page===''?null:+r.page;if(p)await w('produits/'+p.id,r);else await w('produits/'+uid('p'),Object.assign(r,{op:o.id,source:null}),'set')},p&&(()=>w('produits/'+p.id,null,'delete')))}
+function fSup(){const o=curOp();form('Ajouter un support',[{k:'type',l:'Type',t:'select',o:['Prospectus','E-catalogue','Flux Bonial','Flux Tiendeo','Affiche','PLV','Bannières Meta','Bannières display','SMS / RCS'].map(x=>[x,x])},{k:'format',l:'Format'},{k:'versions',l:'Versions'}],r=>w('supports/'+uid('s'),Object.assign(r,{op:o.id,statut:'amonter',bat:0,checks:{},source:null}),'set'))}
+function fChk(s){form(s.type+' : contrôles',[...CHECKS.map(([k,l])=>({k,l,t:'check',v:s.checks&&s.checks[k]})),{k:'_format',l:'Format',v:s.format},{k:'_versions',l:'Versions',v:s.versions}],async r=>{const checks={};CHECKS.forEach(([k])=>checks[k]=r[k]);await w('supports/'+s.id,{checks,format:r._format,versions:r._versions})},()=>w('supports/'+s.id,null,'delete'))}
+async function setStat(s,to){const ck=s.checks||{},av=CHECKS.filter(([k])=>k!=='natifs').every(([k])=>ck[k]);
+  if((to==='valide'||to==='livre')&&!av){toast('Validation impossible : terminez les contrôles du support.');return render()}
+  if(to==='livre'&&!ck.natifs){toast('Livraison impossible : les fichiers natifs ne sont pas déposés.');return render()}
+  const d={statut:to};if(to==='bat')d.bat=(s.bat||0)+1;
+  if(await w('supports/'+s.id,d)){const l=STATUTS.find(x=>x[0]===to)[1];await log(s.op,s.type+' : '+(to==='bat'?'BAT '+d.bat+' déposé au client.':'passé à « '+l+' ».'))}}
+async function setPage(pid,n){const p=S.produits.find(x=>x.id===pid);if(p&&p.page!==n)await w('produits/'+pid,{page:n})}
+
+/* ---------- import d'une matrice Excel ou CSV ---------- */
+const norm=s=>String(s??'').trim().toLowerCase();
+const nombre=v=>{if(v==null||v==='')return null;if(typeof v==='number')return v;const x=parseFloat(String(v).replace(/[^0-9,.-]/g,'').replace(',','.'));return isNaN(x)?null:x};
+function lireMatrice(A){const CL=[['barre',/barr/],['prix',/prix|tarif/],['libelle',/titre|libell|d[ée]signation|produit|nom/],['description',/descr/],['marque',/marque/],['rayon',/rayon|cat[ée]gor|famille/],['origine',/origine/],['mention',/mention/],['mecanique',/m[ée]canique|offre/]];
+  let h=-1,map={};for(let i=0;i<Math.min(A.length,10)&&h<0;i++){const m={};(A[i]||[]).forEach((c,j)=>{const k=CL.find(([k,re])=>re.test(norm(c))&&!(k in m));if(k)m[k[0]]=j});if(m.libelle!=null&&Object.keys(m).length>=2){h=i;map=m}}
+  if(h<0)return [];if(map.rayon==null&&!Object.values(map).includes(0))map.rayon=0;
+  const g=(r,k)=>map[k]==null||r[map[k]]==null?'':String(r[map[k]]).trim();
+  return A.slice(h+1).filter(r=>r&&g(r,'libelle')).map(r=>({libelle:g(r,'libelle'),description:g(r,'description'),marque:g(r,'marque'),rayon:g(r,'rayon'),prix:nombre(map.prix==null?null:r[map.prix]),barre:nombre(map.barre==null?null:r[map.barre]),mecanique:g(r,'mecanique'),origine:g(r,'origine'),mention:g(r,'mention'),page:null}))}
+function fImport(){const o=curOp(),d=$('#dlg');let rows=[];
+  d.innerHTML='<form id="f"><h2>Importer une matrice</h2><p class="muted small" style="margin:0">Fichier Excel ou CSV avec une ligne de titres : Titre, Description, Marque, Prix. Une première colonne sans titre reconnu sert de rayon. Les produits déjà présents dans l\'opération sont ignorés.</p><label>Fichier<input type="file" id="f-file" accept=".xlsx,.xls,.csv"></label><p id="f-info" class="small" style="margin:0"></p><div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="f-no">Annuler</button><button class="btn pri" id="f-ok" disabled>Importer</button></div></form>';
+  $('#f-no').onclick=()=>d.close();
+  $('#f-file').onchange=async e=>{const f=e.target.files[0],info=$('#f-info');rows=[];$('#f-ok').disabled=true;if(!f)return;
+    if(!window.XLSX){info.textContent="Le lecteur de fichiers n'a pas pu se charger. Rechargez la page puis réessayez.";return}
+    try{const wb=XLSX.read(await f.arrayBuffer()),all=lireMatrice(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null}));
+      if(!all.length){info.textContent='Aucun produit trouvé. Vérifiez que la première feuille contient une ligne de titres avec au moins « Titre » et « Prix ».';return}
+      const ex=new Set(prodsOf(o.id).map(p=>norm(p.libelle)));rows=all.filter(r=>!ex.has(norm(r.libelle)));
+      const sp=rows.filter(r=>r.prix==null).length;info.textContent=rows.length+' produit(s) à importer dans « '+o.nom+' »'+(all.length-rows.length?', '+(all.length-rows.length)+' doublon(s) ignoré(s)':'')+(sp?', dont '+sp+' sans prix':'')+'.';$('#f-ok').disabled=!rows.length}
+    catch(x){info.textContent="Ce fichier n'a pas pu être lu. Enregistrez-le au format .xlsx ou .csv puis réessayez."}};
+  $('#f').onsubmit=async e=>{e.preventDefault();d.close();let n=0;toast('Import en cours…');for(const r of rows){if(await w('produits/'+uid('p'),Object.assign(r,{op:o.id,source:'matrice'}),'set'))n++;else break}
+    if(n){await log(o.id,n+' produit(s) importé(s) depuis une matrice.');toast(n+' produit(s) importé(s).')}};
+  d.showModal()}
+
+/* ---------- événements ---------- */
+document.addEventListener('click',async e=>{const t=e.target.closest('[data-act],[data-pick],[data-go],[data-prod],[data-chk],[data-rub]');if(!t)return;const o=curOp(),d=t.dataset;
+  if(d.pick)return pick(d.pick);
+  if(d.go){cur=d.go;try{localStorage.setItem('bos-op',cur)}catch(x){}return}
+  if(d.prod)return fProd(S.produits.find(p=>p.id===d.prod));
+  if(d.chk)return fChk(S.supports.find(s=>s.id===d.chk));
+  if(d.rub){const ch=S.chemins.find(c=>c.id===o.id),p=ch.pages.find(x=>x.n===+d.rub);return form('Page '+p.n,[{k:'rubrique',l:'Rubrique',v:p.rubrique},{k:'cases',l:'Nombre de cases',t:'number',v:p.cases}],r=>w('chemins/'+o.id,{pages:ch.pages.map(x=>x.n===p.n?{n:x.n,rubrique:r.rubrique,cases:Math.max(1,Math.round(r.cases||1))}:x)}))}
+  const a=d.act;
+  if(a==='code')return askCode();
+  if(a==='new-op')return fOp(null);
+  if(!o)return;
+  if(a==='edit-op')return fOp(o);
+  if(a==='retro'){if(!o.remise)return form('Rétroplanning',[{k:'remise',l:'Remise des fichiers à l\'imprimeur',t:'date',req:1}],async r=>{await w('operations/'+o.id,{remise:r.remise});await genRetro(o.id,r.remise,o.debut)});return genRetro(o.id,o.remise,o.debut)}
+  if(a==='new-prod')return fProd(null);
+  if(a==='import')return fImport();
+  if(a==='new-sup')return fSup();
+  if(a==='note')return form('Note au journal',[{k:'texte',l:'Note',t:'area',req:1}],r=>r.texte&&log(o.id,r.texte));
+  if(a==='add-page'){const ch=S.chemins.find(c=>c.id===o.id);if(ch)return w('chemins/'+o.id,{pages:[...ch.pages,{n:ch.pages.length+1,rubrique:'',cases:4}]});
+    return form('Créer le chemin de fer',[{k:'n',l:'Nombre de pages',t:'number',v:8,req:1}],r=>w('chemins/'+o.id,{pages:Array.from({length:Math.max(1,Math.min(200,Math.round(r.n||8)))},(_,i)=>({n:i+1,rubrique:i?'':'Une',cases:i?4:2}))},'set'))}
+  if(a==='to-prod'){if(bloquants(o.id))return;if(await w('operations/'+o.id,{etape:4}))await log(o.id,'Données et chemin de fer validés, passage en production.');return}
+  if(a==='csv'){const L=[['libelle','marque','rayon','prix','prix_barre','mecanique','origine','mention','page'],...prodsOf(o.id).map(p=>[p.libelle,p.marque,p.rayon,p.prix,p.barre,p.mecanique,p.origine,p.mention,p.page])].map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';')).join('\n');
+    try{await navigator.clipboard.writeText(L);toast('Données copiées. Collez-les dans un tableur.')}catch(x){toast('Copie refusée par le navigateur.')}}});
+document.addEventListener('change',async e=>{const t=e.target,d=t.dataset,o=curOp();
+  if(t.id==='opsel')return pick(t.value);
+  if(d.task)return w('taches/'+d.task,{fait:t.checked});
+  if(d.eng){const ex=S.engagements.find(x=>x.id===o.id);return w('engagements/'+o.id,{[d.eng]:t.value},ex?undefined:'set')}
+  if(d.stat)return setStat(S.supports.find(s=>s.id===d.stat),t.value)});
+document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('[data-chip]');if(c)e.dataTransfer.setData('text/plain',c.dataset.chip)});
+document.addEventListener('dragover',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();p.classList.add('over')}});
+document.addEventListener('dragleave',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p)p.classList.remove('over')});
+document.addEventListener('drop',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();setPage(e.dataTransfer.getData('text/plain'),+p.dataset.page)}});
+window.addEventListener('hashchange',render);
+init();
+</script>
+</body>
+</html>
