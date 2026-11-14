@@ -249,7 +249,7 @@ function vPreparation(){const o=curOp();if(!o)return '<h1>Préparation</h1>'+ban
 
 function vProduction(){const o=curOp();if(!o)return '<h1>Production</h1>'+banner()+vide('Aucune opération.');
   const ss=S.supports.filter(s=>s.op===o.id),nb=bloquants(o.id);
-  const card=s=>{const n=CHECKS.filter(([k])=>s.checks&&s.checks[k]).length;return '<div class="sup"><b>'+esc(s.type)+'</b><span class="muted">'+esc(s.format||'')+'</span><span class="muted">Versions : '+esc(s.versions||'—')+'</span><span class="muted">Fichier : '+esc(s.fichier||'aucun')+(s.destinataire?' · revue : '+esc(s.destinataire):'')+'</span><span class="row">'+(s.perime?'<span class="pill crit" title="'+esc(s.perimeMotif||'')+'">'+(s.statut==='livre'?'Nouvelle révision requise':'À revalider')+'</span>':'')+'<span class="pill">'+(s.bat?'BAT '+s.bat:'Pas de BAT')+'</span><span class="pill '+(n===CHECKS.length?'ok':'')+'">Contrôles '+n+'/'+CHECKS.length+'</span></span><select data-stat="'+esc(s.id)+'" aria-label="Statut '+esc(s.type)+'">'+STATUTS.map(([k,l])=>'<option value="'+k+'"'+(s.statut===k?' selected':'')+'>'+l+'</option>').join('')+'</select><button class="btn sm" data-chk="'+esc(s.id)+'">Contrôles et fiche</button></div>'};
+  const card=s=>{const n=CHECKS.filter(([k])=>s.checks&&s.checks[k]).length;return '<div class="sup"><b>'+esc(s.type)+'</b><span class="muted">'+esc(s.format||'')+'</span><span class="muted">Versions : '+esc(s.versions||'—')+'</span><span class="muted">Fichier : '+esc(s.fichier||'aucun')+(s.destinataire?' · revue : '+esc(s.destinataire):'')+(s.remiseA?' · remis à : '+esc(s.remiseA):'')+'</span><span class="row">'+(s.perime?'<span class="pill crit" title="'+esc(s.perimeMotif||'')+'">'+(s.statut==='livre'?'Nouvelle révision requise':'À revalider')+'</span>':'')+'<span class="pill">Rév. '+(s.rev||1)+'</span><span class="pill">'+(s.bat?'BAT '+s.bat:'Pas de BAT')+'</span>'+(s.statut==='valide'||s.statut==='livre'?'<span class="pill warn">Déclaré'+((s.mode||'client')==='interne'?', interne':'')+'</span>':'')+'<span class="pill '+(n===CHECKS.length?'ok':'')+'">Contrôles '+n+'/'+CHECKS.length+'</span></span><select data-stat="'+esc(s.id)+'" aria-label="Statut '+esc(s.type)+'">'+STATUTS.map(([k,l])=>'<option value="'+k+'"'+(s.statut===k?' selected':'')+'>'+l+'</option>').join('')+'</select><button class="btn sm" data-chk="'+esc(s.id)+'">Contrôles et fiche</button>'+(FIGE.includes(s.statut)?'<button class="btn sm" data-rev="'+esc(s.id)+'">Nouvelle révision</button>':'')+'</div>'};
   return '<div class="hd"><div><h1>Production</h1><p class="sub">Supports, BAT et remise</p></div>'+opSelect()+'</div>'+banner()+'<p class="muted small" style="margin:0">Le prototype ne transmet aucun fichier : les statuts enregistrent des déclarations, avec le fichier et le destinataire indiqués.</p>'+
   (nb?'<div class="note">'+nb+' anomalie(s) bloquante(s) dans les données de cette opération. Aucun support ne peut être approuvé ni remis tant qu\'elles ne sont pas corrigées en Préparation.</div>':'')+
   '<div class="row" style="justify-content:space-between"><span class="pill">'+ss.length+' support(s)</span><button class="btn pri" data-act="new-sup">Ajouter un support</button></div>'+
@@ -259,7 +259,7 @@ function vProduction(){const o=curOp();if(!o)return '<h1>Production</h1>'+banner
 const VUES={accueil:vAccueil,pilotage:vPilotage,preparation:vPreparation,production:vProduction};
 function render(){const h=(location.hash||'#accueil').slice(1),v=VUES[h]?h:'accueil';
   document.querySelectorAll('nav a').forEach(a=>a.getAttribute('href')==='#'+v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
-  $('#view').innerHTML=VUES[v]()}
+  $('#view').innerHTML=VUES[v]()+'<p class="muted small" style="margin:0">BigOne Studio, prototype · version 2026-11-14.3</p>'}
 function pick(id){cur=id;try{localStorage.setItem('bos-op',id)}catch(e){}render()}
 
 /* ---------- formulaires ---------- */
@@ -295,9 +295,10 @@ function fOp(o){form(o?'Modifier l\'opération':'Nouvelle opération',[{k:'nom',
     if(r.fin<r.debut)return 'La date de fin précède la date de début.';
     if(r.remise&&r.remise>=r.debut)return 'La remise à l\'imprimeur doit précéder le début de l\'opération.';
     const data={nom:r.nom,enseignes:r.enseignes.split(',').map(x=>x.trim()).filter(Boolean),portee:r.portee,debut:r.debut,fin:r.fin,remise:r.remise||null};
-    if(o){data.etape=+r.etape;return w('operations/'+o.id,data)}
+    if(o){const e=+r.etape;if(e>o.etape&&e>=4){const m=prerequis(o).filter(x=>!x[0]).map(x=>x[1]);if(m.length)return 'Étape « '+ETAPES[e-1]+' » refusée. Prérequis manquants : '+m.join(' ; ')+'.'}
+      data.etape=e;if(!await w('operations/'+o.id,data))return false;if(e!==o.etape)await log(o.id,'Étape modifiée : '+ETAPES[o.etape-1]+' → '+ETAPES[e-1]+'.');return true}
     const id=uid('op');Object.assign(data,{etape:1,magasins:null,source:null});if(!await w('operations/'+id,data,'set'))return false;
-    cur=id;if(data.remise)await appliquerRetro(id,planRetro(id,data.remise,data.debut));await log(id,'Opération créée.');return true})}
+    pick(id);if(data.remise)await appliquerRetro(id,planRetro(id,data.remise,data.debut));await log(id,'Opération créée.');return true})}
 /* Recalcul sans suppression : les tâches existantes gardent leur identifiant, leur état et leurs ajouts manuels. */
 function planRetro(id,remise,debut){const ex=S.taches.filter(t=>t.op===id),maj=[],crea=[];
   retro(remise,debut).forEach(t=>{const e=ex.find(x=>x.libelle===t.libelle);if(!e)crea.push(t);else if(e.echeance!==t.echeance)maj.push({id:e.id,libelle:e.libelle,de:e.echeance,a:t.echeance})});return {maj,crea}}
@@ -311,9 +312,9 @@ function fRetro(o){const txt=p=>(p.maj.length||p.crea.length?'<b>Aperçu.</b> '+
     await log(o.id,'Rétroplanning recalculé : '+p.maj.length+' échéance(s) déplacée(s), '+p.crea.length+' tâche(s) créée(s).');return true});
   const maj=()=>{const v=$('#f-remise').value;$('#f-prev').innerHTML=v?txt(planRetro(o.id,v,o.debut)):'Choisissez une date pour voir l\'aperçu.'};$('#f-remise').oninput=maj;maj()}
 /* Une donnée modifiée périme les contrôles des supports déjà en revue, approuvés ou remis. */
-async function perimer(opId,motif){const ss=S.supports.filter(s=>s.op===opId&&['bat','valide','livre'].includes(s.statut)&&!s.perime);
-  for(const s of ss)await w('supports/'+s.id,s.statut==='livre'?{perime:true,perimeMotif:motif}:{perime:true,perimeMotif:motif,checks:Object.assign({},s.checks,{donnees:false,comparaison:false})});
-  await log(opId,motif+(ss.length?' '+ss.length+' support(s) à revalider.':''))}
+async function perimer(opId,motif){const ss=S.supports.filter(s=>s.op===opId&&FIGE.includes(s.statut)&&!s.perime);
+  for(const s of ss)await w('supports/'+s.id,s.statut==='livre'?{perime:true,perimeMotif:motif}:{perime:true,perimeMotif:motif,statut:'corrections',checks:Object.assign({},s.checks,{donnees:false,comparaison:false})});
+  await log(opId,motif+(ss.length?' '+ss.length+' support(s) à revalider ; les revues et approbations en cours repassent en corrections.':''))}
 const CHAMPS={libelle:'libellé',description:'description',marque:'marque',rayon:'rayon',prix:'prix',barre:'prix barré',mecanique:'mécanique',origine:'origine',mention:'mention légale',page:'page'};
 const prixTxt=v=>v==null?'aucun':v.toFixed(2).replace('.',',')+' €';
 function fProd(p){const o=curOp(),ch=S.chemins.find(c=>c.id===o.id),pg=[['','Non placé'],...(ch?ch.pages:[]).map(x=>[x.n,'Page '+x.n+' · '+(x.rubrique||'')])];
@@ -325,24 +326,42 @@ function fProd(p){const o=curOp(),ch=S.chemins.find(c=>c.id===o.id),pg=[['','Non
     await perimer(o.id,ch.includes('prix')?'Prix de « '+r.libelle+' » modifié ('+prixTxt(p.prix)+' → '+prixTxt(r.prix)+').':'Fiche de « '+r.libelle+' » modifiée ('+ch.map(k=>CHAMPS[k]).join(', ')+').');return true},
     p&&(async()=>{if(!await w('produits/'+p.id,null,'delete'))return false;await perimer(o.id,'Produit « '+p.libelle+' » supprimé.')}))}
 function fSup(){const o=curOp();form('Ajouter un support',[{k:'type',l:'Type',t:'select',o:['Prospectus','E-catalogue','Flux Bonial','Flux Tiendeo','Affiche','PLV','Bannières Meta','Bannières display','SMS / RCS'].map(x=>[x,x])},{k:'format',l:'Format'},{k:'versions',l:'Versions'}],r=>w('supports/'+uid('s'),Object.assign(r,{op:o.id,statut:'amonter',bat:0,checks:{},source:null}),'set'))}
-function fChk(s){form(s.type+' : contrôles et fiche',[...(s.perime?[{k:'i',t:'info',l:'<span class="pill crit">À revalider</span> '+esc(s.perimeMotif||'')+' Recochez « Prix et libellés » et « PDF de comparaison » une fois la nouvelle révision vérifiée.'}]:[]),...CHECKS.map(([k,l])=>({k,l,t:'check',v:s.checks&&s.checks[k]})),{k:'_fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier},{k:'_dest',l:'Destinataire de la revue',v:s.destinataire},{k:'_format',l:'Format',v:s.format},{k:'_versions',l:'Versions',v:s.versions}],async r=>{const checks={};CHECKS.forEach(([k])=>checks[k]=r[k]);
-    const d={checks,fichier:r._fichier,destinataire:r._dest,format:r._format,versions:r._versions},lever=s.perime&&r.donnees&&r.comparaison;if(lever){d.perime=false;d.perimeMotif=''}
-    if(!await w('supports/'+s.id,d))return false;if(lever)await log(s.op,s.type+' : données revérifiées après modification'+(r._fichier?' (révision « '+r._fichier+' »)':'')+'.');return true},()=>w('supports/'+s.id,null,'delete'))}
+const FIGE=['bat','valide','livre'],libStat=k=>STATUTS.find(x=>x[0]===k)[1],sansCoche=()=>Object.fromEntries(CHECKS.map(([k])=>[k,false]));
+function fChk(s){const rem=s.statut==='livre',fige=FIGE.includes(s.statut),arch=(s.archives||[]).map(a=>'rév. '+a.rev+' '+esc(a.etat)+' (« '+esc(a.fichier||'sans fichier')+' »)').join(', ');
+  form(s.type+' : contrôles et fiche',[{k:'i0',t:'info',l:'Révision '+(s.rev||1)+(arch?' · historique : '+arch:'')+(fige?'<br>Statut « '+libStat(s.statut)+' » : le fichier, le format et les versions ne changent que par une nouvelle révision.':'')},
+    ...(s.perime?[{k:'i',t:'info',l:'<span class="pill crit">'+(rem?'Nouvelle révision requise':'À revalider')+'</span> '+esc(s.perimeMotif||'')+' '+(rem?'Cette révision reste remise telle quelle. Créez une nouvelle révision pour intégrer la modification.':'Recochez « Prix et libellés » et « PDF de comparaison » après vérification.')}]:[]),
+    ...CHECKS.map(([k,l])=>({k,l,t:'check',v:s.checks&&s.checks[k]})),{k:'_mode',l:'Mode de validation',t:'select',o:[['client','Revue client (BAT)'],['interne','Approbation interne, sans revue client']],v:s.mode||'client'},{k:'_fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier},{k:'_dest',l:'Destinataire de la revue',v:s.destinataire},{k:'_format',l:'Format',v:s.format},{k:'_versions',l:'Versions',v:s.versions}],async r=>{
+    const checks={},av=s.checks||{};CHECKS.forEach(([k])=>checks[k]=r[k]);
+    const chgC=CHECKS.some(([k])=>!!av[k]!==checks[k]),chgF=(s.fichier||'')!==r._fichier||(s.format||'')!==r._format||(s.versions||'')!==r._versions,chgA=(s.destinataire||'')!==r._dest||(s.mode||'client')!==r._mode;
+    if(!chgC&&!chgF&&!chgA)return true;
+    if(rem)return 'Ce support est remis : sa fiche et ses contrôles sont figés. Créez une nouvelle révision pour le modifier.';
+    if(fige&&(chgF||chgA))return 'Pendant la revue et après approbation, le fichier, le format, les versions, le destinataire et le mode de validation sont figés. Créez une nouvelle révision.';
+    const d={checks,fichier:r._fichier,destinataire:r._dest,format:r._format,versions:r._versions,mode:r._mode},lever=s.perime&&checks.donnees&&checks.comparaison&&(!av.donnees||!av.comparaison);if(lever){d.perime=false;d.perimeMotif=''}
+    if(!await w('supports/'+s.id,d))return false;if(lever)await log(s.op,s.type+' : données revérifiées sur la révision '+(s.rev||1)+' après modification.');return true},rem?null:()=>w('supports/'+s.id,null,'delete'))}
+function fRev(s){const n0=s.rev||1;form(s.type+' : nouvelle révision',[{k:'i',t:'info',l:'La révision '+n0+' (« '+esc(s.fichier||'sans fichier')+' », '+esc(libStat(s.statut).toLowerCase())+') et ses décisions restent dans l\'historique. La nouvelle révision repart en maquette, tous contrôles à refaire.'},{k:'fichier',l:'Fichier de la nouvelle révision (nom ou lien)',req:1},{k:'format',l:'Format',v:s.format},{k:'versions',l:'Versions',v:s.versions}],async r=>{
+    if(r.fichier===(s.fichier||''))return 'Indiquez un fichier différent de celui de la révision '+n0+'.';
+    const etat=libStat(s.statut).toLowerCase(),archives=[...(s.archives||[]),{rev:n0,fichier:s.fichier||'',format:s.format||'',etat,date:today(),destinataire:s.destinataire||'',remiseA:s.remiseA||''}];
+    if(!await w('supports/'+s.id,{rev:n0+1,archives,fichier:r.fichier,format:r.format,versions:r.versions,statut:'maquette',checks:sansCoche(),perime:false,perimeMotif:'',remiseA:''}))return false;
+    await log(s.op,s.type+' : révision '+(n0+1)+' créée (« '+r.fichier+' »), à contrôler. La révision '+n0+' reste « '+etat+' » dans l\'historique.');return true})}
 function refusStat(s,to){const ck=s.checks||{},n=bloquants(s.op);
+  if(s.statut==='livre')return 'ce support est remis. Créez une nouvelle révision pour le faire évoluer.';
   if(to!=='valide'&&to!=='livre')return '';
+  if(to==='livre'&&s.statut!=='valide')return 'le support doit d\'abord être approuvé.';
   if(!CHECKS.filter(([k])=>k!=='natifs').every(([k])=>ck[k]))return 'terminez les contrôles du support.';
   if(!s.fichier)return 'aucun fichier de révision n\'est renseigné dans la fiche du support.';
   if(s.perime)return 'les données ont changé depuis les contrôles. Revérifiez le support.';
   if(n)return n+' anomalie(s) bloquante(s) restent dans les données de l\'opération.';
-  if(to==='livre'&&s.statut!=='valide')return 'le support doit d\'abord être approuvé.';
+  if(to==='valide'&&(s.mode||'client')==='client'){if(s.statut!=='bat')return 'en revue client, le support doit d\'abord passer par « BAT prêt pour revue ». Pour valider sans le client, choisissez « Approbation interne » dans la fiche.';if(!s.destinataire)return 'aucun destinataire de revue n\'est renseigné.'}
   if(to==='livre'&&!ck.natifs)return 'les fichiers natifs ne sont pas déposés.';
   return ''}
-async function setStat(s,to){const lib=STATUTS.find(x=>x[0]===to)[1];
+async function setStat(s,to){const rv='révision '+(s.rev||1)+' « '+(s.fichier||'')+' »';
+  const refus=refusStat(s,to);if(refus){toast((to==='livre'?'Remise':to==='valide'?'Approbation':'Changement')+' impossible : '+refus);return render()}
   if(to==='bat')return form('BAT prêt pour revue',[{k:'i',t:'info',l:'Le prototype n\'envoie rien. Cette action enregistre qu\'une révision est prête à être transmise au client.'},{k:'fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier,req:1},{k:'dest',l:'Destinataire de la revue',v:s.destinataire,req:1}],async r=>{const n=(s.bat||0)+1;
     if(!await w('supports/'+s.id,{statut:'bat',bat:n,fichier:r.fichier,destinataire:r.dest}))return false;
-    await log(s.op,s.type+' : BAT '+n+' prêt pour revue (révision « '+r.fichier+' », destinataire '+r.dest+'). Aucun envoi effectué par le prototype.');return true},null,render);
-  const refus=refusStat(s,to);if(refus){toast((to==='livre'?'Remise':'Approbation')+' impossible : '+refus);return render()}
-  if(await w('supports/'+s.id,{statut:to}))await log(s.op,s.type+' : '+(to==='valide'?'révision « '+s.fichier+' » déclarée approuvée.':to==='livre'?'révision « '+s.fichier+' » déclarée remise. Aucun reçu : le prototype ne transmet pas de fichier.':'passé à « '+lib+' ».'));else render()}
+    await log(s.op,s.type+' : BAT '+n+' prêt pour revue (révision '+(s.rev||1)+' « '+r.fichier+' », destinataire '+r.dest+'). Aucun envoi effectué par le prototype.');return true},null,render);
+  if(to==='livre')return form('Remise déclarée',[{k:'i',t:'info',l:'Le prototype ne transmet aucun fichier et ne reçoit aucun reçu. Cette action enregistre une déclaration de remise pour la '+esc(rv)+'.'},{k:'a',l:'Destinataire ou canal de remise',req:1}],async r=>{
+    if(!await w('supports/'+s.id,{statut:'livre',remiseA:r.a}))return false;await log(s.op,s.type+' : '+rv+' déclarée remise à '+r.a+'. Aucun reçu : le prototype ne transmet pas de fichier.');return true},null,render);
+  if(await w('supports/'+s.id,{statut:to}))await log(s.op,s.type+' : '+(to==='valide'?rv+((s.mode||'client')==='client'?' déclarée approuvée après revue de '+s.destinataire+'.':' approuvée en interne, sans revue client.'):'passé à « '+libStat(to)+' ».'));else render()}
 async function setPage(pid,n){const p=S.produits.find(x=>x.id===pid);if(p&&p.page!==n&&await w('produits/'+pid,{page:n}))await perimer(p.op,'« '+p.libelle+' » déplacé (page '+(p.page??'—')+' → '+n+').')}
 function prerequis(o){const ps=prodsOf(o.id),ss=S.supports.filter(s=>s.op===o.id);return [[ps.length>0||ss.length>0,'Au moins un produit ou un support défini'],[bloquants(o.id)===0,'Aucune anomalie bloquante dans les données'],[!!o.debut&&!!o.fin&&o.fin>=o.debut,'Période de l\'opération cohérente']]}
 
@@ -370,7 +389,7 @@ function fImport(){const o=curOp(),d=$('#dlg');let rows=[];d.onclose=null;
   d.showModal()}
 
 /* ---------- événements ---------- */
-document.addEventListener('click',async e=>{const t=e.target.closest('[data-act],[data-pick],[data-go],[data-prod],[data-chk],[data-rub]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act;
+document.addEventListener('click',async e=>{const t=e.target.closest('[data-act],[data-pick],[data-go],[data-prod],[data-chk],[data-rev],[data-rub]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act;
   if(d.pick)return pick(d.pick);
   if(d.go){cur=d.go;try{localStorage.setItem('bos-op',cur)}catch(x){}return}
   if(a==='code')return askCode();
@@ -379,6 +398,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest('[data-act]
   if(!peutEcrire())return;
   if(d.prod)return fProd(S.produits.find(p=>p.id===d.prod));
   if(d.chk)return fChk(S.supports.find(s=>s.id===d.chk));
+  if(d.rev)return fRev(S.supports.find(s=>s.id===d.rev));
   if(d.rub){const ch=S.chemins.find(c=>c.id===o.id),p=ch.pages.find(x=>x.n===+d.rub);return form('Page '+p.n,[{k:'rubrique',l:'Rubrique',v:p.rubrique},{k:'cases',l:'Nombre de cases',t:'int',v:p.cases,req:1}],r=>w('chemins/'+o.id,{pages:ch.pages.map(x=>x.n===p.n?{n:x.n,rubrique:r.rubrique,cases:Math.max(1,r.cases)}:x)}))}
   if(a==='new-op')return fOp(null);
   if(!o)return;
