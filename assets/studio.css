@@ -158,6 +158,20 @@ dialog h2{font-size:22px;margin-bottom:4px}
 .mani{max-height:220px;overflow:auto;font-size:11px;background:var(--soft);padding:12px;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
 details>summary{cursor:pointer;font-size:12px;font-weight:600;padding:10px 0;color:var(--muted)}
 details[open]>summary{margin-bottom:8px}
+.planning-block{border:1px solid var(--line);border-radius:8px;background:var(--surface);min-width:0}
+.planning-block>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;padding:18px 20px;color:var(--ink)}
+.planning-block>summary::-webkit-details-marker{display:none}
+.planning-block>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+.planning-block>summary:hover{background:var(--soft)}
+.planning-title{display:block;font:700 18px/1.4 var(--display)}
+.planning-caption{display:block;margin-top:3px;color:var(--muted);font-size:12px;font-weight:400}
+.planning-toggle{display:flex;align-items:center;gap:10px;font-size:12px;white-space:nowrap}
+.planning-block:not([open]) .when-open,.planning-block[open] .when-closed{display:none}
+.planning-block[open] .planning-toggle .icon{transform:rotate(180deg)}
+.planning-block[open]>summary{margin:0;border-bottom:1px solid var(--line)}
+.planning-content{display:flex;flex-direction:column;gap:24px;padding:20px;min-width:0}
+@media(max-width:540px){.planning-block>summary{padding:16px;gap:8px}.planning-title{font-size:16px}.planning-toggle>span{display:none}.planning-content{padding:16px}.planning-content .card{padding:12px}}
+
 .admin-cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .admin-card{display:flex;align-items:flex-start;gap:12px;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:18px;font-size:13px}
 .admin-card strong{display:block;font-size:13px}.admin-card small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
