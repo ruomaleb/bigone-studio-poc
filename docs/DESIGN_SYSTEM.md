@@ -37,7 +37,9 @@ Le violet de texte présente un contraste de 5,97:1 sur blanc et 5,33:1 sur viol
 
 ## Architecture
 
-- **Pilotage** regroupe Vue d'ensemble et Plan de commerce. Les anciennes adresses `#accueil` et `#pilotage` restent utilisables.
+- **Pilotage** présente un accueil unique. Le planning est dans un bloc replié par défaut, dépliable sur place, avant la liste des opérations. Les onglets Vue d’ensemble / Plan de commerce ont été retirés. `#pilotage` ouvre ce même accueil avec le bloc déplié, puis normalise l’adresse en `#accueil`.
+
+Cette correction reprend la précision explicite d’Arnaud du 16 novembre 2026. Les fichiers HTML de conception retrouvés ne montrent pas ce bloc ; ils ne permettent donc pas, à eux seuls, d’affirmer une correspondance exhaustive avec sa maquette de référence. Le planning reste ouvert ou fermé selon le choix de l’utilisateur pendant les actualisations et la navigation ; un chargement neuf de l’accueil le replie.
 - **Préparation** conserve Cadrage, Offres, Magasins, Dispositif, Calendrier. L'opération devient le titre principal ; le panneau de contexte reprend réseau, dates, responsable et volumes.
 - **Production** conserve listes, colonnes, filtres, créations, contrôles, révisions, paquet Media, bilan et journal. Le retour à Préparation conserve le même identifiant d'opération.
 - **Administration** revient à droite. Les magasins, familles et modèles de jalons sont lus depuis les référentiels existants. Les droits et connexions sont explicités sans simuler une gestion d'équipes ou une synchronisation inexistantes.

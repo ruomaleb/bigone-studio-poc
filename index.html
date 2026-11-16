@@ -5,7 +5,7 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BigOne Studio</title>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-16.1">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-16.2">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -23,7 +23,7 @@
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-16.1';
+const VERSION='2026-11-16.2';
 const STATUTS=[['amonter','À monter'],['maquette','En maquette'],['bat','BAT prêt pour revue'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -39,6 +39,7 @@ const MODELES={imprime:[['donnees','Données reçues',-15],['cdf','Chemin de fer
 const TABS=[['cadrage','Cadrage'],['offres','Offres'],['magasins','Magasins'],['dispositif','Dispositif'],['calendrier','Calendrier']];
 const S={operations:[],produits:[],magasins:[],supports:[],taches:[],journal:[],chemins:[],engagements:[]};
 let db=null,status='loading',cur=null,compo=null,timer=null;
+let planningOpen=false;
 try{cur=localStorage.getItem('bos-op')}catch(e){}
 
 /* ---------- dates ---------- */
@@ -175,7 +176,9 @@ async function init(){render();
 
 /* ---------- navigation : la vue, l'opération et l'onglet sont dans l'adresse ---------- */
 const lien=(v,id,tab)=>'#'+v+(id?'--'+id+(tab?'--'+tab:''):'');
-function route(){const [v,oid,tab]=(location.hash.slice(1)||'accueil').split('--');if(oid&&opById(oid)&&oid!==cur){cur=oid;compo=null;try{localStorage.setItem('bos-op',cur)}catch(e){}}
+function route(){let [v,oid,tab]=(location.hash.slice(1)||'accueil').split('--');
+  if(v==='pilotage'){planningOpen=true;v='accueil';window.history.replaceState(null,'','#accueil')}
+  if(oid&&opById(oid)&&oid!==cur){cur=oid;compo=null;try{localStorage.setItem('bos-op',cur)}catch(e){}}
   return {v:VUES[v]?v:'accueil',tab:v==='administration'?(ADMIN_TABS.some(t=>t[0]===oid)?oid:'magasins'):TABS.some(t=>t[0]===tab)?tab:'cadrage'}}
 function aller(v,id,tab){const h=lien(v,id,tab);if(location.hash===h)render();else location.hash=h}
 function curOp(){if(status==='loading'&&!S.operations.length)return null;let o=opById(cur);if(!o||!suivi(o)){o=sorted().find(x=>suivi(x)&&!x.cloture)||sorted().find(suivi);cur=o?o.id:null}return o}
@@ -210,7 +213,6 @@ function enTete(o,actif){const a=actions(o)[0],J=jalons(o),et=k=>(J.find(j=>j[0]
 function operationHeading(o,espace,tab){return `<div class="hd"><div><p class="eyebrow">${espace==='production'?'Production des supports':'Préparation de l’opération'}</p><h1>${esc(o.nom)}</h1><p class="sub">${esc(resOp(o))} · ${espace==='production'?'Créations, révisions, contrôles et remise':'Offres, dispositif, calendrier et engagements'}</p></div>${opSelect(espace,tab)}</div>`}
 function operationAside(o){const b=o.brief||{},ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='engage').length;
  return `<aside class="dossier-aside" aria-label="Contexte de l’opération"><section class="summary-card"><span class="section-label">Opération</span><h3>${esc(o.nom)}</h3><div class="summary-line"><span>Période</span><strong>${periode(o)}</strong></div><div class="summary-line"><span>Réseau</span><strong>${esc(resOp(o))}</strong></div><div class="summary-line"><span>Responsable</span><strong>${esc(b.responsable||'À désigner')}</strong></div><div class="summary-line"><span>Supports</span><strong>${supsOf(o.id).length}</strong></div><div class="summary-line"><span>Magasins engagés</span><strong>${ne} / ${ms.length}</strong></div></section><p class="context-note">Un même dossier pour préparer l’opération et produire ses supports. La préparation reste accessible pendant la production.</p></aside>`}
-function pilotageTabs(active){return `<nav class="tabs" aria-label="Vues du pilotage"><a href="#accueil"${active==='accueil'?' aria-current="page"':''}>Vue d’ensemble</a><a href="#pilotage"${active==='pilotage'?' aria-current="page"':''}>Plan de commerce</a></nav>`}
 function operationRow(o){const ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='engage').length,sp=supsOf(o.id).filter(enProd),a=alertes(o),prod=sp.length>0;return `<div class="operation-row"><div><strong>${esc(o.nom)}</strong><p>${periode(o)} · ${esc(resOp(o))}</p></div><div class="operation-state">${phasePill(o)}<small>${prod?sp.filter(s=>s.statut!=='livre').length+' support(s) à réaliser':ne+' / '+ms.length+' magasin(s) engagés'}${a.bloq?' · '+a.bloq+' anomalie(s)':''}</small></div><a class="btn sm" href="${lien(prod?'production':'preparation',o.id)}">${prod?'Voir la production':'Voir la préparation'}</a></div>`}
 
 
@@ -218,23 +220,23 @@ function operationRow(o){const ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='e
 function vAccueil(){const ops=sorted().filter(suivi).filter(o=>!o.cloture),todo=ops.flatMap(actions);
  const sp=S.supports.filter(s=>{const o=opById(s.op);return o&&suivi(o)&&!o.cloture&&enProd(s)}),jr=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6),ret=todo.filter(x=>x.t==='Jalon en retard').length,ano=ops.reduce((n,o)=>n+nbBloq(utilisees(o)),0);
  const item=x=>`<a href="${x.h}"><span><span class="pill ${x.c}">${esc(x.t)}</span><br>${esc(x.d)}<br><span class="muted small">${esc(x.o.nom)}</span></span><span aria-hidden="true">↗</span></a>`;
- return `<div class="hd"><div><p class="eyebrow">Pilotage · vue transversale</p><h1>Vue d’ensemble</h1><p class="sub">Le suivi de vos opérations, de la préparation à la remise des supports.</p></div><button class="btn pri" data-act="new-op"><span aria-hidden="true">＋</span> Créer une opération</button></div>${banner()}${pilotageTabs('accueil')}
+ return `<div class="hd"><div><p class="eyebrow">Pilotage · vue transversale</p><h1>Vue d’ensemble</h1><p class="sub">Le suivi de vos opérations, de la préparation à la remise des supports.</p></div><button class="btn pri" data-act="new-op"><span aria-hidden="true">＋</span> Créer une opération</button></div>${banner()}
  <div class="grid tiles"><div class="tile"><b>${ops.length}</b><span>dossiers ouverts</span></div><div class="tile"><b>${sp.filter(s=>s.statut!=='livre').length}</b><span>supports en production</span></div><div class="tile ${sp.some(s=>s.statut==='bat')?'warn':''}"><b>${sp.filter(s=>s.statut==='bat').length}</b><span>BAT prêts pour revue</span></div><div class="tile ${ano?'crit':'ok'}"><b>${ano}</b><span>anomalies sur les offres utilisées</span></div><div class="tile ${ret?'crit':'ok'}"><b>${ret}</b><span>jalons en retard</span></div><div class="tile"><b>${S.operations.filter(enCours).length}</b><span>périodes commerciales en cours</span></div></div>
+ <details id="planning" class="planning-block"${planningOpen?' open':''}><summary><span><span class="planning-title">Planning des opérations</span><span class="planning-caption">Plan de commerce · ${S.operations.length} opération(s)</span></span><span class="planning-toggle"><span class="when-closed">Afficher le planning</span><span class="when-open">Masquer le planning</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary><div class="planning-content">${planningContent()}</div></details>
  <section class="section-plain"><div class="card-heading"><h2>Opérations suivies</h2><span class="small muted">${ops.length} dossier(s) ouvert(s)</span></div><div class="operation-list">${ops.map(operationRow).join('')||vide('Aucun dossier ouvert. Créez votre première opération.')}</div></section>
  <div class="grid two section-divider"><section class="section-plain"><div class="card-heading"><h2>Points à suivre</h2><span class="pill">${todo.length} action(s)</span></div><div class="list">${todo.slice(0,5).map(item).join('')||vide('Aucune action en attente.')}</div>${todo.length>5?`<details><summary>Afficher les ${todo.length-5} autres actions</summary><div class="list">${todo.slice(5).map(item).join('')}</div></details>`:''}</section>
  <section class="section-plain"><h2>Activité récente</h2><div class="list">${jr.map(j=>{const o=opById(j.op);return `<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(j.texte)}<br><span class="muted small">${esc(o?o.nom:'')} · ${fdh(j.date)}</span></span></div>`}).join('')||vide('Aucune activité enregistrée.')}</div></section></div>`}
 
 
-/* ---------- Pilotage : le portefeuille d'opérations ---------- */
+/* ---------- Planning repliable dans l’accueil ---------- */
 function timeline(){const ops=sorted();if(!ops.length)return vide('Aucune opération.');
   const a=pd(ops[0].debut),b=pd(ops.reduce((m,o)=>o.fin>m?o.fin:m,ops[0].fin));a.setDate(1);b.setMonth(b.getMonth()+1,0);
   const tot=(b-a)/864e5+1,x=s=>((pd(s)-a)/864e5)/tot*100;let ax='';
   for(const m=new Date(a);m<=b;m.setMonth(m.getMonth()+1))ax+=`<div class="ax" style="left:${x(iso(m))}%">${m.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})}</div>`;
   const t=today(),now=t>=iso(a)&&t<=iso(b)?`<div class="now" style="left:${x(t)}%" title="Aujourd'hui"></div>`:'';
   return `<div class="scroll"><div class="tl">${ax}${now}${ops.map(o=>`<div class="r"><${suivi(o)?'a href="'+lien('preparation',o.id)+'"':'span'} class="bar ${suivi(o)?'fab':''}" style="left:${x(o.debut)}%;width:${Math.max(2,x(o.fin)-x(o.debut)+100/tot)}%" title="${esc(o.nom)} · ${periode(o)}">${esc(o.nom)}</${suivi(o)?'a':'span'}></div>`).join('')}</div></div><p class="muted small" style="margin:0">Barres pleines : dossiers suivis dans Studio. Barres claires : opérations relevées sur les sites publics, pour le contexte.</p>`}
-function vPilotage(){const ops=sorted(),su=ops.filter(suivi),pu=ops.filter(o=>!suivi(o));
-  return `<div class="hd"><div><p class="eyebrow">Pilotage · calendrier des opérations</p><h1>Plan de commerce</h1><p class="sub">Périodes commerciales et avancement de chaque dossier.</p></div><button class="btn pri" data-act="new-op">＋ Créer une opération</button></div>${banner()}${pilotageTabs('pilotage')}
-  <section class="card"><h2>Plan de commerce</h2>${timeline()}</section>
+function planningContent(){const ops=sorted(),su=ops.filter(suivi),pu=ops.filter(o=>!suivi(o));
+  return `<section class="section-plain"><h2>Plan de commerce</h2>${timeline()}</section>
   <section class="card"><h2>Dossiers suivis</h2><div class="list">${su.map(o=>`<div style="display:block"><div class="row" style="justify-content:space-between"><span><b>${esc(o.nom)}</b> ${src(o.source)} ${phasePill(o)}</span><a class="btn sm" href="${lien('preparation',o.id)}">Ouvrir le dossier</a></div><span class="muted small">${periode(o)} · ${esc(resOp(o))} · ${esc(o.portee||'')}</span><div class="row" style="margin:6px 0">${alertPills(o)}</div>${jalStrip(o)}</div>`).join('')||vide('Aucun dossier. Créez une opération pour commencer.')}</div></section>
   ${pu.length?`<section class="card"><h2>Opérations relevées, hors Studio</h2><div class="scroll"><table><thead><tr><th>Opération</th><th>Période</th><th>Enseignes</th><th>Portée</th><th>Magasins</th></tr></thead><tbody>${pu.map(o=>`<tr><td><b>${esc(o.nom)}</b> ${src(o.source)}</td><td class="num">${periode(o)}${enCours(o)?'<br><span class="pill warn">Période en cours</span>':''}</td><td>${esc((o.enseignes||[]).join(', '))}</td><td>${esc(o.portee||'')}</td><td class="num">${o.magasins??'—'}</td></tr>`).join('')}</tbody></table></div></section>`:''}`}
 
@@ -308,7 +310,7 @@ function vAdministration(tab){const networks=[...new Set(S.magasins.map(m=>m.res
  if(tab==='droits')content=`<section class="card"><span class="section-label">Accès au prototype</span><h2>Utilisateurs et droits</h2><p>Accès actuel : <b>${CODE?esc(NOM||'Code de test'):'Consultation libre'}</b>${ROLE==='editeur'?' · Éditeur':ROLE==='responsable'?' · Responsable':''}.</p><div class="scroll"><table><thead><tr><th>Profil</th><th>Possibilités</th></tr></thead><tbody><tr><td>Consultation</td><td>Parcourir les dossiers et les créations.</td></tr><tr><td>Éditeur</td><td>Préparer et modifier les dossiers ; sans droit d’approbation ni de clôture.</td></tr><tr><td>Responsable</td><td>Approuver, déclarer une remise, clôturer et rouvrir la production.</td></tr></tbody></table></div><div><button class="btn" data-act="code">${CODE?'Changer de code':'Saisir un code de test'}</button></div><p class="small muted">La gestion nominative des utilisateurs et des équipes n’est pas disponible dans ce prototype.</p></section>`;
  if(tab==='connexions')content=`<section class="card"><span class="section-label">Écosystème BigOne</span><h2>Connexions</h2><div class="list"><div><span><b>Données Studio</b><br><span class="small muted">Opérations, offres, magasins, supports et journal partagés.</span></span><span class="pill ${status==='ok'?'ok':'warn'}">${status==='ok'?'Données chargées':'Chargement à vérifier'}</span></div><div><span><b>BigOne Media</b><br><span class="small muted">Paquet de préparation accessible sur les supports numériques en Production. Le prototype ne transmet pas de campagne.</span></span><span class="pill">Préparation du paquet</span></div><div><span><b>BigOne Stores / BOSS</b><br><span class="small muted">Les magasins affichés sont ceux de Studio ; aucune synchronisation BOSS n’est implémentée.</span></span><span class="pill">Non connecté</span></div></div><div><a class="btn" href="${lien('production',cur)}">Ouvrir les supports de production</a></div></section>`;
  return `<div class="hd"><div><p class="eyebrow">Configuration du réseau</p><h1>Administration</h1><p class="sub">Référentiels et réglages permanents, partagés entre les opérations.</p></div></div>${banner()}<nav class="grid admin-cards" aria-label="Rubriques de l’administration">${ADMIN_TABS.map(([k,n,d])=>`<a class="admin-card" href="#administration--${k}"${tab===k?' aria-current="page"':''}><span><strong>${n}</strong><small>${d}</small></span></a>`).join('')}</nav>${content}`}
-const VUES={accueil:vAccueil,pilotage:vPilotage,preparation:vPreparation,production:vProduction,administration:vAdministration};
+const VUES={accueil:vAccueil,preparation:vPreparation,production:vProduction,administration:vAdministration};
 function render(){const r=route(),o=curOp(),active=r.v==='accueil'?'pilotage':r.v;
  document.querySelectorAll('.global-nav a[data-v]').forEach(a=>{const v=a.dataset.v;a.setAttribute('href',lien(v==='pilotage'?'accueil':v,v==='preparation'||v==='production'?cur:null));v===active?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
  const names={accueil:'Pilotage',pilotage:'Pilotage',preparation:'Préparation',production:'Production',administration:'Administration'},inOp=r.v==='preparation'||r.v==='production';
@@ -569,6 +571,8 @@ document.addEventListener('click',async e=>{const t=e.target.closest('[data-act]
       if(!await w('operations/'+o.id,{cloture:true,bilan:Object.assign(calcBilan(o),{date:today(),note:r.note})}))return false;await log(o.id,'Production clôturée, bilan figé.'+(r.note?' Enseignements : '+r.note:''));return true})}
   if(a==='rouvrir')return form('Rouvrir le dossier',[{k:'i',t:'info',l:'Le bilan figé reste consultable dans les bilans précédents. Le dossier redevient modifiable.'},{k:'motif',l:'Motif de la réouverture',t:'area',req:1}],async r=>{
     if(!await w('operations/'+o.id,{cloture:false,bilan:null,bilansPrecedents:[...(o.bilansPrecedents||[]),Object.assign({},o.bilan||Object.assign(calcBilan(o),{date:today()}),{motifReouverture:r.motif})]}))return false;await log(o.id,'Dossier rouvert. Motif : '+r.motif,'modif');return true})});
+// L’état choisi reste stable quand les données ou la vue sont actualisées.
+document.addEventListener('toggle',e=>{if(e.target.id==='planning'&&e.target===$('#planning'))planningOpen=e.target.open},true);
 document.addEventListener('input',e=>{if(e.target.id!=='q-prod')return;qProd=e.target.value;render();const q=$('#q-prod');if(q){q.focus();q.setSelectionRange(qProd.length,qProd.length)}});
 document.addEventListener('change',async e=>{const t=e.target,d=t.dataset,o=curOp();
   if(t.id==='admin-reseau'){adminRes=t.value;return render()}

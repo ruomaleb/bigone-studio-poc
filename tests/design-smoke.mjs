@@ -13,7 +13,7 @@ const js=html.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/init\(\);\s*$/,'
 const node={addEventListener(){},querySelector(){return node},focus(){},setAttribute(){},removeAttribute(){}};
 const document={querySelector(){return node},querySelectorAll(){return []},addEventListener(){},title:''};
 const location={hash:'#accueil'};
-const context=vm.createContext({document,location,window:{addEventListener(){}},localStorage:{getItem(){return null}},console,setTimeout,clearTimeout,URL,URLSearchParams,Date});
+const context=vm.createContext({document,location,window:{addEventListener(){},history:{replaceState(_state,_title,hash){location.hash=hash}}},localStorage:{getItem(){return null}},console,setTimeout,clearTimeout,URL,URLSearchParams,Date});
 vm.runInContext(js,context);
 const run=s=>vm.runInContext(s,context);
 run(`S.operations.push({id:'qa-design',nom:'Opération <test> & prix',reseau:'Réseau QA',debut:'2027-01-05',fin:'2027-01-17',brief:{objectif:'Trafic',responsable:'QA'}});cur='qa-design';status='ok';`);
@@ -36,6 +36,10 @@ for(const tab of ['magasins','modeles','droits','connexions']){
 }
 location.hash='#administration--inconnue';
 assert.equal(run('route().tab'),'magasins');
+location.hash='#pilotage';
+assert.equal(run('route().v'),'accueil','L’ancien lien doit ouvrir le planning dans l’accueil');
+assert.equal(location.hash,'#accueil');
+assert.equal(run('planningOpen'),true);
 location.hash='#inconnue';
 assert.equal(run('route().v'),'accueil');
 run("S.operations.length=0;cur='qa-design';status='loading'");
