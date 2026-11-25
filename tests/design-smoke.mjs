@@ -34,6 +34,17 @@ for(const tab of ['magasins','modeles','droits','connexions']){
   assert.ok(run(`vAdministration('${tab}')`).includes('<h1>Administration</h1>'));
   assert.equal(run('cur'),'qa-design','Administration doit conserver le dossier sélectionné');
 }
+// Une priorité BAT doit mener à la bonne variante, même après un rechargement.
+run(`S.supports.push({id:'meta-id',op:'qa-design',type:'Bannières Meta',prod:true,statut:'bat',bat:2,rev:2});`);
+assert.ok(run('vAccueil()').includes('#production--qa-design--support-meta-id'));
+location.hash='#production--qa-design--support-meta-id';
+assert.ok(run('vProduction(route().tab)').includes('Préparer le paquet Media'));
+location.hash='#production--qa-design--support-inconnu';
+assert.ok(run('vProduction(route().tab)').includes('Ce support est indisponible'));
+assert.ok(run(`matchesOperation(curOp(),'reseau qa')`));
+run(`S.supports[0].perime=true;`);
+assert.ok(!run(`actions(curOp()).some(action=>action.t==='Examiner le BAT 2')`));
+run('S.supports.length=0');
 location.hash='#administration--inconnue';
 assert.equal(run('route().tab'),'magasins');
 location.hash='#pilotage';

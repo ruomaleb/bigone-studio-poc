@@ -183,3 +183,33 @@ details[open]>summary{margin-bottom:8px}
 @media (max-width:540px){main{padding:20px 16px 28px;gap:20px}.app-header{padding-left:16px;padding-right:16px}.brand{font-size:20px}.brand img{width:32px;height:32px}.global-nav{gap:0}.global-nav a{flex-direction:column;gap:4px;padding:8px 3px;font-size:10px}.global-nav a.admin-link{padding:8px 3px}.global-nav .icon{width:17px;height:17px}.suite-signature{font-size:10px}.suite-signature strong{font-size:12px}.card{padding:16px;gap:14px}h1{font-size:22px;line-height:1.45}h2{font-size:18px}.hd>div:first-child{min-width:0}.tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tile{padding:14px}.tile b{font-size:28px}.btn,.btn.sm{min-height:44px}.tabs a{padding:10px;font-size:12px}.operation-row{padding:14px;gap:10px;grid-template-columns:minmax(0,1fr)}.operation-row .btn{grid-column:1;grid-row:3;justify-self:start}.operation-state{grid-row:2}.dossier-aside{grid-template-columns:1fr}.admin-cards{grid-template-columns:1fr}.list>*{gap:10px}.list>div:has(select){flex-wrap:wrap}.list>label{flex-wrap:wrap}.supp{padding:14px}.pill{font-size:11px}.jal{grid-template-columns:repeat(2,minmax(0,1fr))}dialog{padding:20px;width:calc(100vw - 24px)}.app-footer{align-items:flex-start}#toast{bottom:16px}}
 @media (prefers-reduced-motion:no-preference){.btn,.global-nav a,.admin-card{transition:background-color .15s,border-color .15s}}
 @media print{.app-header,.app-footer,.btn,.skip-link{display:none}main{max-width:none;padding:0}.card{break-inside:avoid}.scroll{overflow:visible}.tabs{display:none}}
+
+/* Accueil PAC et dossier de support */
+.pac-overview{display:grid;grid-template-columns:minmax(0,2fr) minmax(245px,1fr);gap:20px;align-items:start}
+.priority-panel,.pac-summary{border:1px solid var(--line);border-radius:var(--radius);padding:20px;min-width:0}
+.priority-panel .card-heading{margin-bottom:10px}
+.priority-panel label,.operation-search,.support-detail label{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.priority-row{display:grid;align-items:center;grid-template-columns:minmax(0,1.5fr) minmax(95px,1fr) auto;gap:12px;padding:12px 4px;color:var(--ink);text-decoration:none;border-top:1px solid var(--line)}
+.priority-row:hover{background:var(--soft)}
+.priority-row strong,.priority-row small{display:block}
+.priority-row small,.priority-operation{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.priority-row>span:last-child,.support-back{color:var(--accent)}
+.pac-summary{background:var(--soft)}
+.pac-summary h2{margin-bottom:8px}
+.pac-summary>div{display:flex;align-items:baseline;justify-content:space-between;border-top:1px solid var(--line);gap:12px;padding:4px 0}
+.pac-summary span{color:var(--muted);font-size:12px}
+.pac-summary b{font:700 19px/1.45 var(--display)}
+.operation-search input{min-width:min(250px,100%)}
+#operation-results>.small{margin-bottom:8px}
+.action-guidance{display:flex;flex-wrap:wrap;gap:8px 16px;background:var(--violet-soft);padding:12px 16px;border-radius:6px}
+.support-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:0}
+.support-facts dt{font-size:12px;color:var(--muted)}.support-facts dd{margin:4px 0}
+.issue-text{color:var(--crit)}.support-back{align-self:flex-start}
+@media(max-width:820px){.pac-overview{grid-template-columns:1fr}.pac-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px}.pac-summary h2{grid-column:1/-1}}
+@media(max-width:540px){.priority-panel,.pac-summary{padding:14px}.priority-row{grid-template-columns:1fr auto;gap:2px 8px}.priority-operation{grid-column:1}.priority-row>span:last-child{grid-column:2;grid-row:1/3}.operation-search{align-items:stretch;flex-direction:column;width:100%}.support-detail label{flex-wrap:wrap}}
+.consultation{display:flex;align-items:center;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:12px}
+.consultation button{background:transparent;border:0;padding:3px 0;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.priority-row strong{display:flex;align-items:baseline;gap:8px}
+.priority-row strong::before{content:'';width:7px;height:7px;border-radius:50%;flex:none;align-self:center}
+.priority-crit strong::before{background:var(--crit)}.priority-warn strong::before{background:var(--warn)}.priority-ok strong::before{background:var(--ok)}
+.priority-row small{margin-left:15px}

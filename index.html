@@ -5,7 +5,7 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BigOne Studio</title>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-16.2">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-25.1">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -23,7 +23,7 @@
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-16.2';
+const VERSION='2026-11-25.1';
 const STATUTS=[['amonter','À monter'],['maquette','En maquette'],['bat','BAT prêt pour revue'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -36,10 +36,11 @@ const FAMILLES={imprime:'Imprimé',numerique:'Numérique',flux:'Flux'};
 const MODELES={imprime:[['donnees','Données reçues',-15],['cdf','Chemin de fer validé',-12,1],['bat1','BAT 1 prêt pour revue',-8],['retours','Retours client',-6],['approb','BAT final approuvé',-2],['remise','Fichiers remis à l\'imprimeur',0]],
   numerique:[['donnees','Données reçues',-10],['cdf','Chemin de fer validé',-8,1],['bat1','BAT 1 prêt pour revue',-6],['approb','Approbation',-3],['remise','Remise pour mise en ligne',0]],
   flux:[['donnees','Offres prêtes pour le flux',-4],['approb','Contrôle du flux',-2],['remise','Flux déposé',0]]};
-const TABS=[['cadrage','Cadrage'],['offres','Offres'],['magasins','Magasins'],['dispositif','Dispositif'],['calendrier','Calendrier']];
+const TABS=[['cadrage','Cadrage'],['offres','Offres'],['magasins','Engagements magasins'],['dispositif','Supports et variantes'],['calendrier','Calendrier']];
 const S={operations:[],produits:[],magasins:[],supports:[],taches:[],journal:[],chemins:[],engagements:[]};
 let db=null,status='loading',cur=null,compo=null,timer=null;
 let planningOpen=false;
+let priorityFilter='all', operationQuery='';
 try{cur=localStorage.getItem('bos-op')}catch(e){}
 
 /* ---------- dates ---------- */
@@ -99,6 +100,8 @@ let engQ=Promise.resolve();
 const ecrireEng=(o,m,maj)=>engQ=engQ.then(()=>{const e=Object.assign({},eng(o,m),maj);return w('engagements/'+o.id+'__'+m.id,{op:o.id,mag:m.id,statut:e.statut,supports:e.supports,qte:e.qte||{},maj:today()},'set')});
 function magsSup(s,o){const b=baseDe(s),eg=magsDe(o).filter(m=>{const e=eng(o,m);return e.statut==='engage'&&(!e.supports||e.supports.includes(b.id))});
   if(s.groupe)return eg.filter(m=>(s.magasinsVar||[]).includes(m.id));const pris=new Set(varsDe(b).flatMap(v=>v.magasinsVar||[]));return eg.filter(m=>!pris.has(m.id))}
+const SUPPORT_PREFIX='support-';
+const supportLink=s=>lien('production',s.op,SUPPORT_PREFIX+encodeURIComponent(s.id));
 const libStat=k=>STATUTS.find(x=>x[0]===k)[1],sansCoche=()=>Object.fromEntries(CHECKS.map(([k])=>[k,false]));
 const FIGE=['bat','valide','livre'];
 const revue=s=>(s.batRev??(s.bat>0?1:0))===(s.rev||1);
@@ -179,6 +182,7 @@ const lien=(v,id,tab)=>'#'+v+(id?'--'+id+(tab?'--'+tab:''):'');
 function route(){let [v,oid,tab]=(location.hash.slice(1)||'accueil').split('--');
   if(v==='pilotage'){planningOpen=true;v='accueil';window.history.replaceState(null,'','#accueil')}
   if(oid&&opById(oid)&&oid!==cur){cur=oid;compo=null;try{localStorage.setItem('bos-op',cur)}catch(e){}}
+  if(v==='production')return {v,tab:tab?.startsWith(SUPPORT_PREFIX) ? tab.slice(SUPPORT_PREFIX.length) : null};
   return {v:VUES[v]?v:'accueil',tab:v==='administration'?(ADMIN_TABS.some(t=>t[0]===oid)?oid:'magasins'):TABS.some(t=>t[0]===tab)?tab:'cadrage'}}
 function aller(v,id,tab){const h=lien(v,id,tab);if(location.hash===h)render();else location.hash=h}
 function curOp(){if(status==='loading'&&!S.operations.length)return null;let o=opById(cur);if(!o||!suivi(o)){o=sorted().find(x=>suivi(x)&&!x.cloture)||sorted().find(suivi);cur=o?o.id:null}return o}
@@ -189,7 +193,7 @@ const periode=o=>fd(o.debut)+' → '+fd(o.fin);
 const prixTxt=v=>v==null?'aucun':v.toFixed(2).replace('.',',')+' €';
 function opSelect(v,tab){const ops=sorted().filter(suivi),opt=o=>`<option value="${esc(o.id)}"${o.id===cur?' selected':''}>${esc(o.nom)} (${periode(o)})</option>`,a=ops.filter(o=>!o.cloture),c=ops.filter(o=>o.cloture);
   return `<label class="op-picker">Changer d’opération<select id="opsel" data-v="${v}" data-tab="${tab||''}" aria-label="Opération">${a.length?'<optgroup label="Dossiers ouverts">'+a.map(opt).join('')+'</optgroup>':''}${c.length?'<optgroup label="Clôturés">'+c.map(opt).join('')+'</optgroup>':''}</select></label>`}
-function banner(){if(status==='ok')return PUBLIC&&!CODE?'<div class="note row" style="justify-content:space-between"><span>Prototype en consultation libre, données de démonstration. Un code de test est nécessaire pour modifier.</span><button class="btn sm" data-act="code">Saisir le code</button></div>':'';
+function banner(){if(status==='ok')return PUBLIC&&!CODE?'<div class="consultation"><span>Données de démonstration · Consultation</span><button data-act="code">Saisir un code pour modifier</button></div>':'';
   const m={loading:'Chargement des données…',slow:"Les données ne répondent pas encore. La page se mettra à jour dès qu'elles arrivent.",nodb:"La base de données n'est pas accessible dans cette vue. Ouvrez la page connecté à votre compte Claude.",err:'La base de données ne répond pas. Rechargez la page pour réessayer.'}[status];
   return '<div class="note">'+m+'</div>'}
 const vide=t=>'<p class="muted" style="margin:0">'+t+'</p>';
@@ -198,11 +202,11 @@ const phasePill=o=>`<span class="pill ${phase(o)==='Production clôturée'||phas
 function alertPills(o){const a=alertes(o);return ((a.retard?`<span class="pill crit">${a.retard} jalon(s) en retard</span> `:'')+(a.bloq?`<span class="pill crit">${a.bloq} anomalie(s) sur des offres utilisées</span> `:'')+(a.perime?`<span class="pill crit">${a.perime} support(s) à revalider</span> `:'')||'<span class="pill ok">Aucune alerte</span> ')+(a.hors?`<span class="pill">${a.hors} anomalie(s) sur des offres hors dispositif</span>`:'')}
 /* Les actions à mener sur un dossier, de la plus urgente à la moins urgente. */
 function actions(o){const b=o.brief||{},ss=supsOf(o.id),nu=nbBloq(utilisees(o)),t=[];if(o.cloture)return t;
-  tachesDe(o).filter(enRetard).forEach(x=>{const s=S.supports.find(y=>y.id===x.support);t.push({c:'crit',t:'Jalon en retard',d:(s?titre(s)+' : ':'')+x.libelle+' (échéance '+fd(x.echeance)+')',o,h:lien('preparation',o.id,'calendrier')})});
-  if(nu)t.push({c:'crit',t:nu+' anomalie(s) bloquante(s)',d:'Offres utilisées par le dispositif à corriger',o,h:lien('preparation',o.id,'offres')});
-  ss.filter(s=>s.perime).forEach(s=>t.push({c:'crit',t:s.statut==='livre'?'Nouvelle révision requise':'Support à revalider',d:titre(s)+' : '+(s.perimeMotif||''),o,h:lien('production',o.id)}));
-  ss.filter(s=>enProd(s)&&s.statut==='bat').forEach(s=>t.push({c:'warn',t:'BAT '+s.bat+' prêt pour revue',d:titre(s)+' : décision attendue de '+(s.destinataire||'destinataire non renseigné'),o,h:lien('production',o.id)}));
-  ss.filter(s=>!enProd(s)&&pretProd(s,o).every(x=>x[0])).forEach(s=>t.push({c:'ok',t:'Prêt à ouvrir en production',d:titre(s),o,h:lien('preparation',o.id,'dispositif')}));
+  tachesDe(o).filter(enRetard).forEach(x=>{const s=S.supports.find(y=>y.id===x.support);t.push({c:'crit',due:x.echeance,t:'Jalon en retard',d:(s?titre(s)+' : ':'')+x.libelle+' (échéance '+fd(x.echeance)+')',o,h:lien('preparation',o.id,'calendrier')})});
+  if(nu)t.push({c:'crit',t:nu===1?'Corriger une anomalie bloquante':'Corriger '+nu+' anomalies bloquantes',d:'Offres utilisées par le dispositif à corriger',o,h:lien('preparation',o.id,'offres')});
+  ss.filter(s=>s.perime).forEach(s=>t.push({c:'crit',t:s.statut==='livre'?'Nouvelle révision requise':'Support à revalider',d:titre(s)+' : '+(s.perimeMotif||''),o,h:enProd(s)?supportLink(s):lien('preparation',o.id,'dispositif')}));
+  ss.filter(s=>enProd(s)&&s.statut==='bat'&&!s.perime).forEach(s=>t.push({c:'warn',t:s.bat?'Examiner le BAT '+s.bat:'Examiner le BAT',d:titre(s)+' : décision attendue de '+(s.destinataire||'destinataire non renseigné'),o,h:supportLink(s)}));
+  ss.filter(s=>!enProd(s)&&pretProd(s,o).every(x=>x[0])).forEach(s=>t.push({c:'ok',t:'Support prêt pour la production',d:titre(s),o,h:lien('preparation',o.id,'dispositif')}));
   if(!(b.objectif&&b.responsable))t.push({c:'warn',t:'Brief à compléter',d:'Objectif ou responsable manquant',o,h:lien('preparation',o.id,'cadrage')});
   if(!refusCloture(o).length)t.push({c:'ok',t:'Production à clôturer',d:'Tous les supports sont remis et à jour',o,h:lien('production',o.id)});return t}
 /* En-tête et navigation uniques du dossier, partagés par Préparation et Production. */
@@ -217,15 +221,55 @@ function operationRow(o){const ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='e
 
 
 /* ---------- Accueil : ce qu'il faut traiter maintenant ---------- */
-function vAccueil(){const ops=sorted().filter(suivi).filter(o=>!o.cloture),todo=ops.flatMap(actions);
- const sp=S.supports.filter(s=>{const o=opById(s.op);return o&&suivi(o)&&!o.cloture&&enProd(s)}),jr=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6),ret=todo.filter(x=>x.t==='Jalon en retard').length,ano=ops.reduce((n,o)=>n+nbBloq(utilisees(o)),0);
- const item=x=>`<a href="${x.h}"><span><span class="pill ${x.c}">${esc(x.t)}</span><br>${esc(x.d)}<br><span class="muted small">${esc(x.o.nom)}</span></span><span aria-hidden="true">↗</span></a>`;
- return `<div class="hd"><div><p class="eyebrow">Pilotage · vue transversale</p><h1>Vue d’ensemble</h1><p class="sub">Le suivi de vos opérations, de la préparation à la remise des supports.</p></div><button class="btn pri" data-act="new-op"><span aria-hidden="true">＋</span> Créer une opération</button></div>${banner()}
- <div class="grid tiles"><div class="tile"><b>${ops.length}</b><span>dossiers ouverts</span></div><div class="tile"><b>${sp.filter(s=>s.statut!=='livre').length}</b><span>supports en production</span></div><div class="tile ${sp.some(s=>s.statut==='bat')?'warn':''}"><b>${sp.filter(s=>s.statut==='bat').length}</b><span>BAT prêts pour revue</span></div><div class="tile ${ano?'crit':'ok'}"><b>${ano}</b><span>anomalies sur les offres utilisées</span></div><div class="tile ${ret?'crit':'ok'}"><b>${ret}</b><span>jalons en retard</span></div><div class="tile"><b>${S.operations.filter(enCours).length}</b><span>périodes commerciales en cours</span></div></div>
+const priorityGroups = [
+  ['all','Toutes'], ['crit','À débloquer'], ['warn','À examiner'], ['ok','Prêtes à poursuivre']
+];
+function priorityPanel(todo){
+  const visible = todo.filter(action => priorityFilter==='all' || action.c===priorityFilter);
+  const row = action => `<a class="priority-row priority-${action.c}" href="${esc(action.h)}">
+    <span><strong>${esc(action.t)}</strong><small>${esc(action.d)}</small></span>
+    <span class="priority-operation">${esc(action.o.nom)}</span><span aria-hidden="true">→</span></a>`;
+  return `<section class="priority-panel" aria-labelledby="priority-title">
+    <div class="card-heading"><h2 id="priority-title">Actions prioritaires</h2>
+    <label>Afficher <select id="priority-filter">${priorityGroups.map(([key,label])=>{
+      const count=key==='all'?todo.length:todo.filter(action=>action.c===key).length;
+      return `<option value="${key}"${priorityFilter===key?' selected':''}>${label} (${count})</option>`;
+    }).join('')}</select></label></div>
+    ${visible.slice(0,3).map(row).join('') || vide('Aucune action dans cette sélection.')}
+    ${visible.length>3?`<details><summary>Afficher les ${visible.length-3} autres actions</summary>${visible.slice(3).map(row).join('')}</details>`:''}</section>`;
+}
+function matchesOperation(o,query){
+  const normalize=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr');
+  return normalize([o.nom,resOp(o),o.brief?.responsable].filter(Boolean).join(' ')).includes(normalize(query.trim()));
+}
+function operationResults(ops){
+  const found=ops.filter(o=>matchesOperation(o,operationQuery));
+  return `<p class="small muted" role="status">${found.length} dossier${found.length>1?'s':''} sur ${ops.length}</p>
+    <div class="operation-list">${found.map(operationRow).join('') || vide(ops.length?'Aucune opération correspondante. Essayez un autre nom ou une enseigne.':'Aucun dossier ouvert. Créez votre première opération.')}</div>`;
+}
+function vAccueil(){
+ const ops=sorted().filter(o=>suivi(o)&&!o.cloture);
+ const rank={crit:0,warn:1,ok:2};
+ const todo=ops.flatMap(actions).sort((a,b)=>rank[a.c]-rank[b.c] || (a.due||'9999').localeCompare(b.due||'9999'));
+ const sp=S.supports.filter(s=>ops.some(o=>o.id===s.op)&&enProd(s));
+ const jr=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+ const ano=ops.reduce((n,o)=>n+nbBloq(utilisees(o)),0), ret=todo.filter(x=>x.due).length;
+ const header=`<div class="hd"><div><p class="eyebrow">Pilotage</p><h1>Plan d’action commerciale</h1>
+ <p class="sub">Opérations, échéances et décisions attendues.</p></div>
+ <button class="btn pri" data-act="new-op"><span aria-hidden="true">＋</span> Créer une opération</button></div>${banner()}`;
+ if(status!=='ok'&&!S.operations.length)return header;
+ return `${header}<div class="pac-overview">
+   ${priorityPanel(todo)}
+   <section class="pac-summary" aria-label="Chiffres du plan"><h2>Le PAC en chiffres</h2>
+   ${[[ops.length,'Dossiers ouverts'],[sp.filter(s=>s.statut!=='livre').length,'Supports en production'],
+     [sp.filter(s=>s.statut==='bat'&&!s.perime).length,'BAT à examiner'],[ano,'Anomalies sur les offres utilisées'],
+     [ret,'Jalons en retard'],[S.operations.filter(enCours).length,'Périodes commerciales en cours']].map(([n,label])=>`<div><span>${label}</span><b>${n}</b></div>`).join('')}
+   </section></div>
  <details id="planning" class="planning-block"${planningOpen?' open':''}><summary><span><span class="planning-title">Planning des opérations</span><span class="planning-caption">Plan de commerce · ${S.operations.length} opération(s)</span></span><span class="planning-toggle"><span class="when-closed">Afficher le planning</span><span class="when-open">Masquer le planning</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary><div class="planning-content">${planningContent()}</div></details>
- <section class="section-plain"><div class="card-heading"><h2>Opérations suivies</h2><span class="small muted">${ops.length} dossier(s) ouvert(s)</span></div><div class="operation-list">${ops.map(operationRow).join('')||vide('Aucun dossier ouvert. Créez votre première opération.')}</div></section>
- <div class="grid two section-divider"><section class="section-plain"><div class="card-heading"><h2>Points à suivre</h2><span class="pill">${todo.length} action(s)</span></div><div class="list">${todo.slice(0,5).map(item).join('')||vide('Aucune action en attente.')}</div>${todo.length>5?`<details><summary>Afficher les ${todo.length-5} autres actions</summary><div class="list">${todo.slice(5).map(item).join('')}</div></details>`:''}</section>
- <section class="section-plain"><h2>Activité récente</h2><div class="list">${jr.map(j=>{const o=opById(j.op);return `<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(j.texte)}<br><span class="muted small">${esc(o?o.nom:'')} · ${fdh(j.date)}</span></span></div>`}).join('')||vide('Aucune activité enregistrée.')}</div></section></div>`}
+ <section class="section-plain"><div class="card-heading"><h2>Opérations suivies</h2>
+ <label class="operation-search">Rechercher un dossier<input type="search" id="operation-query" placeholder="Opération, enseigne ou responsable" value="${esc(operationQuery)}"></label></div>
+ <div id="operation-results">${operationResults(ops)}</div></section>
+ <section class="section-plain"><h2>Activité récente</h2><div class="list">${jr.map(j=>{const o=opById(j.op);return `<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(j.texte)}<br><span class="muted small">${esc(o?o.nom:'')} · ${fdh(j.date)}</span></span></div>`}).join('')||vide('Aucune activité enregistrée.')}</div></section>`}
 
 
 /* ---------- Planning repliable dans l’accueil ---------- */
@@ -248,7 +292,7 @@ function tOffres(o){const ps=prodsOf(o.id),bs=basesOf(o.id),nu=nbBloq(utilisees(
   const rows=ps.map(p=>{const c=controles(p),us=bs.filter(s=>!s.institutionnel&&utilise(s,p)).map(s=>s.type+(typ(s).pagine?' p. '+place(p,s):'')),ex=S.supports.filter(v=>v.op===o.id&&v.groupe&&v.prixVar&&v.prixVar[p.id]!=null).map(v=>'exception '+v.variante+' : '+prixTxt(v.prixVar[p.id])),CT=c.b.map(x=>`<span class="pill crit">${esc(x)}</span>`).join(' ')+' '+c.a.map(x=>`<span class="pill warn">${esc(x)}</span>`).join(' ')+(!c.b.length&&!c.a.length?'<span class="pill ok" title="Ne vaut pas validation juridique ou commerciale.">Contrôles de données réussis</span>':'');
     return `<tr><td style="min-width:170px"><b>${esc(p.libelle)}</b><br><span class="muted small">${esc([p.ref&&'réf. '+p.ref,p.marque,p.unite].filter(Boolean).join(' · '))}</span> ${src(p.source)}${p.description?'<br><span class="muted small">'+esc(p.description)+'</span>':''}<br>${CT}</td><td>${esc(p.rayon||'')}</td><td class="num">${p.prix!=null?prixTxt(p.prix):'—'}${p.barre!=null?'<br><s class="muted small">'+prixTxt(p.barre)+'</s>':''}${ex.length?'<br><span class="small">'+esc(ex.join(' ; '))+'</span>':''}</td><td>${esc(mecaTxt(p))}${p.validDu||p.validAu?'<br><span class="muted small">du '+fd(p.validDu||o.debut)+' au '+fd(p.validAu||o.fin)+'</span>':''}</td><td class="small">${us.length?esc(us.join(', ')):'<span class="muted">Hors dispositif</span>'}</td><td><button class="btn sm" data-prod="${esc(p.id)}">Modifier</button></td></tr>`}).join('');
   return `<div class="row"><span class="pill ${nu?'crit':'ok'}">${nu} anomalie(s) sur des offres utilisées</span>${nb-nu?`<span class="pill">${nb-nu} anomalie(s) hors dispositif, non bloquantes</span>`:''}<span class="pill ${na?'warn':'ok'}">${na} avertissement(s)</span><span class="pill">${ps.length} offre(s)</span></div>
-  <section class="card"><div class="row" style="justify-content:space-between"><h2>Offres</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${ps.length?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide('Aucune offre. Les prix peuvent arriver plus tard : ajoutez-les quand ils sont connus.')}</section>`}
+  <section class="card"><div class="row" style="justify-content:space-between"><h2>Offres de l’opération</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${ps.length?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide('Aucune offre. Les prix peuvent arriver plus tard : ajoutez-les quand ils sont connus.')}</section>`}
 const varPour=(b,m)=>varsDe(b).find(v=>(v.magasinsVar||[]).includes(m.id));
 function tMagasins(o){const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m=>eng(o,m).statut==='engage'),choisi=(e,b)=>!e.supports||e.supports.includes(b.id);
   return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Magasins du réseau ${esc(resOp(o))}</h2><button class="btn sm" data-act="new-mag">Ajouter un magasin</button></div><p class="muted small" style="margin:0">${ne.length} engagé(s) sur ${ms.length} magasin(s) éligible(s)</p>
@@ -260,12 +304,12 @@ function compoHtml(s,o){const ps=prodsOf(o.id);
   return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Chemin de fer</h3><button class="btn sm" data-addpage="${esc(s.id)}">${pg.length?'Ajouter une page':'Créer le chemin de fer'}</button></div>
   ${(chemin(s)||{}).historique?`<p class="muted small" style="margin:0">Compositions précédentes conservées : ${chemin(s).historique.map(h=>'rév. '+h.rev+' du '+fd(h.date)+' ('+h.pages.length+' pages)').join(', ')}.</p>`:''}${pg.length?`<p class="muted small" style="margin:0">Touchez une offre pour choisir sa page, ou glissez-la sur une page.</p><div class="pages">${pg.map(p=>{const inn=ps.filter(x=>place(x,s)===p.n);return `<div class="page" data-page="${p.n}" data-sup="${esc(s.id)}"><div class="row" style="justify-content:space-between"><span class="pn">${p.n}</span><span class="pill ${inn.length>p.cases?'crit':inn.length===p.cases?'ok':''}">${inn.length}/${p.cases}</span></div><button class="btn sm" data-rub="${p.n}" data-sup="${esc(s.id)}" style="text-align:left">${esc(p.rubrique||'Rubrique')}</button>${inn.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div>`}).join('')}</div>${libres.length?`<div><h3>Offres non placées dans ce support</h3><div class="row" style="margin-top:6px">${libres.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div></div>`:''}`:vide('Pas encore de chemin de fer.')}</div>`}
 function carteSup(s,o){const pr=pretProd(s,o),ok=pr.every(x=>x[0]),n=offresDe(s).length,b=baseDe(s),ms=magsSup(s,o),exc=s.groupe?offresDe(s).filter(p=>s.prixVar&&s.prixVar[p.id]!=null).map(p=>p.libelle+' '+prixTxt(s.prixVar[p.id])):[];
-  return `<div class="supp"><div class="row" style="justify-content:space-between"><span><b>${esc(s.groupe?'Variante '+s.variante:s.type)}</b> ${s.groupe?'':`<span class="pill">${FAMILLES[typ(s).f]}</span>`} ${enProd(s)?`<span class="pill ok">En production · ${libStat(s.statut)}</span>`:'<span class="pill">En préparation</span>'}</span><span class="row">${s.groupe?`<button class="btn sm" data-var-edit="${esc(s.id)}">Modifier la variante</button>`:`<button class="btn sm" data-compo="${esc(s.id)}">${compo===s.id?'Fermer':typ(s).pagine?'Chemin de fer':'Offres du support'}</button><button class="btn sm" data-sup-edit="${esc(s.id)}">Modifier</button><button class="btn sm" data-var-new="${esc(s.id)}">Ajouter une variante</button>`}</span></div>
+  return `<div class="supp"><div class="row" style="justify-content:space-between"><span><b>${esc(s.groupe?'Variante '+(s.variante||'locale'):s.type)}</b> ${s.groupe?'':`<span class="pill">${FAMILLES[typ(s).f]}</span>`} ${enProd(s)?`<span class="pill ok">En production · ${libStat(s.statut)}</span>`:'<span class="pill">En préparation</span>'}</span><span class="row">${s.groupe?`<button class="btn sm" data-var-edit="${esc(s.id)}">Modifier la variante</button>`:`<button class="btn sm" data-compo="${esc(s.id)}">${compo===s.id?'Fermer':typ(s).pagine?'Chemin de fer':'Offres du support'}</button><button class="btn sm" data-sup-edit="${esc(s.id)}">Modifier</button><button class="btn sm" data-var-new="${esc(s.id)}">Ajouter une variante</button>`}</span></div>
     <span class="muted small">${s.groupe?esc('Magasins : '+(ms.map(m=>m.nom).join(', ')||'aucun')+' · prix d\'exception : '+(exc.join(', ')||'aucun')):esc((s.format||'Format à préciser')+' · versions : '+(s.versions||'—'))} · échéance ${fd(echeance(s,o))} · ${b.institutionnel?'création institutionnelle':n+' offre(s)'}${typ(s).pagine?' · '+pagesDe(s).length+' page(s)':''}${s.groupe?'':' · '+ms.length+' magasin(s)'+(varsDe(s).length?' en version nationale':'')}</span>
-    ${enProd(s)?'':`<div class="list">${pr.map(([v,l])=>`<div><span class="small">${esc(l)}</span><span class="pill ${v?'ok':'crit'}">${v?'Satisfait':'Manquant'}</span></div>`).join('')}</div><div class="row"><button class="btn pri sm" data-ouvrir="${esc(s.id)}"${ok?'':' disabled'}>Ouvrir en production</button>${ok?'':'<span class="muted small">Complétez les éléments manquants.</span>'}</div>`}
+    ${enProd(s)?`<a href="${esc(supportLink(s))}">Suivre ce support en production →</a>`:`<details class="readiness"${ok?'':' open'}><summary>${ok?'Prêt pour la production':pr.filter(([met])=>!met).length+' prérequis à compléter'}</summary><div class="list">${pr.map(([v,l])=>`<div><span class="small">${esc(l)}</span><span class="pill ${v?'ok':'crit'}">${v?'Satisfait':'Manquant'}</span></div>`).join('')}</div></details><div class="row"><button class="btn pri sm" data-ouvrir="${esc(s.id)}"${ok?'':' disabled'}>Ouvrir en production</button>${ok?'':'<span class="muted small">Complétez les éléments manquants.</span>'}</div>`}
     ${compo===s.id?compoHtml(s,o):''}${s.groupe?'':varsDe(s).map(v=>carteSup(v,o)).join('')}</div>`}
 function tDispositif(o){const bs=basesOf(o.id);
-  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports du dispositif</h2><span class="row"><button class="btn sm" data-act="csv-dispo">Copier le dispositif (CSV)</button><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></span></div>
+  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports et variantes</h2><span class="row"><button class="btn sm" data-act="csv-dispo">Copier le dispositif (CSV)</button><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></span></div>
   ${bs.length?bs.map(s=>carteSup(s,o)).join(''):vide('Aucun support. Composez le dispositif : prospectus, affiche, e-catalogue, bannières, flux.')}</section>`}
 function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><span><input type="checkbox" data-task="${esc(x.id)}"${x.fait?' checked':''}> ${esc(x.libelle)}</span><span class="pill ${tardif(x)?'warn':x.fait?'ok':enRetard(x)?'crit':''}">${tardif(x)?'Terminé en retard · échéance '+fd(x.echeance):x.fait?'Fait':nonAppl(x)?'Non applicable, approbation interne':enRetard(x)?'Retard · '+fd(x.echeance):fd(x.echeance)}</span></label>`,anc=ts.filter(t=>!t.support||!ss.some(s=>s.id===t.support));
   return ss.map(s=>{const l=ts.filter(t=>t.support===s.id);return `<section class="card"><div class="row" style="justify-content:space-between"><h2>${esc(titre(s))}</h2><button class="btn sm" data-retro="${esc(s.id)}">${l.length?'Recalculer':'Générer les jalons'}</button></div><p class="muted small" style="margin:0">Échéance ${fd(echeance(s,o))} · modèle ${FAMILLES[typ(s).f].toLowerCase()}</p><div class="list">${l.map(ligne).join('')||vide('Aucun jalon pour ce support.')}</div></section>`}).join('')+(anc.length?`<section class="card"><h2>Jalons généraux</h2><p class="muted small" style="margin:0">Créés avant le calendrier par support.</p><div class="list">${anc.map(ligne).join('')}</div></section>`:'')||`<section class="card">${vide('Le calendrier se construit à partir des supports du dispositif. Ajoutez un support.')}</section>`}
@@ -279,17 +323,43 @@ function vPreparation(tab){const o=curOp();if(!o)return `<div class="hd"><div><p
 let vueProd='liste',filtreProd='tous',qProd='';try{vueProd=localStorage.getItem('bos-vue')||'liste'}catch(e){}
 const prochaine=s=>s.perime?(s.statut==='livre'?'Créer une nouvelle révision':'Revérifier les données puis renvoyer en revue'):({amonter:'Monter la création',maquette:'Terminer les contrôles, puis préparer le BAT',bat:'Obtenir la décision de '+(s.destinataire||'du destinataire'),corrections:'Corriger, puis créer la révision à renvoyer',valide:'Déclarer la remise',livre:'Aucune'})[s.statut];
 function probleme(s){const r=[],n=nbBloqS(s),t=S.taches.filter(x=>x.support===s.id&&enRetard(x)).length;if(s.perime)r.push(s.perimeMotif||'Données modifiées');if(n)r.push(n+' anomalie(s) sur ses offres');if(t)r.push(t+' jalon(s) en retard');if(s.prod===undefined)r.push('Hérité, non requalifié');return r}
-const boutons=s=>`<button class="btn sm" data-chk="${esc(s.id)}">Contrôles et fiche</button><button class="btn sm" data-apercu="${esc(s.id)}">Création</button><button class="btn sm" data-brief="${esc(s.id)}">Copier le brief</button>${typ(s).f!=='imprime'?`<button class="btn sm" data-paquet="${esc(s.id)}">Paquet Media</button>`:''}${gele(s)?`<button class="btn sm" data-rev="${esc(s.id)}">Nouvelle révision</button>`:''}`;
+const boutons=s=>`<button class="btn sm" data-chk="${esc(s.id)}">Contrôles et fiche</button><button class="btn sm" data-apercu="${esc(s.id)}">Création</button><button class="btn sm" data-brief="${esc(s.id)}">Copier le brief</button>${typ(s).f!=='imprime'?`<button class="btn sm" data-paquet="${esc(s.id)}">Préparer le paquet Media</button>`:''}${gele(s)?`<button class="btn sm" data-rev="${esc(s.id)}">Nouvelle révision</button>`:''}`;
 const selStat=s=>`<select data-stat="${esc(s.id)}" aria-label="Statut ${esc(titre(s))}">${STATUTS.map(([k,l])=>`<option value="${k}"${s.statut===k?' selected':''}>${l}</option>`).join('')}</select>`;
-function vProduction(){const o=curOp();if(!o)return '<div class="hd"><div><p class="eyebrow">Production des supports</p><h1>Production</h1></div><a class="btn" href="#preparation">Ouvrir la préparation</a></div>'+banner()+vide('Les supports apparaîtront ici une fois préparés dans le dispositif.');
+function vProduction(supportKey){const o=curOp();if(!o)return '<div class="hd"><div><p class="eyebrow">Production des supports</p><h1>Production</h1></div><a class="btn" href="#preparation">Ouvrir la préparation</a></div>'+banner()+vide('Les supports apparaîtront ici une fois préparés dans le dispositif.');
   const tous=supsOf(o.id),att=tous.filter(s=>!enProd(s)),jr=S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date)),q=qProd.trim().toLowerCase();
   const ss=tous.filter(enProd).filter(s=>(filtreProd==='tous'||(filtreProd==='traiter'&&(s.perime||s.statut!=='livre'&&s.statut!=='valide'))||(filtreProd==='retard'&&S.taches.some(x=>x.support===s.id&&enRetard(x))))&&(!q||(titre(s)+' '+(s.fichier||'')).toLowerCase().includes(q)));
   const pills=s=>{const n=CHECKS.filter(([k])=>s.checks&&s.checks[k]).length;return `${s.perime?`<span class="pill crit" title="${esc(s.perimeMotif||'')}">${s.statut==='livre'?'Nouvelle révision requise':'À revalider'}</span>`:''}<span class="pill">Rév. ${s.rev||1}</span><span class="pill">${s.bat?'BAT '+s.bat:'Pas de BAT'}</span>${s.statut==='valide'||s.statut==='livre'?`<span class="pill warn">Déclaré${(s.mode||'client')==='interne'?', interne':''}${s.approuvePar?' par '+esc(s.approuvePar):''}</span>`:''}<span class="pill ${n===CHECKS.length?'ok':''}">Contrôles ${n}/${CHECKS.length}</span>`};
-  const card=s=>`<div class="sup"><b>${esc(titre(s))}</b><span class="muted">${esc(s.format||'')} · échéance ${fd(echeance(s,o))} · ${magsSup(s,o).length} magasin(s)</span><span class="muted">Fichier : ${esc(s.fichier||'aucun')}${s.destinataire?' · revue : '+esc(s.destinataire):''}${s.remiseA?' · remis à : '+esc(s.remiseA):''}</span><span class="row">${pills(s)}</span>${probleme(s).length?'<span class="small" style="color:var(--crit)">'+esc(probleme(s).join(' · '))+'</span>':''}${selStat(s)}<span class="row">${boutons(s)}</span></div>`;
-  const liste=()=>`<div class="scroll"><table class="lp"><thead><tr><th>Support et variante</th><th>Magasins</th><th>Révision</th><th>État</th><th>Échéance</th><th>Problème</th><th>Prochaine action</th></tr></thead><tbody>${ss.map(s=>`<tr><td style="min-width:150px"><b>${esc(titre(s))}</b><br><span class="muted small">Fichier : ${esc(s.fichier||'aucun')}</span><div class="row" style="margin-top:6px">${boutons(s)}</div></td><td class="num" data-l="Magasins">${magsSup(s,o).length}</td><td><span class="row">${pills(s)}</span></td><td>${selStat(s)}</td><td class="num" data-l="Échéance">${fd(echeance(s,o))}</td><td class="small" data-l="Problème" style="min-width:140px;${probleme(s).length?'color:var(--crit)':''}">${esc(probleme(s).join(' · ')||'Aucun')}</td><td class="small" data-l="Prochaine action" style="min-width:140px">${esc(prochaine(s))}</td></tr>`).join('')}</tbody></table></div>`;
+  const openSupport=s=>`<a class="btn sm" href="${esc(supportLink(s))}">Ouvrir le support<span aria-hidden="true"> →</span></a>`;
+  const card=s=>`<div class="sup"><b>${esc(titre(s))}</b><span class="muted">${esc(s.format||'')} · échéance ${fd(echeance(s,o))}</span>
+    <span>${esc(prochaine(s))}</span>${openSupport(s)}</div>`;
+  if(supportKey){
+    const s=tous.find(item=>enProd(item)&&encodeURIComponent(item.id)===supportKey);
+    const back=`<a class="support-back" href="${lien('production',o.id)}">← Tous les supports de l’opération</a>`;
+    if(!s)return operationHeading(o,'production')+banner()+back+vide('Ce support est indisponible dans la production de cette opération.');
+    const problems=probleme(s), stores=magsSup(s,o);
+    return `${operationHeading(o,'production')}${banner()}${back}
+      <section class="card support-detail"><div class="card-heading"><div><p class="eyebrow">${esc(FAMILLES[typ(s).f])}</p>
+      <h2>${esc(titre(s))}</h2><p class="sub">${esc(s.format||'Format à préciser')} · Échéance ${fd(echeance(s,o))}</p></div>
+      <label>État du support ${selStat(s)}</label></div>
+      <div class="action-guidance"><strong>Prochaine action</strong><span>${esc(prochaine(s))}</span></div>
+      ${problems.length?`<div class="row">${problems.map(item=>`<span class="pill crit">${esc(item)}</span>`).join('')}</div>`:''}
+      <div class="row">${pills(s)}</div>
+      <dl class="support-facts"><div><dt>Fichier</dt><dd>${esc(s.fichier||'À renseigner')}</dd></div>
+      <div><dt>Revue</dt><dd>${esc(s.destinataire||'À renseigner')}</dd></div>
+      <div><dt>Remis à</dt><dd>${esc(s.remiseA||'—')}</dd></div>
+      <div><dt>Magasins engagés</dt><dd>${stores.length}</dd></div></dl>
+      <div class="row">${boutons(s)}</div>
+      ${typ(s).f!=='imprime'?'<p class="muted small">Ce paquet prépare les éléments pour BigOne Media. L’activation se programme ensuite dans Media.</p>':''}
+      <a href="${lien('preparation',o.id,'dispositif')}">Voir les supports et variantes en préparation</a></section>`;
+  }
+  const liste=()=>`<div class="scroll"><table class="lp"><thead><tr><th>Support et variante</th><th>État</th><th>Échéance</th><th>Prochaine action</th><th></th></tr></thead><tbody>
+    ${ss.map(s=>`<tr><td><b>${esc(titre(s))}</b><div class="muted small">${magsSup(s,o).length} magasin(s) · Rév. ${s.rev||1}</div></td>
+      <td data-l="État"><span class="pill">${esc(libStat(s.statut))}</span></td><td class="num" data-l="Échéance">${fd(echeance(s,o))}</td>
+      <td data-l="Prochaine action">${esc(prochaine(s))}${probleme(s).length?`<div class="small issue-text">${esc(probleme(s).join(' · '))}</div>`:''}</td>
+      <td>${openSupport(s)}</td></tr>`).join('')}</tbody></table></div>`;
   return `${operationHeading(o,'production')}${banner()}${enTete(o,'production')}
-  <p class="muted small" style="margin:0">Le prototype ne transmet aucun fichier : les statuts enregistrent des déclarations, avec le fichier, le destinataire et la personne indiqués.</p>
-  <div class="row"><span class="row" role="group" aria-label="Affichage"><button class="btn sm ${vueProd==='liste'?'pri':''}" data-vue="liste">Liste</button><button class="btn sm ${vueProd==='kanban'?'pri':''}" data-vue="kanban">Colonnes</button></span><select id="filtre-prod" aria-label="Filtrer les supports">${[['tous','Tous les supports'],['traiter','À traiter'],['retard','Avec un jalon en retard']].map(([k,l])=>`<option value="${k}"${filtreProd===k?' selected':''}>${l}</option>`).join('')}</select><input id="q-prod" type="search" placeholder="Rechercher un support ou un fichier" value="${esc(qProd)}" aria-label="Rechercher"></div>
+  <p class="muted small" style="margin:0">Les remises et les approbations sont déclarées dans Studio.</p>
+  <div class="row"><span class="row" role="group" aria-label="Affichage"><button class="btn sm ${vueProd==='liste'?'pri':''}" aria-pressed="${vueProd==='liste'}" data-vue="liste">Liste</button><button class="btn sm ${vueProd==='kanban'?'pri':''}" aria-pressed="${vueProd==='kanban'}" data-vue="kanban">Colonnes</button></span><select id="filtre-prod" aria-label="Filtrer les supports">${[['tous','Tous les supports'],['traiter','À traiter'],['retard','Avec un jalon en retard']].map(([k,l])=>`<option value="${k}"${filtreProd===k?' selected':''}>${l}</option>`).join('')}</select><input id="q-prod" type="search" placeholder="Rechercher un support ou un fichier" value="${esc(qProd)}" aria-label="Rechercher"></div>
   ${ss.length?(vueProd==='liste'?`<section class="card">${liste()}</section>`:`<div class="kan">${STATUTS.map(([k,l])=>{const c=ss.filter(s=>s.statut===k);return `<div class="col"><h3>${l}<span class="muted">${c.length}</span></h3>${c.map(card).join('')}</div>`}).join('')}</div>`):`<section class="card">${vide(tous.some(enProd)?'Aucun support ne correspond à ce filtre.':'Aucun support en production.')}</section>`}
   ${att.length?`<section class="card"><h2>Encore en préparation</h2><div class="list">${att.map(s=>`<div><span>${esc(titre(s))}</span><a class="btn sm" href="${lien('preparation',o.id,'dispositif')}">Voir les prérequis</a></div>`).join('')}</div></section>`:''}
   ${(()=>{const fige=o.cloture&&o.bilan,B=fige?o.bilan:calcBilan(o),ref=refusCloture(o),prec=o.bilansPrecedents||[];
@@ -573,8 +643,20 @@ document.addEventListener('click',async e=>{const t=e.target.closest('[data-act]
     if(!await w('operations/'+o.id,{cloture:false,bilan:null,bilansPrecedents:[...(o.bilansPrecedents||[]),Object.assign({},o.bilan||Object.assign(calcBilan(o),{date:today()}),{motifReouverture:r.motif})]}))return false;await log(o.id,'Dossier rouvert. Motif : '+r.motif,'modif');return true})});
 // L’état choisi reste stable quand les données ou la vue sont actualisées.
 document.addEventListener('toggle',e=>{if(e.target.id==='planning'&&e.target===$('#planning'))planningOpen=e.target.open},true);
-document.addEventListener('input',e=>{if(e.target.id!=='q-prod')return;qProd=e.target.value;render();const q=$('#q-prod');if(q){q.focus();q.setSelectionRange(qProd.length,qProd.length)}});
+document.addEventListener('input',e=>{
+  if(e.target.id==='operation-query'){
+    operationQuery=e.target.value;
+    $('#operation-results').innerHTML=operationResults(sorted().filter(o=>suivi(o)&&!o.cloture));
+    return;
+  }
+  if(e.target.id!=='q-prod')return;qProd=e.target.value;render();const q=$('#q-prod');if(q){q.focus();q.setSelectionRange(qProd.length,qProd.length)}});
 document.addEventListener('change',async e=>{const t=e.target,d=t.dataset,o=curOp();
+  if(t.id==='priority-filter'){
+    priorityFilter=t.value;
+    render();
+    $('#priority-filter').focus();
+    return;
+  }
   if(t.id==='admin-reseau'){adminRes=t.value;return render()}
   if(t.id==='filtre-prod'){filtreProd=t.value;return render()}
   if(t.id==='opsel')return aller(d.v,t.value,d.tab);
