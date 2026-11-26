@@ -540,7 +540,7 @@ function openProductDialog(link){
       const expanded=!!link.closest('details')?.open;
       catalogNeedsRender=false;
       render();
-      const target=Array.from(document.querySelectorAll('[data-product-id]')).find(el=>el.dataset.productId===productId&&el.dataset.operationId===operationId);
+      const target=Array.from(document.querySelectorAll('a[data-product-id]')).find(el=>el.dataset.productId===productId&&el.dataset.operationId===operationId);
       if(expanded&&target?.closest('details'))target.closest('details').open=true;
       (target||$('#catalog-query')||$('#view')).focus({preventScroll:true});
     }else if(link.isConnected)link.focus({preventScroll:true});
@@ -1077,7 +1077,7 @@ document.addEventListener('click',async e=>{
     target.scrollIntoView({block:'start'});
     return;
   }
-  const productLink=e.target.closest('[data-product-id]');
+  const productLink=e.target.closest('a[data-product-id]');
   if(productLink){
     if(e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
     e.preventDefault();
