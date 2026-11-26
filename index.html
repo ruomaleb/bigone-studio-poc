@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-25.2">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.1">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -15,17 +15,33 @@
   <header class="app-header">
     <a class="brand" href="#accueil" aria-label="BigOne Studio — vue d’ensemble"><img src="assets/bigone-logo.png" alt="BigOne" width="36" height="36"><span>Studio</span></a>
     <nav class="global-nav" aria-label="Espaces Studio"><a href="#accueil" data-v="pilotage"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Pilotage</span></a><a href="#preparation" data-v="preparation"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3" fill="white"/><circle cx="16" cy="17" r="3" fill="white"/></svg><span>Préparation</span></a><a href="#production" data-v="production"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><span>Production</span></a><a href="#administration" data-v="administration" class="admin-link"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="16" cy="7" r="3" fill="white"/><circle cx="8" cy="17" r="3" fill="white"/></svg><span>Administration</span></a></nav><div class="suite-signature"><strong>BigOne</strong>par Nanotera</div>
+    <button type="button" id="acces-studio" class="access-button" data-act="code" aria-haspopup="dialog" aria-controls="acces-dialog" aria-label="Saisir un code d’accès" title="Saisir un code d’accès" hidden>
+      <svg width="24" height="24" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 25c3.6-3.1 14.8-11 14.8-16 0-2.5-1.5-4.2-3.6-4.2-2 0-3.5 1.2-4.2 3.3-.9-2.1-2.3-3.3-4.2-3.3-2.1 0-3.6 1.7-3.6 4.2 0 5 11.2 12.9 14.8 16"/>
+        <path d="M9 6.6C5.7 9.5 2.5 15 2.5 18.7c0 4.3 3.3 6.3 8.3 4.9l5.2-1.5 5.2 1.5c5 1.4 8.3-.6 8.3-4.9 0-3.7-3.2-9.2-6.5-12.1"/>
+      </svg>
+    </button>
   </header>
   <main id="view" tabindex="-1"></main>
 </div>
 <dialog id="dlg"></dialog>
+<dialog id="acces-dialog" aria-labelledby="acces-titre">
+  <form id="acces-form">
+    <h2 id="acces-titre">Accès à Studio</h2>
+    <p id="acces-profil" class="small muted" hidden></p>
+    <label for="acces-code">Code d’accès</label>
+    <input id="acces-code" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" aria-describedby="acces-erreur" required autofocus>
+    <p id="acces-erreur" class="ferr" role="alert"></p>
+    <div class="row access-actions"><button type="button" class="btn" id="acces-annuler">Annuler</button><button type="submit" class="btn pri" id="acces-valider">Valider le code</button></div>
+  </form>
+</dialog>
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-25.2';
+const VERSION='2026-11-26.1';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -150,7 +166,7 @@ const VERS=['supports','operations','produits','engagements','chemins'],REFUS={r
 let ecrits=0;
 async function w(path,data,mode){const [col,id]=path.split('/'),op=mode==='set'?'set':mode==='delete'?'delete':'update';
   if(data){data=Object.assign({},data);delete data._v}
-  if(PUBLIC){if(!CODE){toast('Saisissez le code de test pour modifier.');return false}
+  if(PUBLIC){if(!CODE){toast('Saisissez votre code d’accès pour modifier.');return false}
     const b={p_code:CODE,p_op:op,p_col:col,p_id:id,p_data:data||{}},c=S[col].find(x=>x.id===id);if(VERS.includes(col)&&c&&c._v!=null)b.p_version=c._v;
     ecrits++;
     try{const r=await rpc(b);ecrits++;
@@ -171,7 +187,7 @@ async function charger(){const e0=ecrits;try{const r=await fetch(SB+'/rest/v1/do
     if(sig===charger.sig&&status==='ok')return true;charger.sig=sig;Object.keys(S).forEach(k=>N[k]=[]);
     rows.forEach(x=>{if(N[x.col])N[x.col].push(Object.assign({id:x.id},x.data,{_v:x.version}))});Object.assign(S,N);status='ok';schedule();return true}catch(e){if(status!=='ok')status='err';schedule();return false}}
 async function init(){render();
-  if(PUBLIC){await charger();if(CODE&&!ROLE)rpc({p_code:CODE,p_op:'check'}).then(r=>{if(r&&r.ok===true)retenirCode(CODE,r);else oublierCode();render()}).catch(()=>{});setInterval(()=>{if(!document.hidden&&!$('#dlg').open)charger()},20000);return}
+  if(PUBLIC){await charger();if(CODE&&!ROLE)rpc({p_code:CODE,p_op:'check'}).then(r=>{if(r&&r.ok===true)retenirCode(CODE,r);else oublierCode();render()}).catch(()=>{});setInterval(()=>{if(!document.hidden&&!$('#dlg').open&&!$('#acces-dialog').open)charger()},20000);return}
   let n=0;while(!(window.claude&&window.claude.use)&&n++<30)await new Promise(r=>setTimeout(r,100));
   if(!(window.claude&&window.claude.use)){status='nodb';return render()}
   timer=setTimeout(()=>{if(status==='loading'){status='slow';render()}},10000);
@@ -193,12 +209,18 @@ function aller(v,id,tab){const h=lien(v,id,tab);if(location.hash===h)render();el
 function curOp(){if(status==='loading'&&!S.operations.length)return null;let o=opById(cur);if(!o||!suivi(o)){o=sorted().find(x=>suivi(x)&&!x.cloture)||sorted().find(suivi);cur=o?o.id:null}return o}
 
 /* ---------- composants ---------- */
-const src=s=>s==='public'?'<span class="pill src" title="Relevé sur les sites publics le 14/11/2026">Relevé public</span>':s==='demo'?'<span class="pill src">Démo</span>':s==='matrice'?'<span class="pill src">Matrice</span>':'';
+const src=s=>s==='public'?'<span class="pill src" title="Relevé sur les sites publics le 14/11/2026">Relevé public</span>':s==='matrice'?'<span class="pill src">Matrice</span>':'';
 const periode=o=>fd(o.debut)+' → '+fd(o.fin);
 const prixTxt=v=>v==null?'aucun':v.toFixed(2).replace('.',',')+' €';
 function opSelect(v,tab){const ops=sorted().filter(suivi),opt=o=>`<option value="${esc(o.id)}"${o.id===cur?' selected':''}>${esc(o.nom)} (${periode(o)})</option>`,a=ops.filter(o=>!o.cloture),c=ops.filter(o=>o.cloture);
   return `<label class="op-picker">Changer d’opération<select id="opsel" data-v="${v}" data-tab="${tab||''}" aria-label="Opération">${a.length?'<optgroup label="Dossiers ouverts">'+a.map(opt).join('')+'</optgroup>':''}${c.length?'<optgroup label="Clôturés">'+c.map(opt).join('')+'</optgroup>':''}</select></label>`}
-function banner(){if(status==='ok')return PUBLIC&&!CODE?'<div class="consultation"><span>Données de démonstration · Consultation</span><button data-act="code">Saisir un code pour modifier</button></div>':'';
+function texteJournal(entree){
+  const texte=entree.texte || '';
+  if(/ : BAT \d+/.test(texte))return texte.replace(/\. Aucun envoi effectué par le prototype\.$/, '. Fichier à transmettre au destinataire.');
+  if(texte.includes(' déclarée remise à '))return texte.replace(/\. Aucun reçu : le prototype ne transmet pas de fichier\.$/, '. Remise déclarée dans Studio.');
+  return texte;
+}
+function banner(){if(status==='ok')return '';
   const m={loading:'Chargement des données…',slow:"Les données ne répondent pas encore. La page se mettra à jour dès qu'elles arrivent.",nodb:"La base de données n'est pas accessible dans cette vue. Ouvrez la page connecté à votre compte Claude.",err:'La base de données ne répond pas. Rechargez la page pour réessayer.'}[status];
   return '<div class="note">'+m+'</div>'}
 const vide=t=>'<p class="muted" style="margin:0">'+t+'</p>';
@@ -277,7 +299,7 @@ function vAccueil(){
  <section class="section-plain"><div class="card-heading"><h2>Opérations suivies</h2>
  <label class="operation-search">Rechercher un dossier ouvert ou clôturé<input type="search" id="operation-query" placeholder="Opération, enseigne, pilote ou contact agence" value="${esc(operationQuery)}"></label></div>
  <div id="operation-results">${operationResults(ops)}</div></section>
- <section class="section-plain"><h2>Activité récente</h2><div class="list">${jr.map(j=>{const o=opById(j.op);return `<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(j.texte)}<br><span class="muted small">${esc(o?o.nom:'')} · ${fdh(j.date)}</span></span></div>`}).join('')||vide('Aucune activité enregistrée.')}</div></section>`}
+ <section class="section-plain"><h2>Activité récente</h2><div class="list">${jr.map(j=>{const o=opById(j.op);return `<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(texteJournal(j))}<br><span class="muted small">${esc(o?o.nom:'')} · ${fdh(j.date)}</span></span></div>`}).join('')||vide('Aucune activité enregistrée.')}</div></section>`}
 
 
 /* ---------- Planning repliable dans l’accueil ---------- */
@@ -382,7 +404,7 @@ function vProduction(supportKey){const o=curOp();if(!o)return '<div class="hd"><
   ${fige?'<div class="list">'+B.supports.map(x=>`<div><span>${esc(x.type)} · rév. ${x.rev} « ${esc(x.fichier||'sans fichier')} »</span><span class="muted small">remis à ${esc(x.remiseA||'—')}</span></div>`).join('')+'</div>'+(B.note?'<p style="margin:0"><b>Enseignements :</b> '+esc(B.note)+'</p>':''):''}
   ${!o.cloture&&ref.length?'<div class="list">'+ref.map(x=>`<div><span class="small">${esc(x)}</span><span class="pill crit">Bloque la clôture</span></div>`).join('')+'</div>':''}
   ${prec.length?'<p class="muted small" style="margin:0">Bilans précédents conservés : '+prec.map(b=>'clôture du '+fd(b.date)+' ('+b.remis+'/'+b.total+' remis, rouvert : '+esc(b.motifReouverture||'')+')').join(' ; ')+'.</p>':''}</section>`})()}
-  <section class="card"><div class="row" style="justify-content:space-between"><h2>Journal de l'opération</h2><button class="btn sm" data-act="note">Ajouter une note</button></div><div class="list">${jr.map(j=>`<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(j.texte)}${j.par?'<br><span class="muted small">par '+esc(j.par)+'</span>':''}</span><span class="muted small" style="white-space:nowrap">${fdh(j.date)}</span></div>`).join('')||vide('Aucune note.')}</div></section>`}
+  <section class="card"><div class="row" style="justify-content:space-between"><h2>Journal de l'opération</h2><button class="btn sm" data-act="note">Ajouter une note</button></div><div class="list">${jr.map(j=>`<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(texteJournal(j))}${j.par?'<br><span class="muted small">par '+esc(j.par)+'</span>':''}</span><span class="muted small" style="white-space:nowrap">${fdh(j.date)}</span></div>`).join('')||vide('Aucune note.')}</div></section>`}
 
 /* Administration : lecture des référentiels existants, sans simuler des connecteurs ou des droits. */
 const ADMIN_TABS=[['magasins','Magasins','Réseaux et identifiants magasins'],['modeles','Supports et modèles','Familles et jalons réutilisés'],['droits','Utilisateurs et droits','Accès et responsabilités'],['connexions','Connexions','Services et passage vers Media']];
@@ -390,22 +412,69 @@ let adminRes='';
 function vAdministration(tab){const networks=[...new Set(S.magasins.map(m=>m.reseau||'Magasins U'))].sort((a,b)=>a.localeCompare(b)),ms=S.magasins.filter(m=>!adminRes||(m.reseau||'Magasins U')===adminRes);let content='';
  if(tab==='magasins')content=`<section class="card"><div class="card-heading"><div><span class="section-label">Référentiel permanent</span><h2>Magasins</h2></div><label class="small">Réseau <select id="admin-reseau"><option value="">Tous les réseaux</option>${networks.map(n=>`<option${n===adminRes?' selected':''}>${esc(n)}</option>`).join('')}</select></label></div><p class="muted small">${ms.length} magasin(s). Les engagements, supports retenus et quantités se gèrent dans la préparation de chaque opération.</p>${ms.length?`<div class="scroll"><table><thead><tr><th>Magasin</th><th>Code point de vente</th><th>Réseau</th></tr></thead><tbody>${ms.map(m=>`<tr><td><b>${esc(m.nom)}</b></td><td>${esc(m.code||'—')}</td><td>${esc(m.reseau||'Magasins U')}</td></tr>`).join('')}</tbody></table></div>`:vide('Aucun magasin pour ce réseau.')}<p class="small muted">La fiche d’un magasin reste modifiable depuis l’onglet Magasins de son opération. Cet écran rassemble les référentiels en consultation.</p></section>`;
  if(tab==='modeles')content=`<section class="card"><span class="section-label">Référentiel des supports</span><h2>Familles et calendriers</h2><p class="small muted">Modèles utilisés par Studio pour proposer les jalons. Les paramètres et dates s’ajustent dans le dispositif de chaque opération.</p><div class="scroll"><table><thead><tr><th>Support</th><th>Famille</th><th>Composition</th></tr></thead><tbody>${Object.entries(TYPES).map(([n,t])=>`<tr><td><b>${esc(n)}</b></td><td>${FAMILLES[t.f]}</td><td>${t.pagine?'Chemin de fer paginé':'Sélection d’offres ou création institutionnelle'}</td></tr>`).join('')}</tbody></table></div><div class="grid">${Object.entries(MODELES).map(([k,rows])=>`<details><summary>Jalons ${FAMILLES[k].toLowerCase()}</summary><div class="list">${rows.map(([,n,d])=>`<div><span>${esc(n)}</span><span class="small muted">${d===0?'À l’échéance':Math.abs(d)+' jours ouvrés avant'}</span></div>`).join('')}</div></details>`).join('')}</div></section>`;
- if(tab==='droits')content=`<section class="card"><span class="section-label">Accès au prototype</span><h2>Utilisateurs et droits</h2><p>Accès actuel : <b>${CODE?esc(NOM||'Code de test'):'Consultation libre'}</b>${ROLE==='editeur'?' · Éditeur':ROLE==='responsable'?' · Responsable':''}.</p><div class="scroll"><table><thead><tr><th>Profil</th><th>Possibilités</th></tr></thead><tbody><tr><td>Consultation</td><td>Parcourir les dossiers et les créations.</td></tr><tr><td>Éditeur</td><td>Préparer et modifier les dossiers ; sans droit d’approbation ni de clôture.</td></tr><tr><td>Responsable</td><td>Approuver, déclarer une remise, clôturer et rouvrir la production.</td></tr></tbody></table></div><div><button class="btn" data-act="code">${CODE?'Changer de code':'Saisir un code de test'}</button></div><p class="small muted">La gestion nominative des utilisateurs et des équipes n’est pas disponible dans ce prototype.</p></section>`;
- if(tab==='connexions')content=`<section class="card"><span class="section-label">Écosystème BigOne</span><h2>Connexions</h2><div class="list"><div><span><b>Données Studio</b><br><span class="small muted">Opérations, offres, magasins, supports et journal partagés.</span></span><span class="pill ${status==='ok'?'ok':'warn'}">${status==='ok'?'Données chargées':'Chargement à vérifier'}</span></div><div><span><b>BigOne Media</b><br><span class="small muted">Paquet de préparation accessible sur les supports numériques en Production. Le prototype ne transmet pas de campagne.</span></span><span class="pill">Préparation du paquet</span></div><div><span><b>BigOne Stores / BOSS</b><br><span class="small muted">Les magasins affichés sont ceux de Studio ; aucune synchronisation BOSS n’est implémentée.</span></span><span class="pill">Non connecté</span></div></div><div><a class="btn" href="${lien('production',cur)}">Ouvrir les supports de production</a></div></section>`;
+ if(tab==='droits')content=`<section class="card"><span class="section-label">Profils d’accès</span><h2>Utilisateurs et droits</h2><p>Accès actuel : <b>${CODE?profilAcces():'Lecture seule'}</b>.</p><div class="scroll"><table><thead><tr><th>Profil</th><th>Possibilités</th></tr></thead><tbody><tr><td>Consultation</td><td>Parcourir les dossiers et les créations.</td></tr><tr><td>Éditeur</td><td>Préparer et modifier les dossiers ; sans droit d’approbation ni de clôture.</td></tr><tr><td>Responsable</td><td>Approuver, déclarer une remise, clôturer et rouvrir la production.</td></tr></tbody></table></div></section>`;
+ if(tab==='connexions')content=`<section class="card"><span class="section-label">Écosystème BigOne</span><h2>Connexions</h2><div class="list"><div><span><b>Données Studio</b><br><span class="small muted">Opérations, offres, magasins, supports et journal partagés.</span></span><span class="pill ${status==='ok'?'ok':'warn'}">${status==='ok'?'Données chargées':'Chargement à vérifier'}</span></div><div><span><b>BigOne Media</b><br><span class="small muted">Paquet de préparation accessible sur les supports numériques en Production. La programmation et la diffusion se font dans BigOne Media.</span></span><span class="pill">Préparation du paquet</span></div><div><span><b>BigOne Stores / BOSS</b><br><span class="small muted">Les magasins affichés sont ceux de Studio ; aucune synchronisation BOSS n’est implémentée.</span></span><span class="pill">Non connecté</span></div></div><div><a class="btn" href="${lien('production',cur)}">Ouvrir les supports de production</a></div></section>`;
  return `<div class="hd"><div><p class="eyebrow">Configuration du réseau</p><h1>Administration</h1><p class="sub">Référentiels et réglages permanents, partagés entre les opérations.</p></div></div>${banner()}<nav class="grid admin-cards" aria-label="Rubriques de l’administration">${ADMIN_TABS.map(([k,n,d])=>`<a class="admin-card" href="#administration--${k}"${tab===k?' aria-current="page"':''}><span><strong>${n}</strong><small>${d}</small></span></a>`).join('')}</nav>${content}`}
 const VUES={accueil:vAccueil,preparation:vPreparation,production:vProduction,administration:vAdministration};
+function profilAcces(){return ROLE==='responsable'?'Responsable':ROLE==='editeur'?'Éditeur':'Accès en cours de vérification'}
 function render(){const r=route(),o=curOp(),active=r.v==='accueil'?'pilotage':r.v;
  document.querySelectorAll('.global-nav a[data-v]').forEach(a=>{const v=a.dataset.v;a.setAttribute('href',lien(v==='pilotage'?'accueil':v,v==='preparation'||v==='production'?cur:null));v===active?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
  const names={accueil:'Pilotage',pilotage:'Pilotage',preparation:'Préparation',production:'Production',administration:'Administration'},inOp=r.v==='preparation'||r.v==='production';
- $('#view').innerHTML=`<div class="breadcrumb"><a href="#accueil">Studio</a><span aria-hidden="true">›</span><span>${names[r.v]}</span>${inOp&&o?`<span class="network-label">${esc(resOp(o))}</span>`:''}</div>`+VUES[r.v](r.tab,r.context)+`<footer class="app-footer"><span><strong>BigOne Studio</strong> · Nanotera<br>Prototype · version ${VERSION}</span><span class="row">${PUBLIC&&CODE?`<span>${esc(NOM||'Code en cours de vérification')}${ROLE==='editeur'?' · Éditeur':''}</span><button class="btn sm" data-act="code">Changer de code</button>`:'<span>Données de démonstration</span>'}</span></footer>`;
+ $('#view').innerHTML=`<div class="breadcrumb"><a href="#accueil">Studio</a><span aria-hidden="true">›</span><span>${names[r.v]}</span>${inOp&&o?`<span class="network-label">${esc(resOp(o))}</span>`:''}</div>`+VUES[r.v](r.tab,r.context)+`<footer class="app-footer"><span><strong>BigOne Studio</strong> · Nanotera</span><span>Version ${VERSION}</span></footer>`;
+ const access=$('#acces-studio');
+ access.hidden=!PUBLIC;
+ access.title=CODE?'Changer de code d’accès · '+profilAcces():'Saisir un code d’accès';
+ access.setAttribute('aria-label',access.title);
  document.title=(inOp&&o?o.nom+' — ':names[r.v]+' — ')+'BigOne Studio';
 }
 
 
 /* ---------- formulaires ---------- */
 function peutEcrire(){if(!PUBLIC||CODE)return true;askCode();return false}
-function askCode(){form('Code de test',[{k:'i',t:'info',l:'La consultation est libre. Pour modifier, saisissez le code fourni par Nanotera, puis recommencez votre action. Le code Responsable permet aussi d\'approuver, de déclarer une remise et de clôturer ; le code Éditeur ne le permet pas.'},{k:'code',l:'Code de test',req:1}],async r=>{let x;try{x=await rpc({p_code:r.code,p_op:'check'})}catch(e){return 'Vérification impossible. Réessayez dans un instant.'}
-  if(!x||x.ok!==true)return 'Code refusé. Vérifiez-le puis réessayez.';retenirCode(r.code,x);toast('Modifications activées · '+(NOM||'code accepté')+'.');render();return true},null,render)}
+function askCode(){
+  const dialog=$('#acces-dialog'), form=$('#acces-form'), input=$('#acces-code');
+  const submit=$('#acces-valider'), error=$('#acces-erreur'), profil=$('#acces-profil');
+  if(dialog.open)return;
+  form.reset();
+  error.textContent='';
+  input.removeAttribute('aria-invalid');
+  submit.disabled=false;
+  submit.textContent='Valider le code';
+  profil.hidden=!CODE;
+  profil.textContent=CODE?'Profil actuel · '+profilAcces():'';
+  $('#acces-annuler').onclick=()=>dialog.close();
+  form.onsubmit=async event=>{
+    event.preventDefault();
+    if(submit.disabled)return;
+    const code=input.value.trim();
+    if(!code){input.value='';input.reportValidity();return}
+    submit.disabled=true;
+    submit.textContent='Vérification…';
+    error.textContent='';
+    input.removeAttribute('aria-invalid');
+    const tentative=form.onsubmit;
+    let result, message;
+    try{result=await rpc({p_code:code,p_op:'check'})}
+    catch{message='Connexion impossible. Réessayez dans un instant.'}
+    if(!dialog.open || tentative!==form.onsubmit)return;
+    if(result?.ok===true){
+      retenirCode(code,result);
+      dialog.close();
+      render();
+      toast('Accès activé · '+profilAcces());
+      return;
+    }
+    error.textContent=message||'Code refusé. Vérifiez votre saisie.';
+    if(!message)input.setAttribute('aria-invalid','true');
+    submit.disabled=false;
+    submit.textContent='Valider le code';
+    input.focus();
+    input.select();
+  };
+  dialog.onclose=()=>{form.onsubmit=null;form.reset()};
+  dialog.showModal();
+  input.focus();
+}
 function montant(s,ent){s=String(s??'').replace(/[\s  ]/g,'').replace(/€$/,'');if(s==='')return {v:null};
   if(!(ent?/^\d+$/:/^\d+([.,]\d{1,2})?$/).test(s))return {e:ent?'Saisissez un nombre entier.':'Montant non reconnu. Formats acceptés : 12,5 ou 1 299,90 (deux décimales au plus).'};
   return {v:parseFloat(s.replace(',','.'))}}
@@ -626,14 +695,14 @@ async function setStat(s,to){if((to==='valide'||to==='livre')&&!peutValider()){t
     },null,render);
   }
   if(to==='bat'){const n=(s.bat||0)+1,rvn=s.rev||1,meme=revue(s)&&!!s.fichier;
-    return form('BAT prêt à relire',[{k:'i',t:'info',l:'Le prototype n\'envoie rien. Cette action enregistre qu\'une révision est prête à être transmise au client.'+(meme?'<br><b>Renvoi de la révision '+rvn+' « '+esc(s.fichier)+' »</b>, déjà présentée en revue : son fichier ne change pas. Pour un nouveau fichier, annulez et créez une nouvelle révision.':'')},...(meme?[]:[{k:'fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier,req:1}]),{k:'dest',l:'Destinataire de la revue',v:s.destinataire,req:1}],async r=>{const refus=await verifierDecision(s,to);if(refus)return refus;
+    return form('BAT prêt à relire',[{k:'i',t:'info',l:'Indiquez qui doit relire cette révision. Le fichier est à transmettre au destinataire.'+(meme?'<br><b>Renvoi de la révision '+rvn+' « '+esc(s.fichier)+' »</b>, déjà présentée en revue : son fichier ne change pas. Pour un nouveau fichier, annulez et créez une nouvelle révision.':'')},...(meme?[]:[{k:'fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier,req:1}]),{k:'dest',l:'Destinataire de la revue',v:s.destinataire,req:1}],async r=>{const refus=await verifierDecision(s,to);if(refus)return refus;
       const f=meme?s.fichier:r.fichier;
       if(!await w('supports/'+s.id,{statut:'bat',bat:n,batRev:rvn,fichier:f,destinataire:r.dest,contexteRev:s.contexteRev||contexteRevision(s),pagesRev:s.pagesRev||pagesDe(s),instantane:meme&&s.instantane?s.instantane:snapshot(s)}))return false;await jalon(s,'bat1');
-      await log(s.op,titre(s)+' : BAT '+n+(meme?', renvoi sans changement de la révision '+rvn+' « '+f+' » à '+r.dest:' prêt pour revue (révision '+rvn+' « '+f+' », destinataire '+r.dest+')')+'. Aucun envoi effectué par le prototype.');return true},null,render)}
-  if(to==='livre')return form('Remise déclarée',[{k:'i',t:'info',l:'Le prototype ne transmet aucun fichier et ne reçoit aucun reçu. Cette action enregistre une déclaration de remise pour la '+esc(rv)+'.'},{k:'a',l:'Destinataire ou canal de remise',req:1}],async r=>{
+      await log(s.op,titre(s)+' : BAT '+n+(meme?', renvoi sans changement de la révision '+rvn+' « '+f+' » à '+r.dest:' prêt pour revue (révision '+rvn+' « '+f+' », destinataire '+r.dest+')')+'. Fichier à transmettre au destinataire.');return true},null,render)}
+  if(to==='livre')return form('Remise déclarée',[{k:'i',t:'info',l:'Indiquez à qui vous avez remis la '+esc(rv)+'.'},{k:'a',l:'Destinataire ou canal de remise',req:1}],async r=>{
     const refus=await verifierDecision(s,to);if(refus)return refus;
-    if(!await w('supports/'+s.id,{statut:'livre',remiseA:r.a}))return false;await jalon(s,'remise');await log(s.op,titre(s)+' : '+rv+' déclarée remise à '+r.a+'. Aucun reçu : le prototype ne transmet pas de fichier.');return true},null,render);
-  if(to==='valide')return form('Décision d\'approbation',[{k:'i',t:'info',l:((s.mode||'client')==='interne'?'Approbation interne, sans revue client.':'Approbation après revue de '+esc(s.destinataire)+'.')+' Le prototype enregistre une déclaration : il ne vérifie pas l\'identité de la personne.'},{k:'par',l:'Personne qui approuve',req:1}],async r=>{
+    if(!await w('supports/'+s.id,{statut:'livre',remiseA:r.a}))return false;await jalon(s,'remise');await log(s.op,titre(s)+' : '+rv+' déclarée remise à '+r.a+'. Remise déclarée dans Studio.');return true},null,render);
+  if(to==='valide')return form('Décision d\'approbation',[{k:'i',t:'info',l:((s.mode||'client')==='interne'?'Approbation interne, sans revue client.':'Approbation après revue de '+esc(s.destinataire)+'.')+' Indiquez le nom de la personne qui vous a confirmé l’approbation.'},{k:'par',l:'Personne qui approuve',req:1}],async r=>{
     const refus=await verifierDecision(s,to);if(refus)return refus;
     if(!await w('supports/'+s.id,{statut:'valide',contexteRev:s.contexteRev||contexteRevision(s),pagesRev:s.pagesRev||pagesDe(s),approuvePar:r.par,approuveLe:today(),instantane:s.instantane||snapshot(s)}))return false;await jalon(s,'approb');
     await log(s.op,titre(s)+' : '+rv+((s.mode||'client')==='client'?' déclarée approuvée par '+r.par+' après revue de '+s.destinataire+'.':' approuvée en interne par '+r.par+', sans revue client.'));return true},null,render);
@@ -652,10 +721,10 @@ function fApercu(s,rv){const o=opById(s.op),d=$('#dlg'),revs=[...(s.archives||[]
   ${diff?'<p class="note" style="margin:0">Les données ont changé depuis cette revue'+(ec.length?' : '+esc(ec.join(' ; ')):' (composition ou textes)')+'. La création affichée correspond à ce qui a été revu.</p>':''}
   ${apercuHtml(s,r.contexte||o,srcs,r.pages || (r.cur&&!r.src?pagesDe(s):[...new Set(srcs.map(p=>p.page).filter(n=>n!=null))].sort((a,b)=>a-b).map(n=>({n}))))}<div class="row" style="justify-content:flex-end"><button class="btn" id="ap-no">Fermer</button></div></div>`;
   $('#ap-no').onclick=()=>d.close();$('#ap-rev').onchange=e=>fApercu(s,+e.target.value);if(!d.open)d.showModal()}
-/* Paquet pour BigOne Media : proposition de contrat interne, préparée et contrôlée, jamais transmise par le prototype. */
+/* Paquet pour BigOne Media : préparation et contrôle du manifest. */
 function manifest(s,o){return {schemaVersion:'studio-handoff-proposal/1',transferId:o.id+'.'+s.id+'.r'+(s.rev||1),organizationRef:resOp(o),studioOperationId:o.id,mediaOperationRef:null,items:[{supportId:baseDe(s).id,variantId:s.groupe?s.id:null,variantName:nomVar(s)||'Nationale',recipientStoreRefs:magsSup(s,o).map(m=>({id:m.id,code:m.code||null,nom:m.nom})),assetRevisionRef:{revision:s.rev||1,fichier:s.fichier||null,format:s.format||null},approvalRef:{par:s.approuvePar||null,le:s.approuveLe||null,mode:s.mode||'client'},sourceSnapshotRef:s.instantane||snapshot(s),validFrom:o.debut,validTo:o.fin}]}}
 function fPaquet(s){const o=opById(s.op),ms=magsSup(s,o),R=[[ms.length>0,'Au moins un magasin engagé dans le périmètre ('+ms.map(m=>m.nom).join(', ')+')'],[!!s.fichier,'Fichier de la révision renseigné'],[s.statut==='valide'||s.statut==='livre','Révision approuvée'],[!revisionRequise(s),'Données inchangées depuis l\'approbation'],[nbBloqS(s)===0,'Aucune anomalie bloquante sur les offres']],ok=R.every(x=>x[0]),js=JSON.stringify(manifest(s,o),null,2),d=$('#dlg');
-  d.onclose=null;d.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px"><h2>${esc(titre(s))} : paquet pour BigOne Media</h2><p class="note" style="margin:0">Niveau de démonstration : paquet préparé. Aucun transfert vers BigOne Media n'est effectué. La correspondance avec l'opération Media reste à établir (mediaOperationRef vide) et ce format est une proposition, pas le contrat de l'API Media.</p>
+  d.onclose=null;d.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px"><h2>${esc(titre(s))} : paquet pour BigOne Media</h2><p class="note" style="margin:0">Ce paquet rassemble les éléments à reprendre dans BigOne Media. L’opération Media reste à associer avant toute diffusion.</p>
   <div class="list">${R.map(([v,l])=>`<div><span class="small">${esc(l)}</span><span class="pill ${v?'ok':'crit'}">${v?'Vérifié':'Refus'}</span></div>`).join('')}</div>
   ${ok?`<span class="pill ok">Prêt pour transfert</span><pre class="mani">${esc(js)}</pre>`:'<span class="pill crit">Paquet refusé : corrigez les points en refus.</span>'}
   <div class="row" style="justify-content:flex-end"><button class="btn" id="pq-no">Fermer</button>${ok?'<button class="btn pri" id="pq-ok">Copier le manifest</button>':''}</div></div>`;
