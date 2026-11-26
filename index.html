@@ -5,7 +5,9 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BigOne Studio</title>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-25.1">
+<link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
+<link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-25.2">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -23,8 +25,8 @@
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-25.1';
-const STATUTS=[['amonter','À monter'],['maquette','En maquette'],['bat','BAT prêt pour revue'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
+const VERSION='2026-11-25.2';
+const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
 const ORIGINE=['Fruits et légumes','Boucherie','Poissonnerie'];
@@ -42,6 +44,7 @@ let db=null,status='loading',cur=null,compo=null,timer=null;
 let planningOpen=false;
 let priorityFilter='all', operationQuery='';
 try{cur=localStorage.getItem('bos-op')}catch(e){}
+let contexteOperation=cur;
 
 /* ---------- dates ---------- */
 const pd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
@@ -56,6 +59,7 @@ function ouvre(d){const w=d.getDay();return w!==0&&w!==6&&!feries(d.getFullYear(
 function decale(s,n){const d=pd(s),st=n<0?-1:1;let k=Math.abs(n);while(!ouvre(d))d.setDate(d.getDate()-1);while(k>0){d.setDate(d.getDate()+st);if(ouvre(d))k--}return iso(d)}
 
 /* ---------- lecture des données (tolérante aux fiches créées avant la refonte) ---------- */
+const briefComplet=b=>Boolean(b.objectif && (b.client || b.responsable));
 const MECA={simple:'Prix simple',remise:'Prix barré',lot:'Lot',cond:'Avantage conditionnel'};
 function controles(p,prix){const b=[],a=[],px=prix===undefined?p.prix:prix,o=S.operations.find(x=>x.id===p.op);
   if(!p.libelle)b.push('Libellé manquant');
@@ -105,7 +109,7 @@ const supportLink=s=>lien('production',s.op,SUPPORT_PREFIX+encodeURIComponent(s.
 const libStat=k=>STATUTS.find(x=>x[0]===k)[1],sansCoche=()=>Object.fromEntries(CHECKS.map(([k])=>[k,false]));
 const FIGE=['bat','valide','livre'];
 const revue=s=>(s.batRev??(s.bat>0?1:0))===(s.rev||1);
-const gele=s=>FIGE.includes(s.statut)||revue(s);
+const gele=s=>FIGE.includes(s.statut)||revue(s)||s.statut==='corrections'||!!s.instantane;
 const tachesDe=o=>S.taches.filter(t=>t.op===o.id).sort((a,b)=>a.echeance.localeCompare(b.echeance));
 const CYCLE=['bat1','retours','approb','remise'];
 const nonAppl=t=>{const x=S.supports.find(s=>s.id===t.support);return !t.fait&&!!x&&(x.mode||'client')==='interne'&&(t.cle==='bat1'||t.cle==='retours')};
@@ -113,23 +117,23 @@ const enRetard=t=>!t.fait&&!nonAppl(t)&&t.echeance<today();
 const tardif=t=>t.fait&&t.faitLe&&t.faitLe>t.echeance;
 /* Les six jalons du dossier : chacun a un état propre, aucun ne résume les autres. */
 const utilisees=o=>prodsOf(o.id).filter(p=>supsOf(o.id).some(s=>!baseDe(s).institutionnel&&utilise(s,p)));
-function jalons(o){const b=o.brief||{},ps=prodsOf(o.id),ss=supsOf(o.id),ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='engage').length,na=ms.filter(m=>eng(o,m).statut==='attente').length,nb=nbBloq(ps),nu=nbBloq(utilisees(o)),rem=ss.filter(s=>s.statut==='livre').length,pr=ss.filter(enProd).length,bk=!!(b.objectif&&b.responsable);
-  return [['cadrage','Brief',bk,bk?'Complet':'Objectif ou responsable manquant','preparation',bk?'Prêt':'À faire'],
+function jalons(o){const b=o.brief||{},ps=prodsOf(o.id),ss=supsOf(o.id),ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='engage').length,na=ms.filter(m=>eng(o,m).statut==='attente').length,nb=nbBloq(ps),nu=nbBloq(utilisees(o)),rem=ss.filter(s=>s.statut==='livre').length,pr=ss.filter(enProd).length,bk=!!(briefComplet(b));
+  return [['cadrage','Brief',bk,bk?'Complet':'Renseigner l’objectif et un contact','preparation',bk?'Prêt':'À faire'],
     ['offres','Offres',ps.length>0&&!nu,ps.length+' offre(s)'+(nu?', '+nu+' anomalie(s) sur des offres utilisées':nb?', '+(nb-nu)+' incomplète(s) hors dispositif':''),'preparation',nu?'Bloqué':!ps.length?'À faire':nb?'En cours':'Prêt'],
     ['magasins','Magasins',ne>0&&!na,ne+' engagé(s), '+na+' en attente sur '+ms.length,'preparation',!ms.length?'À faire':na||!ne?'En cours':'Prêt'],
     ['dispositif','Dispositif',ss.length>0&&pr===ss.length,ss.length?pr+'/'+ss.length+' en production':'Aucun support','preparation',!ss.length?'À faire':pr===ss.length?'Prêt':'En cours'],
-    ['','Production',ss.length>0&&rem===ss.length&&!ss.some(s=>s.perime),rem+'/'+ss.length+' remis','production',ss.some(s=>s.perime)?'Bloqué':ss.length&&rem===ss.length?'Prêt':pr?'En cours':'À faire'],
+    ['','Production',ss.length>0&&rem===ss.length&&!ss.some(s=>revisionRequise(s)),rem+'/'+ss.length+' remis','production',ss.some(s=>revisionRequise(s))?'Bloqué':ss.length&&rem===ss.length?'Prêt':pr?'En cours':'À faire'],
     ['','Clôture',!!o.cloture,o.cloture?'Production clôturée':'Ouverte','production',o.cloture?'Prêt':'À faire']]}
 function phase(o){const ss=supsOf(o.id),b=o.brief||{};if(!suivi(o))return 'Relevé public';if(o.cloture)return 'Production clôturée';
-  if(ss.length&&ss.every(s=>s.statut==='livre'))return 'Remise';if(ss.some(enProd))return 'Production';return b.objectif&&b.responsable?'Préparation':'Cadrage'}
+  if(ss.length&&ss.every(s=>s.statut==='livre'))return 'Remise';if(ss.some(enProd))return 'Production';return briefComplet(b)?'Préparation':'Cadrage'}
 const enCours=o=>o.debut<=today()&&o.fin>=today();
 function calcBilan(o){const ss=supsOf(o.id),ts=tachesDe(o),jr=S.journal.filter(j=>j.op===o.id);
   return {remis:ss.filter(s=>s.statut==='livre').length,total:ss.length,bat:ss.reduce((n,s)=>n+(s.bat||0),0),revs:ss.reduce((n,s)=>n+(s.rev||1)-1,0),modifs:jr.filter(j=>j.type==='modif').length,jf:ts.filter(t=>t.fait).length,jt:ts.length,jtard:ts.filter(tardif).length,jret:ts.filter(enRetard).length,supports:ss.map(s=>({type:titre(s),rev:s.rev||1,fichier:s.fichier||'',remiseA:s.remiseA||''}))}}
-function refusCloture(o){const ss=supsOf(o.id),r=[],nr=ss.filter(s=>s.statut!=='livre'),pe=ss.filter(s=>s.perime);
+function refusCloture(o){const ss=supsOf(o.id),r=[],nr=ss.filter(s=>s.statut!=='livre'),pe=ss.filter(s=>revisionRequise(s));
   if(!ss.length)r.push('Aucun support dans le dispositif.');if(nr.length)r.push('Non remis : '+nr.map(titre).join(', ')+'.');if(pe.length)r.push('Nouvelle révision requise : '+pe.map(titre).join(', ')+'.');return r}
-function alertes(o){const ss=supsOf(o.id),nu=nbBloq(utilisees(o));return {retard:tachesDe(o).filter(enRetard).length,bloq:nu,hors:nbBloq(prodsOf(o.id))-nu,perime:ss.filter(s=>s.perime).length}}
-function pretProd(s,o){const b=o.brief||{},e=echeance(s,o),ps=offresDe(s),pg=pagesDe(s),sur=pg.some(p=>prodsOf(o.id).filter(x=>place(x,s)===p.n).length>p.cases),r=[[!!(b.objectif&&b.responsable),'Brief complet'],[typ(s).f==='imprime'?e<o.debut:e<=o.fin,'Échéance du support cohérente avec l\'opération']];
-  if(!s.institutionnel){r.push(typ(s).pagine?[pg.length>0&&ps.length>0&&!sur,'Chemin de fer créé, au moins une offre placée, aucune page surchargée']:[ps.length>0,'Au moins une offre utilisée']);r.push([nbBloqS(s)===0,'Aucune anomalie bloquante sur les offres utilisées'])}
+function alertes(o){const ss=supsOf(o.id),nu=nbBloq(utilisees(o));return {retard:tachesDe(o).filter(enRetard).length,bloq:nu,hors:nbBloq(prodsOf(o.id))-nu,perime:ss.filter(s=>revisionRequise(s)).length}}
+function pretProd(s,o){const b=o.brief||{},e=echeance(s,o),ps=offresDe(s),pg=pagesDe(s),sur=pg.some(p=>prodsOf(o.id).filter(x=>place(x,s)===p.n).length>p.cases),r=[[!!(briefComplet(b)),'Brief complet'],[typ(s).f==='imprime'?e<o.debut:e<=o.fin,'Échéance du support cohérente avec l\'opération']];
+  if(!baseDe(s).institutionnel){r.push(typ(s).pagine?[pg.length>0&&ps.length>0&&!sur,'Chemin de fer créé, au moins une offre placée, aucune page surchargée']:[ps.length>0,'Au moins une offre utilisée']);r.push([nbBloqS(s)===0,'Aucune anomalie bloquante sur les offres utilisées'])}
   if(s.groupe)r.push([magsSup(s,o).length>0,'Au moins un magasin engagé dans la variante']);
   return r}
 
@@ -163,9 +167,9 @@ const uid=p=>p+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)
 const log=(op,texte,type)=>w('journal/'+uid('j'),Object.assign({op,date:new Date().toISOString().slice(0,19),texte},type?{type}:{}),'set');
 let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
 async function charger(){const e0=ecrits;try{const r=await fetch(SB+'/rest/v1/docs?select=col,id,data,version&order=col,id',{headers:HD});if(!r.ok)throw 0;const rows=await r.json(),N={},sig=JSON.stringify(rows);
-    if(e0!==ecrits)return;/* une écriture a eu lieu pendant la lecture : ce résultat est peut-être déjà dépassé */
-    if(sig===charger.sig&&status==='ok')return;charger.sig=sig;Object.keys(S).forEach(k=>N[k]=[]);
-    rows.forEach(x=>{if(N[x.col])N[x.col].push(Object.assign({id:x.id},x.data,{_v:x.version}))});Object.assign(S,N);status='ok'}catch(e){if(status!=='ok')status='err'}schedule()}
+    if(e0!==ecrits)return false;/* une écriture a eu lieu pendant la lecture : ce résultat est peut-être déjà dépassé */
+    if(sig===charger.sig&&status==='ok')return true;charger.sig=sig;Object.keys(S).forEach(k=>N[k]=[]);
+    rows.forEach(x=>{if(N[x.col])N[x.col].push(Object.assign({id:x.id},x.data,{_v:x.version}))});Object.assign(S,N);status='ok';schedule();return true}catch(e){if(status!=='ok')status='err';schedule();return false}}
 async function init(){render();
   if(PUBLIC){await charger();if(CODE&&!ROLE)rpc({p_code:CODE,p_op:'check'}).then(r=>{if(r&&r.ok===true)retenirCode(CODE,r);else oublierCode();render()}).catch(()=>{});setInterval(()=>{if(!document.hidden&&!$('#dlg').open)charger()},20000);return}
   let n=0;while(!(window.claude&&window.claude.use)&&n++<30)await new Promise(r=>setTimeout(r,100));
@@ -179,11 +183,12 @@ async function init(){render();
 
 /* ---------- navigation : la vue, l'opération et l'onglet sont dans l'adresse ---------- */
 const lien=(v,id,tab)=>'#'+v+(id?'--'+id+(tab?'--'+tab:''):'');
-function route(){let [v,oid,tab]=(location.hash.slice(1)||'accueil').split('--');
+function route(){let [v,oid,tab,context]=(location.hash.slice(1)||'accueil').split('--');
   if(v==='pilotage'){planningOpen=true;v='accueil';window.history.replaceState(null,'','#accueil')}
+  if(oid&&opById(oid))contexteOperation=oid;
   if(oid&&opById(oid)&&oid!==cur){cur=oid;compo=null;try{localStorage.setItem('bos-op',cur)}catch(e){}}
   if(v==='production')return {v,tab:tab?.startsWith(SUPPORT_PREFIX) ? tab.slice(SUPPORT_PREFIX.length) : null};
-  return {v:VUES[v]?v:'accueil',tab:v==='administration'?(ADMIN_TABS.some(t=>t[0]===oid)?oid:'magasins'):TABS.some(t=>t[0]===tab)?tab:'cadrage'}}
+  return {v:VUES[v]?v:'accueil',context:v==='preparation'&&basesOf(oid).some(b=>encodeURIComponent(b.id)===context)?context:null,tab:v==='administration'?(ADMIN_TABS.some(t=>t[0]===oid)?oid:'magasins'):TABS.some(t=>t[0]===tab)?tab:'cadrage'}}
 function aller(v,id,tab){const h=lien(v,id,tab);if(location.hash===h)render();else location.hash=h}
 function curOp(){if(status==='loading'&&!S.operations.length)return null;let o=opById(cur);if(!o||!suivi(o)){o=sorted().find(x=>suivi(x)&&!x.cloture)||sorted().find(suivi);cur=o?o.id:null}return o}
 
@@ -204,10 +209,12 @@ function alertPills(o){const a=alertes(o);return ((a.retard?`<span class="pill c
 function actions(o){const b=o.brief||{},ss=supsOf(o.id),nu=nbBloq(utilisees(o)),t=[];if(o.cloture)return t;
   tachesDe(o).filter(enRetard).forEach(x=>{const s=S.supports.find(y=>y.id===x.support);t.push({c:'crit',due:x.echeance,t:'Jalon en retard',d:(s?titre(s)+' : ':'')+x.libelle+' (échéance '+fd(x.echeance)+')',o,h:lien('preparation',o.id,'calendrier')})});
   if(nu)t.push({c:'crit',t:nu===1?'Corriger une anomalie bloquante':'Corriger '+nu+' anomalies bloquantes',d:'Offres utilisées par le dispositif à corriger',o,h:lien('preparation',o.id,'offres')});
-  ss.filter(s=>s.perime).forEach(s=>t.push({c:'crit',t:s.statut==='livre'?'Nouvelle révision requise':'Support à revalider',d:titre(s)+' : '+(s.perimeMotif||''),o,h:enProd(s)?supportLink(s):lien('preparation',o.id,'dispositif')}));
-  ss.filter(s=>enProd(s)&&s.statut==='bat'&&!s.perime).forEach(s=>t.push({c:'warn',t:s.bat?'Examiner le BAT '+s.bat:'Examiner le BAT',d:titre(s)+' : décision attendue de '+(s.destinataire||'destinataire non renseigné'),o,h:supportLink(s)}));
+  ss.filter(s=>revisionRequise(s)).forEach(s=>t.push({c:'crit',t:'Nouvelle révision requise',d:titre(s)+' : '+(s.perimeMotif||''),o,h:enProd(s)?supportLink(s):lien('preparation',o.id,'dispositif')}));
+  ss.filter(s=>enProd(s)&&s.statut==='bat'&&!revisionRequise(s)).forEach(s=>t.push({c:'warn',t:s.bat?'Examiner le BAT '+s.bat:'Examiner le BAT',d:titre(s)+' : décision attendue de '+(s.destinataire||'destinataire non renseigné'),o,h:supportLink(s)}));
   ss.filter(s=>!enProd(s)&&pretProd(s,o).every(x=>x[0])).forEach(s=>t.push({c:'ok',t:'Support prêt pour la production',d:titre(s),o,h:lien('preparation',o.id,'dispositif')}));
-  if(!(b.objectif&&b.responsable))t.push({c:'warn',t:'Brief à compléter',d:'Objectif ou responsable manquant',o,h:lien('preparation',o.id,'cadrage')});
+  if(!(briefComplet(b)))t.push({c:'warn',t:'Brief à compléter',d:'Renseigner l’objectif et un contact',o,h:lien('preparation',o.id,'cadrage')});
+  if(briefComplet(b) && !ss.length)t.push({c:'warn',t:'Composer le dispositif',d:'Ajouter le premier support',o,h:lien('preparation',o.id,'dispositif')});
+  if(briefComplet(b) && !prodsOf(o.id).length && (!ss.length || ss.some(s=>!baseDe(s).institutionnel)))t.push({c:'warn',t:'Ajouter les offres',d:'Saisir une offre ou importer une matrice',o,h:lien('preparation',o.id,'offres')});
   if(!refusCloture(o).length)t.push({c:'ok',t:'Production à clôturer',d:'Tous les supports sont remis et à jour',o,h:lien('production',o.id)});return t}
 /* En-tête et navigation uniques du dossier, partagés par Préparation et Production. */
 function enTete(o,actif){const a=actions(o)[0],J=jalons(o),et=k=>(J.find(j=>j[0]===k)||[])[5]||'',onglets=[...TABS.map(([k,l])=>[lien('preparation',o.id,k),l,et(k),k===actif]),[lien('production',o.id),'Production',J[4][5],actif==='production']];
@@ -216,7 +223,7 @@ function enTete(o,actif){const a=actions(o)[0],J=jalons(o),et=k=>(J.find(j=>j[0]
   <nav class="tabs" aria-label="Rubriques de l’opération">${onglets.map(([h,l,e,sel])=>`<a href="${h}"${sel?' aria-current="page"':''}>${l}<small>${e}</small></a>`).join('')}</nav>`}
 function operationHeading(o,espace,tab){return `<div class="hd"><div><p class="eyebrow">${espace==='production'?'Production des supports':'Préparation de l’opération'}</p><h1>${esc(o.nom)}</h1><p class="sub">${esc(resOp(o))} · ${espace==='production'?'Créations, révisions, contrôles et remise':'Offres, dispositif, calendrier et engagements'}</p></div>${opSelect(espace,tab)}</div>`}
 function operationAside(o){const b=o.brief||{},ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='engage').length;
- return `<aside class="dossier-aside" aria-label="Contexte de l’opération"><section class="summary-card"><span class="section-label">Opération</span><h3>${esc(o.nom)}</h3><div class="summary-line"><span>Période</span><strong>${periode(o)}</strong></div><div class="summary-line"><span>Réseau</span><strong>${esc(resOp(o))}</strong></div><div class="summary-line"><span>Responsable</span><strong>${esc(b.responsable||'À désigner')}</strong></div><div class="summary-line"><span>Supports</span><strong>${supsOf(o.id).length}</strong></div><div class="summary-line"><span>Magasins engagés</span><strong>${ne} / ${ms.length}</strong></div></section><p class="context-note">Un même dossier pour préparer l’opération et produire ses supports. La préparation reste accessible pendant la production.</p></aside>`}
+ return `<aside class="dossier-aside" aria-label="Contexte de l’opération"><section class="summary-card"><span class="section-label">Opération</span><h3>${esc(o.nom)}</h3><div class="summary-line"><span>Période</span><strong>${periode(o)}</strong></div><div class="summary-line"><span>Réseau</span><strong>${esc(resOp(o))}</strong></div><div class="summary-line"><span>Pilote côté enseigne</span><strong>${esc(b.client||'—')}</strong></div><div class="summary-line"><span>Contact agence</span><strong>${esc(b.responsable||'—')}</strong></div><div class="summary-line"><span>Supports</span><strong>${supsOf(o.id).length}</strong></div><div class="summary-line"><span>Magasins engagés</span><strong>${ne} / ${ms.length}</strong></div></section><p class="context-note">Un même dossier pour préparer l’opération et produire ses supports. La préparation reste accessible pendant la production.</p></aside>`}
 function operationRow(o){const ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='engage').length,sp=supsOf(o.id).filter(enProd),a=alertes(o),prod=sp.length>0;return `<div class="operation-row"><div><strong>${esc(o.nom)}</strong><p>${periode(o)} · ${esc(resOp(o))}</p></div><div class="operation-state">${phasePill(o)}<small>${prod?sp.filter(s=>s.statut!=='livre').length+' support(s) à réaliser':ne+' / '+ms.length+' magasin(s) engagés'}${a.bloq?' · '+a.bloq+' anomalie(s)':''}</small></div><a class="btn sm" href="${lien(prod?'production':'preparation',o.id)}">${prod?'Voir la production':'Voir la préparation'}</a></div>`}
 
 
@@ -240,9 +247,10 @@ function priorityPanel(todo){
 }
 function matchesOperation(o,query){
   const normalize=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr');
-  return normalize([o.nom,resOp(o),o.brief?.responsable].filter(Boolean).join(' ')).includes(normalize(query.trim()));
+  return normalize([o.nom,resOp(o),...(o.enseignes||[]),o.brief?.client,o.brief?.responsable].filter(Boolean).join(' ')).includes(normalize(query.trim()));
 }
 function operationResults(ops){
+  if(operationQuery.trim())ops=sorted().filter(suivi);
   const found=ops.filter(o=>matchesOperation(o,operationQuery));
   return `<p class="small muted" role="status">${found.length} dossier${found.length>1?'s':''} sur ${ops.length}</p>
     <div class="operation-list">${found.map(operationRow).join('') || vide(ops.length?'Aucune opération correspondante. Essayez un autre nom ou une enseigne.':'Aucun dossier ouvert. Créez votre première opération.')}</div>`;
@@ -256,18 +264,18 @@ function vAccueil(){
  const ano=ops.reduce((n,o)=>n+nbBloq(utilisees(o)),0), ret=todo.filter(x=>x.due).length;
  const header=`<div class="hd"><div><p class="eyebrow">Pilotage</p><h1>Plan d’action commerciale</h1>
  <p class="sub">Opérations, échéances et décisions attendues.</p></div>
- <button class="btn pri" data-act="new-op"><span aria-hidden="true">＋</span> Créer une opération</button></div>${banner()}`;
+ <button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div>${banner()}`;
  if(status!=='ok'&&!S.operations.length)return header;
  return `${header}<div class="pac-overview">
    ${priorityPanel(todo)}
    <section class="pac-summary" aria-label="Chiffres du plan"><h2>Le PAC en chiffres</h2>
    ${[[ops.length,'Dossiers ouverts'],[sp.filter(s=>s.statut!=='livre').length,'Supports en production'],
-     [sp.filter(s=>s.statut==='bat'&&!s.perime).length,'BAT à examiner'],[ano,'Anomalies sur les offres utilisées'],
+     [sp.filter(s=>s.statut==='bat'&&!revisionRequise(s)).length,'BAT à examiner'],[ano,'Anomalies sur les offres utilisées'],
      [ret,'Jalons en retard'],[S.operations.filter(enCours).length,'Périodes commerciales en cours']].map(([n,label])=>`<div><span>${label}</span><b>${n}</b></div>`).join('')}
    </section></div>
  <details id="planning" class="planning-block"${planningOpen?' open':''}><summary><span><span class="planning-title">Planning des opérations</span><span class="planning-caption">Plan de commerce · ${S.operations.length} opération(s)</span></span><span class="planning-toggle"><span class="when-closed">Afficher le planning</span><span class="when-open">Masquer le planning</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary><div class="planning-content">${planningContent()}</div></details>
  <section class="section-plain"><div class="card-heading"><h2>Opérations suivies</h2>
- <label class="operation-search">Rechercher un dossier<input type="search" id="operation-query" placeholder="Opération, enseigne ou responsable" value="${esc(operationQuery)}"></label></div>
+ <label class="operation-search">Rechercher un dossier ouvert ou clôturé<input type="search" id="operation-query" placeholder="Opération, enseigne, pilote ou contact agence" value="${esc(operationQuery)}"></label></div>
  <div id="operation-results">${operationResults(ops)}</div></section>
  <section class="section-plain"><h2>Activité récente</h2><div class="list">${jr.map(j=>{const o=opById(j.op);return `<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(j.texte)}<br><span class="muted small">${esc(o?o.nom:'')} · ${fdh(j.date)}</span></span></div>`}).join('')||vide('Aucune activité enregistrée.')}</div></section>`}
 
@@ -285,17 +293,19 @@ function planningContent(){const ops=sorted(),su=ops.filter(suivi),pu=ops.filter
   ${pu.length?`<section class="card"><h2>Opérations relevées, hors Studio</h2><div class="scroll"><table><thead><tr><th>Opération</th><th>Période</th><th>Enseignes</th><th>Portée</th><th>Magasins</th></tr></thead><tbody>${pu.map(o=>`<tr><td><b>${esc(o.nom)}</b> ${src(o.source)}</td><td class="num">${periode(o)}${enCours(o)?'<br><span class="pill warn">Période en cours</span>':''}</td><td>${esc((o.enseignes||[]).join(', '))}</td><td>${esc(o.portee||'')}</td><td class="num">${o.magasins??'—'}</td></tr>`).join('')}</tbody></table></div></section>`:''}`}
 
 /* ---------- Préparation : le dossier de l'opération ---------- */
-function tCadrage(o){const b=o.brief||{},l=(k,v)=>`<div><span class="muted">${k}</span><span style="text-align:right">${v?esc(v):'<span class="pill crit">À renseigner</span>'}</span></div>`;
+function tCadrage(o){const b=o.brief||{},l=(k,v,requis=false)=>`<div><span class="muted">${k}</span><span style="text-align:right">${v?esc(v):requis?'<span class="pill crit">À renseigner</span>':'—'}</span></div>`;
   return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Brief</h2><span class="row"><button class="btn sm" data-act="edit-op">Nom, réseau et dates</button><button class="btn sm pri" data-act="brief">Modifier le brief</button></span></div>
-  <div class="list">${l('Objectif commercial',b.objectif)}${l('Responsable Nanotera',b.responsable)}${l('Interlocuteur client',b.client)}<div><span class="muted">Réseau</span><span>${esc(resOp(o))}</span></div><div><span class="muted">Portée</span><span>${esc(o.portee||'—')}</span></div><div><span class="muted">Période commerciale</span><span>${periode(o)}</span></div><div><span class="muted">Contraintes et décisions</span><span style="text-align:right">${esc(b.notes||'—')}</span></div></div></section>`}
+  <div class="list">${l('Objectif commercial',b.objectif,true)}${l('Pilote côté enseigne',b.client,!b.responsable)}${l('Contact agence',b.responsable)}<div><span class="muted">Réseau</span><span>${esc(resOp(o))}</span></div><div><span class="muted">Portée</span><span>${esc(o.portee||'—')}</span></div><div><span class="muted">Période commerciale</span><span>${periode(o)}</span></div><div><span class="muted">Contraintes et décisions</span><span style="text-align:right">${esc(b.notes||'—')}</span></div></div></section>`}
 function tOffres(o){const ps=prodsOf(o.id),bs=basesOf(o.id),nu=nbBloq(utilisees(o)),nb=nbBloq(ps),na=ps.reduce((n,p)=>n+controles(p).a.length,0);
   const rows=ps.map(p=>{const c=controles(p),us=bs.filter(s=>!s.institutionnel&&utilise(s,p)).map(s=>s.type+(typ(s).pagine?' p. '+place(p,s):'')),ex=S.supports.filter(v=>v.op===o.id&&v.groupe&&v.prixVar&&v.prixVar[p.id]!=null).map(v=>'exception '+v.variante+' : '+prixTxt(v.prixVar[p.id])),CT=c.b.map(x=>`<span class="pill crit">${esc(x)}</span>`).join(' ')+' '+c.a.map(x=>`<span class="pill warn">${esc(x)}</span>`).join(' ')+(!c.b.length&&!c.a.length?'<span class="pill ok" title="Ne vaut pas validation juridique ou commerciale.">Contrôles de données réussis</span>':'');
     return `<tr><td style="min-width:170px"><b>${esc(p.libelle)}</b><br><span class="muted small">${esc([p.ref&&'réf. '+p.ref,p.marque,p.unite].filter(Boolean).join(' · '))}</span> ${src(p.source)}${p.description?'<br><span class="muted small">'+esc(p.description)+'</span>':''}<br>${CT}</td><td>${esc(p.rayon||'')}</td><td class="num">${p.prix!=null?prixTxt(p.prix):'—'}${p.barre!=null?'<br><s class="muted small">'+prixTxt(p.barre)+'</s>':''}${ex.length?'<br><span class="small">'+esc(ex.join(' ; '))+'</span>':''}</td><td>${esc(mecaTxt(p))}${p.validDu||p.validAu?'<br><span class="muted small">du '+fd(p.validDu||o.debut)+' au '+fd(p.validAu||o.fin)+'</span>':''}</td><td class="small">${us.length?esc(us.join(', ')):'<span class="muted">Hors dispositif</span>'}</td><td><button class="btn sm" data-prod="${esc(p.id)}">Modifier</button></td></tr>`}).join('');
   return `<div class="row"><span class="pill ${nu?'crit':'ok'}">${nu} anomalie(s) sur des offres utilisées</span>${nb-nu?`<span class="pill">${nb-nu} anomalie(s) hors dispositif, non bloquantes</span>`:''}<span class="pill ${na?'warn':'ok'}">${na} avertissement(s)</span><span class="pill">${ps.length} offre(s)</span></div>
   <section class="card"><div class="row" style="justify-content:space-between"><h2>Offres de l’opération</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${ps.length?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide('Aucune offre. Les prix peuvent arriver plus tard : ajoutez-les quand ils sont connus.')}</section>`}
 const varPour=(b,m)=>varsDe(b).find(v=>(v.magasinsVar||[]).includes(m.id));
-function tMagasins(o){const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m=>eng(o,m).statut==='engage'),choisi=(e,b)=>!e.supports||e.supports.includes(b.id);
-  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Magasins du réseau ${esc(resOp(o))}</h2><button class="btn sm" data-act="new-mag">Ajouter un magasin</button></div><p class="muted small" style="margin:0">${ne.length} engagé(s) sur ${ms.length} magasin(s) éligible(s)</p>
+function tMagasins(o,context){const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m=>eng(o,m).statut==='engage'),choisi=(e,b)=>!e.supports||e.supports.includes(b.id);
+  const support=context&&basesOf(o.id).find(b=>encodeURIComponent(b.id)===context);
+  const back=support?`<div class="context-return"><span>Engagements pour ${esc(titre(support))}</span><a class="btn sm" href="${lien('preparation',o.id,'dispositif')}--${esc(context)}">Revenir à ce support →</a></div>`:'';
+  return `${back}<section class="card"><div class="row" style="justify-content:space-between"><h2>Magasins du réseau ${esc(resOp(o))}</h2><button class="btn sm" data-act="new-mag">Ajouter un magasin</button></div><p class="muted small" style="margin:0">${ne.length} engagé(s) sur ${ms.length} magasin(s) éligible(s)</p>
   <div class="list">${ms.map(m=>{const e=eng(o,m),ch=bs.filter(b=>choisi(e,b)),nv=e.supports?bs.filter(b=>!e.supports.includes(b.id)).length:0;return `<div><span>${esc(m.nom)}${m.code?' <span class="muted small">['+esc(m.code)+']</span>':''}${e.statut==='engage'?'<br><span class="muted small">'+(ch.map(b=>{const v=varPour(b,m);return esc(b.type)+(v?', variante '+esc(v.variante):varsDe(b).length?', nationale':'')+(e.qte&&e.qte[b.id]?' ('+e.qte[b.id]+' ex.)':'')}).join(' · ')||'aucun support retenu')+(e.maj?' · confirmé le '+fd(e.maj):'')+'</span>'+(nv?' <span class="pill warn">'+nv+' support(s) à proposer</span>':'')+(!e.supports&&bs.length?' <span class="pill">Liste héritée, à confirmer</span>':''):''}</span><span class="row" style="justify-content:flex-end"><select data-eng="${esc(m.id)}" aria-label="Engagement ${esc(m.nom)}">${ENG.map(([k,l])=>`<option value="${k}"${e.statut===k?' selected':''}>${l}</option>`).join('')}</select>${e.statut==='engage'&&bs.length?`<button class="btn sm" data-engsup="${esc(m.id)}">Supports et quantités</button>`:''}<button class="btn sm" data-mag="${esc(m.id)}">Fiche</button></span></div>`}).join('')||vide('Aucun magasin dans ce réseau. Ajoutez les magasins éligibles.')}</div></section>
   ${bs.length?`<section class="card"><h2>Engagements par support</h2><div class="list">${bs.map(b=>{const l=ne.filter(m=>choisi(eng(o,m),b)),q=l.reduce((n,m)=>n+((eng(o,m).qte||{})[b.id]||0),0),vs=varsDe(b);return `<div><span>${esc(b.type)}${vs.length?'<br><span class="muted small">'+esc(['Nationale : '+(magsSup(b,o).map(m=>m.nom).join(', ')||'aucun'),...vs.map(v=>v.variante+' : '+(magsSup(v,o).map(m=>m.nom).join(', ')||'aucun'))].join(' · '))+'</span>':''}</span><span class="row"><span class="pill">${l.length} magasin(s)</span>${typ(b).f==='imprime'?`<span class="pill">${q} exemplaire(s)</span>`:''}</span></div>`}).join('')}</div></section>`:''}`}
 function compoHtml(s,o){const ps=prodsOf(o.id);
@@ -304,8 +314,8 @@ function compoHtml(s,o){const ps=prodsOf(o.id);
   return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Chemin de fer</h3><button class="btn sm" data-addpage="${esc(s.id)}">${pg.length?'Ajouter une page':'Créer le chemin de fer'}</button></div>
   ${(chemin(s)||{}).historique?`<p class="muted small" style="margin:0">Compositions précédentes conservées : ${chemin(s).historique.map(h=>'rév. '+h.rev+' du '+fd(h.date)+' ('+h.pages.length+' pages)').join(', ')}.</p>`:''}${pg.length?`<p class="muted small" style="margin:0">Touchez une offre pour choisir sa page, ou glissez-la sur une page.</p><div class="pages">${pg.map(p=>{const inn=ps.filter(x=>place(x,s)===p.n);return `<div class="page" data-page="${p.n}" data-sup="${esc(s.id)}"><div class="row" style="justify-content:space-between"><span class="pn">${p.n}</span><span class="pill ${inn.length>p.cases?'crit':inn.length===p.cases?'ok':''}">${inn.length}/${p.cases}</span></div><button class="btn sm" data-rub="${p.n}" data-sup="${esc(s.id)}" style="text-align:left">${esc(p.rubrique||'Rubrique')}</button>${inn.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div>`}).join('')}</div>${libres.length?`<div><h3>Offres non placées dans ce support</h3><div class="row" style="margin-top:6px">${libres.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div></div>`:''}`:vide('Pas encore de chemin de fer.')}</div>`}
 function carteSup(s,o){const pr=pretProd(s,o),ok=pr.every(x=>x[0]),n=offresDe(s).length,b=baseDe(s),ms=magsSup(s,o),exc=s.groupe?offresDe(s).filter(p=>s.prixVar&&s.prixVar[p.id]!=null).map(p=>p.libelle+' '+prixTxt(s.prixVar[p.id])):[];
-  return `<div class="supp"><div class="row" style="justify-content:space-between"><span><b>${esc(s.groupe?'Variante '+(s.variante||'locale'):s.type)}</b> ${s.groupe?'':`<span class="pill">${FAMILLES[typ(s).f]}</span>`} ${enProd(s)?`<span class="pill ok">En production · ${libStat(s.statut)}</span>`:'<span class="pill">En préparation</span>'}</span><span class="row">${s.groupe?`<button class="btn sm" data-var-edit="${esc(s.id)}">Modifier la variante</button>`:`<button class="btn sm" data-compo="${esc(s.id)}">${compo===s.id?'Fermer':typ(s).pagine?'Chemin de fer':'Offres du support'}</button><button class="btn sm" data-sup-edit="${esc(s.id)}">Modifier</button><button class="btn sm" data-var-new="${esc(s.id)}">Ajouter une variante</button>`}</span></div>
-    <span class="muted small">${s.groupe?esc('Magasins : '+(ms.map(m=>m.nom).join(', ')||'aucun')+' · prix d\'exception : '+(exc.join(', ')||'aucun')):esc((s.format||'Format à préciser')+' · versions : '+(s.versions||'—'))} · échéance ${fd(echeance(s,o))} · ${b.institutionnel?'création institutionnelle':n+' offre(s)'}${typ(s).pagine?' · '+pagesDe(s).length+' page(s)':''}${s.groupe?'':' · '+ms.length+' magasin(s)'+(varsDe(s).length?' en version nationale':'')}</span>
+  return `<div class="supp" tabindex="-1" data-support-card="${esc(encodeURIComponent(s.id))}"><div class="row" style="justify-content:space-between"><span><b>${esc(s.groupe?'Variante '+(s.variante||'locale'):s.type)}</b> ${s.groupe?'':`<span class="pill">${FAMILLES[typ(s).f]}</span>`} ${enProd(s)?`<span class="pill ok">En production · ${libStat(s.statut)}</span>`:'<span class="pill">En préparation</span>'}</span><span class="row">${s.groupe?`<button class="btn sm" data-var-edit="${esc(s.id)}">Modifier la variante</button>`:`<button class="btn sm" data-compo="${esc(s.id)}">${compo===s.id?'Fermer':typ(s).pagine?'Chemin de fer':'Offres du support'}</button><button class="btn sm" data-sup-edit="${esc(s.id)}">Modifier</button>${ms.length?`<button class="btn sm" data-var-new="${esc(s.id)}">Ajouter une variante</button>`:`<a class="btn sm" href="${lien('preparation',o.id,'magasins')}--${esc(encodeURIComponent(s.id))}">${varsDe(s).length?'Gérer les magasins des variantes':'Engager des magasins pour une variante'}</a>`}`}</span></div>
+    <span class="muted small">${s.groupe?esc('Magasins : '+(ms.map(m=>m.nom).join(', ')||'aucun')+' · prix d\'exception : '+(exc.join(', ')||'aucun')):esc((s.format||'Format à préciser')+' · '+(varsDe(s).length?'Nationale et '+varsDe(s).map(v=>v.variante).join(', '):'Nationale')+(s.versions?' · Ancienne indication : '+s.versions:''))} · échéance ${fd(echeance(s,o))} · ${b.institutionnel?'création institutionnelle':n+' offre(s)'}${typ(s).pagine?' · '+pagesDe(s).length+' page(s)':''}${s.groupe?'':' · '+ms.length+' magasin(s)'+(varsDe(s).length?' en version nationale':'')}</span>
     ${enProd(s)?`<a href="${esc(supportLink(s))}">Suivre ce support en production →</a>`:`<details class="readiness"${ok?'':' open'}><summary>${ok?'Prêt pour la production':pr.filter(([met])=>!met).length+' prérequis à compléter'}</summary><div class="list">${pr.map(([v,l])=>`<div><span class="small">${esc(l)}</span><span class="pill ${v?'ok':'crit'}">${v?'Satisfait':'Manquant'}</span></div>`).join('')}</div></details><div class="row"><button class="btn pri sm" data-ouvrir="${esc(s.id)}"${ok?'':' disabled'}>Ouvrir en production</button>${ok?'':'<span class="muted small">Complétez les éléments manquants.</span>'}</div>`}
     ${compo===s.id?compoHtml(s,o):''}${s.groupe?'':varsDe(s).map(v=>carteSup(v,o)).join('')}</div>`}
 function tDispositif(o){const bs=basesOf(o.id);
@@ -313,22 +323,22 @@ function tDispositif(o){const bs=basesOf(o.id);
   ${bs.length?bs.map(s=>carteSup(s,o)).join(''):vide('Aucun support. Composez le dispositif : prospectus, affiche, e-catalogue, bannières, flux.')}</section>`}
 function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><span><input type="checkbox" data-task="${esc(x.id)}"${x.fait?' checked':''}> ${esc(x.libelle)}</span><span class="pill ${tardif(x)?'warn':x.fait?'ok':enRetard(x)?'crit':''}">${tardif(x)?'Terminé en retard · échéance '+fd(x.echeance):x.fait?'Fait':nonAppl(x)?'Non applicable, approbation interne':enRetard(x)?'Retard · '+fd(x.echeance):fd(x.echeance)}</span></label>`,anc=ts.filter(t=>!t.support||!ss.some(s=>s.id===t.support));
   return ss.map(s=>{const l=ts.filter(t=>t.support===s.id);return `<section class="card"><div class="row" style="justify-content:space-between"><h2>${esc(titre(s))}</h2><button class="btn sm" data-retro="${esc(s.id)}">${l.length?'Recalculer':'Générer les jalons'}</button></div><p class="muted small" style="margin:0">Échéance ${fd(echeance(s,o))} · modèle ${FAMILLES[typ(s).f].toLowerCase()}</p><div class="list">${l.map(ligne).join('')||vide('Aucun jalon pour ce support.')}</div></section>`}).join('')+(anc.length?`<section class="card"><h2>Jalons généraux</h2><p class="muted small" style="margin:0">Créés avant le calendrier par support.</p><div class="list">${anc.map(ligne).join('')}</div></section>`:'')||`<section class="card">${vide('Le calendrier se construit à partir des supports du dispositif. Ajoutez un support.')}</section>`}
-function vPreparation(tab){const o=curOp();if(!o)return `<div class="hd"><div><p class="eyebrow">Préparation en amont</p><h1>Préparer une opération</h1><p class="sub">Définissez vos offres, supports et engagements magasins.</p></div><button class="btn pri" data-act="new-op">Créer une opération</button></div>${banner()}<section class="card">${vide('Aucun dossier pour le moment.')}</section>`;
+function vPreparation(tab,context){const o=curOp();if(!o)return `<div class="hd"><div><p class="eyebrow">Préparation en amont</p><h1>Préparer une opération</h1><p class="sub">Définissez vos offres, supports et engagements magasins.</p></div><button class="btn pri" data-act="new-op">Créer une opération</button></div>${banner()}<section class="card">${vide('Aucun dossier pour le moment.')}</section>`;
  const T={cadrage:tCadrage,offres:tOffres,magasins:tMagasins,dispositif:tDispositif,calendrier:tCalendrier};
- const content=T[tab](o);
+ const content=T[tab](o,context);
  return `${operationHeading(o,'preparation',tab)}${banner()}${enTete(o,tab)}${tab==='offres'?content:`<div class="dossier-layout"><div class="dossier-main">${content}</div>${operationAside(o)}</div>`}`}
 
 
 /* ---------- Production : les supports ouverts, leurs révisions et leurs preuves ---------- */
 let vueProd='liste',filtreProd='tous',qProd='';try{vueProd=localStorage.getItem('bos-vue')||'liste'}catch(e){}
-const prochaine=s=>s.perime?(s.statut==='livre'?'Créer une nouvelle révision':'Revérifier les données puis renvoyer en revue'):({amonter:'Monter la création',maquette:'Terminer les contrôles, puis préparer le BAT',bat:'Obtenir la décision de '+(s.destinataire||'du destinataire'),corrections:'Corriger, puis créer la révision à renvoyer',valide:'Déclarer la remise',livre:'Aucune'})[s.statut];
-function probleme(s){const r=[],n=nbBloqS(s),t=S.taches.filter(x=>x.support===s.id&&enRetard(x)).length;if(s.perime)r.push(s.perimeMotif||'Données modifiées');if(n)r.push(n+' anomalie(s) sur ses offres');if(t)r.push(t+' jalon(s) en retard');if(s.prod===undefined)r.push('Hérité, non requalifié');return r}
-const boutons=s=>`<button class="btn sm" data-chk="${esc(s.id)}">Contrôles et fiche</button><button class="btn sm" data-apercu="${esc(s.id)}">Création</button><button class="btn sm" data-brief="${esc(s.id)}">Copier le brief</button>${typ(s).f!=='imprime'?`<button class="btn sm" data-paquet="${esc(s.id)}">Préparer le paquet Media</button>`:''}${gele(s)?`<button class="btn sm" data-rev="${esc(s.id)}">Nouvelle révision</button>`:''}`;
+const prochaine=s=>revisionRequise(s)?'Créer une nouvelle révision avec les données corrigées':({amonter:'Monter la création',maquette:manquants(s,'bat').length?'Terminer les contrôles du BAT':'Présenter le BAT en revue',bat:'Obtenir la décision de '+(s.destinataire||'du destinataire'),corrections:'Corriger, puis créer la révision à renvoyer',valide:'Déclarer la remise',livre:'Aucune'})[s.statut];
+function probleme(s){const r=[],n=nbBloqS(s),t=S.taches.filter(x=>x.support===s.id&&enRetard(x)).length;if(revisionRequise(s))r.push(s.perimeMotif||'Données modifiées');if(n)r.push(n+' anomalie(s) sur ses offres');if(t)r.push(t+' jalon(s) en retard');if(s.prod===undefined)r.push('Hérité, non requalifié');return r}
+const boutons=s=>`<button class="btn sm" data-chk="${esc(s.id)}">Contrôles et fiche</button><button class="btn sm" data-apercu="${esc(s.id)}">Aperçu des données</button><button class="btn sm" data-brief="${esc(s.id)}">Copier le brief</button>${typ(s).f!=='imprime'?`<button class="btn sm" data-paquet="${esc(s.id)}">Préparer le paquet Media</button>`:''}${gele(s)?`<button class="btn sm" data-rev="${esc(s.id)}">Nouvelle révision</button>`:''}`;
 const selStat=s=>`<select data-stat="${esc(s.id)}" aria-label="Statut ${esc(titre(s))}">${STATUTS.map(([k,l])=>`<option value="${k}"${s.statut===k?' selected':''}>${l}</option>`).join('')}</select>`;
 function vProduction(supportKey){const o=curOp();if(!o)return '<div class="hd"><div><p class="eyebrow">Production des supports</p><h1>Production</h1></div><a class="btn" href="#preparation">Ouvrir la préparation</a></div>'+banner()+vide('Les supports apparaîtront ici une fois préparés dans le dispositif.');
   const tous=supsOf(o.id),att=tous.filter(s=>!enProd(s)),jr=S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date)),q=qProd.trim().toLowerCase();
-  const ss=tous.filter(enProd).filter(s=>(filtreProd==='tous'||(filtreProd==='traiter'&&(s.perime||s.statut!=='livre'&&s.statut!=='valide'))||(filtreProd==='retard'&&S.taches.some(x=>x.support===s.id&&enRetard(x))))&&(!q||(titre(s)+' '+(s.fichier||'')).toLowerCase().includes(q)));
-  const pills=s=>{const n=CHECKS.filter(([k])=>s.checks&&s.checks[k]).length;return `${s.perime?`<span class="pill crit" title="${esc(s.perimeMotif||'')}">${s.statut==='livre'?'Nouvelle révision requise':'À revalider'}</span>`:''}<span class="pill">Rév. ${s.rev||1}</span><span class="pill">${s.bat?'BAT '+s.bat:'Pas de BAT'}</span>${s.statut==='valide'||s.statut==='livre'?`<span class="pill warn">Déclaré${(s.mode||'client')==='interne'?', interne':''}${s.approuvePar?' par '+esc(s.approuvePar):''}</span>`:''}<span class="pill ${n===CHECKS.length?'ok':''}">Contrôles ${n}/${CHECKS.length}</span>`};
+  const ss=tous.filter(enProd).filter(s=>(filtreProd==='tous'||(filtreProd==='traiter'&&(revisionRequise(s)||s.statut!=='livre'&&s.statut!=='valide'))||(filtreProd==='retard'&&S.taches.some(x=>x.support===s.id&&enRetard(x))))&&(!q||(titre(s)+' '+(s.fichier||'')).toLowerCase().includes(q)));
+  const pills=s=>{const checks=controlesRequis(s,s.statut==='valide'||s.statut==='livre'?'livre':'bat'),n=checks.filter(([k])=>s.checks?.[k]).length;return `${revisionRequise(s)?`<span class="pill crit" title="${esc(s.perimeMotif||'')}">Nouvelle révision requise</span>`:''}<span class="pill">Rév. ${s.rev||1}</span><span class="pill">${s.bat?'BAT '+s.bat:'Pas de BAT'}</span>${s.statut==='valide'||s.statut==='livre'?`<span class="pill warn">Déclaré${(s.mode||'client')==='interne'?', interne':''}${s.approuvePar?' par '+esc(s.approuvePar):''}</span>`:''}<span class="pill ${n===checks.length?'ok':''}">Contrôles ${n}/${checks.length}</span>`};
   const openSupport=s=>`<a class="btn sm" href="${esc(supportLink(s))}">Ouvrir le support<span aria-hidden="true"> →</span></a>`;
   const card=s=>`<div class="sup"><b>${esc(titre(s))}</b><span class="muted">${esc(s.format||'')} · échéance ${fd(echeance(s,o))}</span>
     <span>${esc(prochaine(s))}</span>${openSupport(s)}</div>`;
@@ -342,9 +352,12 @@ function vProduction(supportKey){const o=curOp();if(!o)return '<div class="hd"><
       <h2>${esc(titre(s))}</h2><p class="sub">${esc(s.format||'Format à préciser')} · Échéance ${fd(echeance(s,o))}</p></div>
       <label>État du support ${selStat(s)}</label></div>
       <div class="action-guidance"><strong>Prochaine action</strong><span>${esc(prochaine(s))}</span></div>
+      ${s.statut!=='livre' && manquants(s,s.statut==='valide'?'livre':'bat').length?`<p class="small">Contrôles à terminer · ${esc(manquants(s,s.statut==='valide'?'livre':'bat').join(' · '))}</p>`:''}
+      ${retourHtml(s.retour)}
+      ${s.statut==='corrections'?`<button class="btn sm" data-correction="${esc(s.id)}">${s.retour?'Préciser la correction':'Renseigner la correction'}</button>`:''}
       ${problems.length?`<div class="row">${problems.map(item=>`<span class="pill crit">${esc(item)}</span>`).join('')}</div>`:''}
       <div class="row">${pills(s)}</div>
-      <dl class="support-facts"><div><dt>Fichier</dt><dd>${esc(s.fichier||'À renseigner')}</dd></div>
+      <dl class="support-facts"><div><dt>Fichier</dt><dd>${fichierHtml(s.fichier)}</dd></div>
       <div><dt>Revue</dt><dd>${esc(s.destinataire||'À renseigner')}</dd></div>
       <div><dt>Remis à</dt><dd>${esc(s.remiseA||'—')}</dd></div>
       <div><dt>Magasins engagés</dt><dd>${stores.length}</dd></div></dl>
@@ -384,7 +397,7 @@ const VUES={accueil:vAccueil,preparation:vPreparation,production:vProduction,adm
 function render(){const r=route(),o=curOp(),active=r.v==='accueil'?'pilotage':r.v;
  document.querySelectorAll('.global-nav a[data-v]').forEach(a=>{const v=a.dataset.v;a.setAttribute('href',lien(v==='pilotage'?'accueil':v,v==='preparation'||v==='production'?cur:null));v===active?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
  const names={accueil:'Pilotage',pilotage:'Pilotage',preparation:'Préparation',production:'Production',administration:'Administration'},inOp=r.v==='preparation'||r.v==='production';
- $('#view').innerHTML=`<div class="breadcrumb"><a href="#accueil">Studio</a><span aria-hidden="true">›</span><span>${names[r.v]}</span>${inOp&&o?`<span class="network-label">${esc(resOp(o))}</span>`:''}</div>`+VUES[r.v](r.tab)+`<footer class="app-footer"><span><strong>BigOne Studio</strong> · Nanotera<br>Prototype · version ${VERSION}</span><span class="row">${PUBLIC&&CODE?`<span>${esc(NOM||'Code en cours de vérification')}${ROLE==='editeur'?' · Éditeur':''}</span><button class="btn sm" data-act="code">Changer de code</button>`:'<span>Données de démonstration</span>'}</span></footer>`;
+ $('#view').innerHTML=`<div class="breadcrumb"><a href="#accueil">Studio</a><span aria-hidden="true">›</span><span>${names[r.v]}</span>${inOp&&o?`<span class="network-label">${esc(resOp(o))}</span>`:''}</div>`+VUES[r.v](r.tab,r.context)+`<footer class="app-footer"><span><strong>BigOne Studio</strong> · Nanotera<br>Prototype · version ${VERSION}</span><span class="row">${PUBLIC&&CODE?`<span>${esc(NOM||'Code en cours de vérification')}${ROLE==='editeur'?' · Éditeur':''}</span><button class="btn sm" data-act="code">Changer de code</button>`:'<span>Données de démonstration</span>'}</span></footer>`;
  document.title=(inOp&&o?o.nom+' — ':names[r.v]+' — ')+'BigOne Studio';
 }
 
@@ -403,14 +416,28 @@ function form(titre,champs,ok,suppr,annule){const d=$('#dlg');let fini=false;
     if(c.t==='check')return '<label class="ck"><input type="checkbox" id="'+id+'"'+(c.v?' checked':'')+'> '+esc(c.l)+'</label>';
     if(c.t==='select')return '<label>'+esc(c.l)+'<select id="'+id+'">'+c.o.map(([k,l])=>'<option value="'+esc(k)+'"'+(String(k)===String(v)?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select></label>';
     if(c.t==='area')return '<label>'+esc(c.l)+'<textarea id="'+id+'" rows="3">'+esc(v)+'</textarea><span class="ferr" id="e-'+c.k+'"></span></label>';
-    return '<label>'+esc(c.l)+'<input id="'+id+'" type="'+(num?'text':c.t||'text')+'"'+(num?' inputmode="decimal"':'')+' value="'+esc(num?fmtN(c.v):v)+'"><span class="ferr" id="e-'+c.k+'"></span></label>'}).join('')+
+    const suggestions=c.choices?'<datalist id="'+id+'-choices">'+c.choices.map(x=>'<option value="'+esc(x)+'"></option>').join('')+'</datalist>':'';
+    return '<label>'+esc(c.l)+'<input '+(c.choices?'list="'+id+'-choices" ':'')+'id="'+id+'" type="'+(num?'text':c.t||'text')+'"'+(num?' inputmode="decimal"':'')+' value="'+esc(num?fmtN(c.v):v)+'">'+suggestions+'<span class="ferr" id="e-'+c.k+'"></span></label>'}).join('')+
     '<div class="row" style="justify-content:space-between"><span>'+(suppr?'<button type="button" class="btn" id="f-del">Supprimer</button>':'')+'</span><span class="row"><button type="button" class="btn" id="f-no">Annuler</button><button class="btn pri" id="f-ok">Enregistrer</button></span></div></form>';
+  const mechanics=$('#f-mecaType');
+  if(mechanics){
+    const initial=mechanics.value;
+    const sync=()=>champs.filter(c=>c.when).forEach(c=>{
+      const el=$('#f-'+c.k);
+      const historical=mechanics.value===initial && c.v!=null && c.v!=='';
+      el.disabled=mechanics.value!==c.when && !historical;
+      el.closest('label').hidden=el.disabled;
+    });
+    mechanics.addEventListener('change',sync);
+    sync();
+  }
   const echec=m=>{const e=$('#f-err');e.textContent=m;e.hidden=false;$('#f-ok').disabled=false;$('#f-ok').textContent='Enregistrer'};
   d.onclose=()=>{d.onclose=null;if(!fini&&annule)annule()};
   $('#f-no').onclick=()=>d.close();
   if(suppr)$('#f-del').onclick=async()=>{if(await suppr()!==false){fini=true;d.close()}else echec('Suppression non effectuée. Réessayez.')};
   $('#f').onsubmit=async e=>{e.preventDefault();const r={};let prem=null;$('#f-err').hidden=true;
     champs.forEach(c=>{if(c.t==='info')return;const el=$('#f-'+c.k),sp=$('#e-'+c.k);let m='';
+      if(el.disabled){r[c.k]=c.t==='number'||c.t==='int'?null:'';return}
       if(c.t==='check')r[c.k]=el.checked;
       else if(c.t==='number'||c.t==='int'){const x=montant(el.value,c.t==='int');if(x.e)m=x.e;else if(x.v==null&&c.req)m='Champ obligatoire.';r[c.k]=x.v}
       else{r[c.k]=el.value.trim();if(c.req&&!r[c.k])m='Champ obligatoire.'}
@@ -431,18 +458,22 @@ function planTaches(s,o,remise){const rv=s.rev||1,ex=S.taches.filter(t=>t.suppor
 async function appliquerPlan(p){for(const m of p.maj)if(!await w('taches/'+m.id,{echeance:m.a}))return false;for(const t of p.crea)if(!await w('taches/'+uid('t'),t,'set'))return false;return true}
 const refusEch=(s,o,d)=>typ(s).f==='imprime'?(d>=o.debut?'L\'échéance d\'un support imprimé doit précéder le début de l\'opération ('+fd(o.debut)+').':''):(d>o.fin?'L\'échéance doit précéder la fin de l\'opération ('+fd(o.fin)+').':'');
 
-function fOp(o){const res=[...new Set(['Magasins U',...S.operations.map(resOp),...S.magasins.map(m=>m.reseau).filter(Boolean)])];
-  form(o?'Nom, réseau et dates':'Nouvelle opération',[{k:'nom',l:'Nom',v:o&&o.nom,req:1},{k:'reseau',l:'Réseau (existants : '+res.join(', ')+')',v:o?resOp(o):'Magasins U',req:1},{k:'enseignes',l:'Enseignes (séparées par des virgules)',v:o?(o.enseignes||[]).join(', '):''},{k:'portee',l:'Portée',t:'select',o:['Nationale','Régionale','Locale'].map(x=>[x,x]),v:o&&o.portee},{k:'debut',l:'Début de la période commerciale',t:'date',v:o&&o.debut,req:1},{k:'fin',l:'Fin de la période commerciale',t:'date',v:o&&o.fin,req:1}],async r=>{
+function fOp(o){
+  const res=[...new Set([...S.operations.map(resOp),...S.magasins.map(m=>m.reseau)].filter(n=>n&&n!=='Réseau à préciser'))].sort();
+  const source=opById(contexteOperation), selected=source?resOp(source):'';
+  const network=route().v==='administration'?adminRes:selected;
+  const defaultNetwork=res.includes(network)?network:res.length===1?res[0]:'';
+  form(o?'Nom, réseau et dates':'Nouvelle opération',[{k:'nom',l:'Nom',v:o&&o.nom,req:1},{k:'reseau',l:'Réseau',choices:res,v:o?resOp(o):defaultNetwork,req:1},{k:'enseignes',l:'Enseignes (séparées par des virgules)',v:o?(o.enseignes||[]).join(', '):''},{k:'portee',l:'Portée',t:'select',o:['Nationale','Régionale','Locale'].map(x=>[x,x]),v:o&&o.portee},{k:'debut',l:'Début de la période commerciale',t:'date',v:o&&o.debut,req:1},{k:'fin',l:'Fin de la période commerciale',t:'date',v:o&&o.fin,req:1}],async r=>{
     if(r.fin<r.debut)return 'La date de fin précède la date de début.';
     const data={nom:r.nom,reseau:r.reseau,enseignes:r.enseignes.split(',').map(x=>x.trim()).filter(Boolean),portee:r.portee,debut:r.debut,fin:r.fin};
     if(o){const bad=supsOf(o.id).map(s=>refusEch(s,data,echeance(s,o))&&s.type).filter(Boolean);if(bad.length)return 'Ces dates rendent incohérente l\'échéance de : '+bad.join(', ')+'. Déplacez d\'abord ces échéances.';
       if(!await w('operations/'+o.id,data))return false;if(r.debut!==o.debut||r.fin!==o.fin)await perimer(o,'Période commerciale modifiée ('+periode(o)+' → '+periode(data)+').',()=>true,true);return true}
     const id=uid('op');if(!await w('operations/'+id,Object.assign(data,{suivi:true,brief:{},source:null}),'set'))return false;await log(id,'Dossier créé.');aller('preparation',id,'cadrage');return true})}
-function fBrief(o){const b=o.brief||{};form('Brief de l\'opération',[{k:'objectif',l:'Objectif commercial',t:'area',v:b.objectif,req:1},{k:'responsable',l:'Responsable Nanotera',v:b.responsable,req:1},{k:'client',l:'Interlocuteur client',v:b.client},{k:'notes',l:'Contraintes et décisions à retenir',t:'area',v:b.notes}],async r=>{if(JSON.stringify([b.objectif||'',b.responsable||'',b.client||'',b.notes||''])===JSON.stringify([r.objectif,r.responsable,r.client,r.notes]))return true;if(!await w('operations/'+o.id,{brief:r}))return false;if(!b.objectif)await log(o.id,'Brief renseigné (responsable : '+r.responsable+').');else await log(o.id,'Brief modifié.',supsOf(o.id).some(enProd)?'modif':'');return true})}
+function fBrief(o){const b=o.brief||{};form('Brief de l\'opération',[{k:'objectif',l:'Objectif commercial',t:'area',v:b.objectif,req:1},{k:'contacts',t:'info',l:'Renseignez au moins un contact pour le suivi du dossier.'},{k:'client',l:'Pilote côté enseigne',v:b.client},{k:'responsable',l:'Contact agence (Nanotera)',v:b.responsable},{k:'notes',l:'Contraintes et décisions à retenir',t:'area',v:b.notes}],async r=>{if(!briefComplet(r))return 'Indiquez le pilote côté enseigne ou le contact agence.';if(JSON.stringify([b.objectif||'',b.responsable||'',b.client||'',b.notes||''])===JSON.stringify([r.objectif,r.responsable,r.client,r.notes]))return true;if(!await w('operations/'+o.id,{brief:r}))return false;if(!b.objectif)await log(o.id,'Brief renseigné (responsable : '+(r.client||r.responsable)+').');else await log(o.id,'Brief modifié.',supsOf(o.id).some(enProd)?'modif':'');return true})}
 const usageAuto=s=>{const b=baseDe(s);return !typ(b).pagine&&!b.produits&&!b.institutionnel};
 function fProd(p){const o=curOp();
   form(p?'Modifier l\'offre':'Ajouter une offre',[{k:'libelle',l:'Libellé du produit',v:p&&p.libelle,req:1},{k:'ref',l:'Référence produit (SKU, EAN ou code interne)',v:p&&p.ref},{k:'marque',l:'Marque',v:p&&p.marque},{k:'unite',l:'Conditionnement (ex. 2 L, lot de 3, le kg)',v:p&&p.unite},{k:'description',l:'Description',t:'area',v:p&&p.description},{k:'rayon',l:'Rayon',t:'select',o:[['','—'],...[...new Set([...RAYONS,...(p&&p.rayon?[p.rayon]:[])])].map(x=>[x,x])],v:p&&p.rayon},
-    {k:'mecaType',l:'Type d\'offre',t:'select',o:Object.entries(MECA),v:p&&p.mecaType||'simple'},{k:'prix',l:'Prix de l\'offre (€)',t:'number',v:p&&p.prix},{k:'barre',l:'Prix barré (€), pour une offre en prix barré',t:'number',v:p&&p.barre},{k:'lotQte',l:'Nombre d\'unités du lot, pour un lot',t:'int',v:p&&p.lotQte},{k:'condition',l:'Condition de l\'avantage (ex. avec la carte de fidélité)',v:p&&p.condition},{k:'mecanique',l:'Libellé affiché de la mécanique (facultatif)',v:p?p.mecanique:''},{k:'validDu',l:'Validité : du (si différente de l\'opération)',t:'date',v:p&&p.validDu},{k:'validAu',l:'Validité : au',t:'date',v:p&&p.validAu},{k:'origine',l:'Origine',v:p&&p.origine},{k:'mention',l:'Mention légale',v:p&&p.mention}],async r=>{
+    {k:'mecaType',l:'Type d\'offre',t:'select',o:Object.entries(MECA),v:p&&p.mecaType||(p?.barre!=null?'remise':p?.lotQte?'lot':p?.condition?'cond':'simple')},{k:'prix',l:'Prix de l\'offre (€)',t:'number',v:p&&p.prix},{k:'barre',when:'remise',l:'Prix de référence barré (€)',t:'number',v:p&&p.barre},{k:'lotQte',when:'lot',l:'Nombre d’unités du lot',t:'int',v:p&&p.lotQte},{k:'condition',when:'cond',l:'Condition de l\'avantage (ex. avec la carte de fidélité)',v:p&&p.condition},{k:'mecanique',l:'Libellé affiché de la mécanique (facultatif)',v:p?p.mecanique:''},{k:'validDu',l:'Validité : du (si différente de l\'opération)',t:'date',v:p&&p.validDu},{k:'validAu',l:'Validité : au',t:'date',v:p&&p.validAu},{k:'origine',l:'Origine',v:p&&p.origine},{k:'mention',l:'Mention légale',v:p&&p.mention}],async r=>{
     if(r.validDu&&r.validAu&&r.validAu<r.validDu)return 'La fin de validité précède son début.';
     if(!p){const id=uid('p');if(!await w('produits/'+id,Object.assign(r,{op:o.id,source:null}),'set'))return false;await perimer(o,'Offre « '+r.libelle+' » ajoutée.',usageAuto);return true}
     const L={libelle:'libellé',ref:'référence',marque:'marque',unite:'conditionnement',description:'description',rayon:'rayon',mecaType:'type d\'offre',prix:'prix',barre:'prix barré',lotQte:'lot',condition:'condition',mecanique:'mécanique',validDu:'validité',validAu:'validité',origine:'origine',mention:'mention légale'},N=(x,k)=>k==='mecaType'?x[k]||'simple':x[k]??'',ch=Object.keys(L).filter(k=>N(p,k)!==N(r,k));if(!ch.length)return true;
@@ -464,11 +495,11 @@ function fVar(b,v){const o=curOp(),ms=[...magsSup(b,o),...(v?magsSup(v,o):[])],p
     await log(o.id,b.type+' : variante '+r.nom+' créée pour '+mags.length+' magasin(s), '+Object.keys(prix).length+' prix d\'exception.',enProd(b)?'modif':'');return true},
     v&&!enProd(v)?async()=>{for(const t of S.taches.filter(t=>t.support===v.id))await w('taches/'+t.id,null,'delete');return w('supports/'+v.id,null,'delete')}:null)}
 function fSup(s){const o=curOp(),fige=s&&gele(s);
-  form(s?titre(s)+' : fiche du support':'Ajouter un support',[...(s?[]:[{k:'type',l:'Type',t:'select',o:Object.keys(TYPES).filter(t=>t!=='Affiche A1').map(x=>[x,x+' ('+FAMILLES[TYPES[x].f].toLowerCase()+')'])}]),...(fige?[{k:'i',t:'info',l:'La révision '+(s.rev||1)+' a été présentée en revue : le format et les versions ne changent que par une nouvelle révision, depuis Production.'}]:[{k:'format',l:'Format',v:s&&s.format},{k:'versions',l:'Versions',v:s&&s.versions}]),{k:'remise',l:'Échéance de remise (laisser vide pour la date proposée)',t:'date',v:s&&s.remise},{k:'institutionnel',l:'Création institutionnelle, sans offre',t:'check',v:s&&s.institutionnel}],async r=>{
+  form(s?titre(s)+' : fiche du support':'Ajouter un support',[...(s?[]:[{k:'type',l:'Type',t:'select',o:Object.keys(TYPES).filter(t=>t!=='Affiche A1').map(x=>[x,x+' ('+FAMILLES[TYPES[x].f].toLowerCase()+')'])}]),...(fige?[{k:'i',t:'info',l:'La révision '+(s.rev||1)+' a été présentée en revue : le format ne change que par une nouvelle révision, depuis Production.'}]:[{k:'format',l:'Format',v:s&&s.format}]),{k:'remise',l:'Échéance de remise (laisser vide pour la date proposée)',t:'date',v:s&&s.remise},{k:'institutionnel',l:'Création institutionnelle, sans offre',t:'check',v:s&&s.institutionnel}],async r=>{
     const x=s||{type:r.type,op:o.id},d=r.remise||echeance(Object.assign({},x,{remise:''}),o),refus=refusEch(x,o,d);if(refus)return refus;
-    if(s){const data=fige?{remise:d,institutionnel:r.institutionnel}:{format:r.format,versions:r.versions,remise:d,institutionnel:r.institutionnel};if(!await w('supports/'+s.id,data))return false;if(!!s.institutionnel!==r.institutionnel)await perimer(o,titre(s)+' : '+(r.institutionnel?'passé en création institutionnelle, sans offre':'offres réintroduites')+'.',x=>x.id===s.id);
+    if(s){const data=fige?{remise:d,institutionnel:r.institutionnel}:{format:r.format,remise:d,institutionnel:r.institutionnel};if(!await w('supports/'+s.id,data))return false;if(!!s.institutionnel!==r.institutionnel)await perimer(o,titre(s)+' : '+(r.institutionnel?'passé en création institutionnelle, sans offre':'offres réintroduites')+'.',x=>x.id===s.id);
       const p=planTaches(s,o,d);if(p.maj.length){await appliquerPlan({maj:p.maj,crea:[]});await log(o.id,titre(s)+' : échéance déplacée au '+fd(d)+', '+p.maj.length+' jalon(s) recalculé(s).',enProd(s)?'modif':'')}return true}
-    const id=uid('s'),ns={op:o.id,type:r.type,format:r.format,versions:r.versions,remise:d,institutionnel:r.institutionnel,statut:'amonter',prod:false,bat:0,rev:1,checks:sansCoche(),mode:'client',source:null};
+    const id=uid('s'),ns={op:o.id,type:r.type,format:r.format,remise:d,institutionnel:r.institutionnel,statut:'amonter',prod:false,bat:0,rev:1,checks:sansCoche(),mode:'client',source:null};
     if(!await w('supports/'+id,ns,'set'))return false;await appliquerPlan(planTaches(Object.assign({id},ns),o,d));await log(o.id,r.type+' ajouté au dispositif, échéance '+fd(d)+'.');compo=id;return true},
     s&&!enProd(s)&&!varsDe(s).length?async()=>{for(const t of S.taches.filter(t=>t.support===s.id))await w('taches/'+t.id,null,'delete');return w('supports/'+s.id,null,'delete')}:null)}
 function fRetro(s){const o=curOp(),txt=p=>(p.maj.length||p.crea.length?'<b>Aperçu.</b> '+p.maj.map(m=>esc(m.libelle)+' : '+fd(m.de)+' → '+fd(m.a)).concat(p.crea.map(t=>'Nouveau jalon : '+esc(t.libelle)+' ('+fd(t.echeance)+')')).join('<br>'):'Aucun changement avec cette date.')+'<br>Les jalons terminés restent terminés.';
@@ -494,69 +525,143 @@ function fEngSup(m){const o=curOp(),bs=basesOf(o.id),e=eng(o,m);form(m.nom+' : s
     if(!await ecrireEng(o,m,{supports:ids,qte}))return false;if(supsOf(o.id).some(enProd))await log(o.id,m.nom+' : '+ids.length+' support(s) retenu(s) sur '+bs.length+(Object.keys(qte).length?', quantités : '+bs.filter(s=>qte[s.id]).map(s=>titre(s)+' '+qte[s.id]).join(', '):'')+'.','modif');return true})}
 const lblCheck=(s,k,l)=>typ(s).f==='imprime'?l:({comparaison:'Comparaison avec la révision précédente',natifs:'Sources de la création déposées',fiche:'Conforme aux spécifications du canal'})[k]||l;
 function fChk(s){const rem=s.statut==='livre',fige=gele(s),arch=(s.archives||[]).map(a=>'rév. '+a.rev+' '+esc(a.etat)+' (« '+esc(a.fichier||'sans fichier')+' »)').join(', ');
-  form(titre(s)+' : contrôles et fiche',[{k:'i0',t:'info',l:'Révision '+(s.rev||1)+(arch?' · historique : '+arch:'')+(fige?'<br>Révision présentée en revue · fichier : « '+esc(s.fichier||'non renseigné')+' » · format : '+esc(s.format||'—')+' · versions : '+esc(s.versions||'—')+'. Ces éléments ne changent que par une nouvelle révision.':'')+(s.approuvePar?'<br>Approuvée par '+esc(s.approuvePar)+' le '+fd(s.approuveLe)+' (déclaration).':'')},
-    ...(s.perime?[{k:'i',t:'info',l:'<span class="pill crit">'+(rem?'Nouvelle révision requise':'À revalider')+'</span> '+esc(s.perimeMotif||'')+' '+(rem?'Cette révision reste remise telle quelle. Créez une nouvelle révision pour intégrer la modification.':'Recochez « Prix et libellés » et « PDF de comparaison » après vérification.')}]:[]),
-    ...CHECKS.map(([k,l])=>({k,l:lblCheck(s,k,l),t:'check',v:s.checks&&s.checks[k]})),{k:'_mode',l:'Mode de validation',t:'select',o:[['client','Revue client (BAT)'],['interne','Approbation interne, sans revue client']],v:s.mode||'client'},...(fige&&s.fichier?[]:[{k:'_fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier}]),{k:'_dest',l:'Destinataire de la revue',v:s.destinataire},...(fige?[]:[{k:'_format',l:'Format',v:s.format},{k:'_versions',l:'Versions',v:s.versions}])],async r=>{if(r._fichier===undefined)r._fichier=s.fichier||'';if(r._format===undefined){r._format=s.format||'';r._versions=s.versions||''}
-    const checks={},av=s.checks||{};CHECKS.forEach(([k])=>checks[k]=r[k]);
-    const chgC=CHECKS.some(([k])=>!!av[k]!==checks[k]),chgFi=(s.fichier||'')!==r._fichier,chgSp=(s.format||'')!==r._format||(s.versions||'')!==r._versions,chgF=chgFi||chgSp,chgA=(s.destinataire||'')!==r._dest||(s.mode||'client')!==r._mode;
+  form(titre(s)+' : contrôles et fiche',[{k:'i0',t:'info',l:'Révision '+(s.rev||1)+(arch?' · historique : '+arch:'')+(fige?'<br>Révision présentée en revue · fichier : « '+esc(s.fichier||'non renseigné')+' » · format : '+esc(s.format||'—')+(s.versions?' · ancienne indication : '+esc(s.versions):'')+'. Ces éléments ne changent que par une nouvelle révision.':'')+(s.approuvePar?'<br>Approuvée par '+esc(s.approuvePar)+' le '+fd(s.approuveLe)+' (déclaration).':'')},
+    ...(revisionRequise(s)?[{k:'i',t:'info',l:'<strong>Nouvelle révision requise.</strong> '+esc(s.perimeMotif||'Les données ont changé depuis la revue.')+' Créez une révision pour intégrer les corrections.'}]:[]),
+    ...controlesRequis(s,'livre').map(([k,l])=>({k,l:lblCheck(s,k,l),t:'check',v:s.checks&&s.checks[k]})),{k:'_mode',l:'Mode de validation',t:'select',o:[['client','Revue client (BAT)'],['interne','Approbation interne, sans revue client']],v:s.mode||'client'},...(fige&&s.fichier?[]:[{k:'_fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier}]),{k:'_dest',l:'Destinataire de la revue',v:s.destinataire},...(fige?[]:[{k:'_format',l:'Format',v:s.format}])],async r=>{if(r._fichier===undefined)r._fichier=s.fichier||'';if(r._format===undefined)r._format=s.format||'';
+    const av=s.checks||{},checks={...av};controlesRequis(s,'livre').forEach(([k])=>checks[k]=r[k]);
+    const chgC=controlesRequis(s,'livre').some(([k])=>!!av[k]!==!!checks[k]),chgFi=(s.fichier||'')!==r._fichier,chgSp=(s.format||'')!==r._format,chgF=chgFi||chgSp,chgA=(s.destinataire||'')!==r._dest||(s.mode||'client')!==r._mode;
     if(!chgC&&!chgF&&!chgA)return true;
     if(rem)return 'Ce support est remis : sa fiche et ses contrôles sont figés. Créez une nouvelle révision pour le modifier.';
-    if(fige&&((chgFi&&s.fichier)||chgSp))return 'La révision '+(s.rev||1)+' a déjà été présentée en revue : son fichier, son format et ses versions sont figés. Créez une nouvelle révision.';
+    if(fige&&((chgFi&&s.fichier)||chgSp))return 'La révision '+(s.rev||1)+' a déjà été présentée en revue : son fichier et son format sont figés. Créez une nouvelle révision.';
     if(FIGE.includes(s.statut)&&chgA)return 'Pendant la revue et après approbation, le destinataire et le mode de validation sont figés.';
-    const d={checks,fichier:r._fichier,destinataire:r._dest,format:r._format,versions:r._versions,mode:r._mode},lever=s.perime&&checks.donnees&&checks.comparaison&&(!av.donnees||!av.comparaison);if(lever){d.perime=false;d.perimeMotif=''}
-    if(!await w('supports/'+s.id,d))return false;if(lever)await log(s.op,titre(s)+' : données revérifiées sur la révision '+(s.rev||1)+' après modification.');return true})}
-function fRev(s){const n0=s.rev||1;form(titre(s)+' : nouvelle révision',[{k:'i',t:'info',l:'La révision '+n0+' (« '+esc(s.fichier||'sans fichier')+' », '+esc(libStat(s.statut).toLowerCase())+') et ses décisions restent dans l\'historique. La nouvelle révision repart en maquette, tous contrôles à refaire.'},{k:'fichier',l:'Fichier de la nouvelle révision (nom ou lien)',req:1},{k:'format',l:'Format',v:s.format},{k:'versions',l:'Versions',v:s.versions}],async r=>{
+    if(!memeRevision(s))return 'La révision a changé. Rouvrez la fiche.';
+    return w('supports/'+s.id,{checks,fichier:r._fichier,destinataire:r._dest,format:r._format,mode:r._mode})})}
+function fRev(s){const n0=s.rev||1;form(titre(s)+' : nouvelle révision',[{k:'i',t:'info',l:'La révision '+n0+' (« '+esc(s.fichier||'sans fichier')+' », '+esc(libStat(s.statut).toLowerCase())+') et ses décisions restent dans l\'historique. La nouvelle révision repart en maquette, tous contrôles à refaire.'},{k:'fichier',l:'Fichier de la nouvelle révision (nom ou lien)',req:1},{k:'format',l:'Format',v:s.format}],async r=>{
+    if(!memeRevision(s))return 'La révision a changé. Rouvrez la fiche.';
     if(r.fichier===(s.fichier||''))return 'Indiquez un fichier différent de celui de la révision '+n0+'.';
-    const etat=libStat(s.statut).toLowerCase(),archives=[...(s.archives||[]),{rev:n0,fichier:s.fichier||'',format:s.format||'',etat,date:today(),destinataire:s.destinataire||'',remiseA:s.remiseA||'',instantane:s.instantane||null,approuvePar:s.approuvePar||'',approuveLe:s.approuveLe||''}];
-    if(!await w('supports/'+s.id,{rev:n0+1,archives,fichier:r.fichier,format:r.format,versions:r.versions,statut:'maquette',checks:sansCoche(),perime:false,perimeMotif:'',remiseA:'',instantane:null,approuvePar:'',approuveLe:''}))return false;
+    const etat=libStat(s.statut).toLowerCase(),archives=[...(s.archives||[]),{rev:n0,fichier:s.fichier||'',format:s.format||'',contexte:s.contexteRev||null,pages:s.pagesRev||null,retour:s.retour||null,etat,date:today(),destinataire:s.destinataire||'',remiseA:s.remiseA||'',instantane:s.instantane||null,approuvePar:s.approuvePar||'',approuveLe:s.approuveLe||''}];
+    if(!await w('supports/'+s.id,{rev:n0+1,archives,fichier:r.fichier,format:r.format,statut:'maquette',checks:sansCoche(),perime:false,perimeMotif:'',remiseA:'',retour:null,contexteRev:null,pagesRev:null,instantane:null,approuvePar:'',approuveLe:''}))return false;
     const o=opById(s.op),s2=Object.assign({},s,{rev:n0+1});await appliquerPlan(planTaches(s2,o,echeance(s,o)));
     await log(s.op,titre(s)+' : révision '+(n0+1)+' créée (« '+r.fichier+' »), à contrôler, avec son propre cycle de jalons. La révision '+n0+' reste « '+etat+' » dans l\'historique.','modif');return true})}
-function refusStat(s,to){const ck=s.checks||{},n=nbBloqS(s);
-  if(s.statut==='livre')return 'ce support est remis. Créez une nouvelle révision pour le faire évoluer.';
-  if(to!=='valide'&&to!=='livre')return '';
-  if(to==='livre'&&s.statut!=='valide')return 'le support doit d\'abord être approuvé.';
-  if(!CHECKS.filter(([k])=>k!=='natifs').every(([k])=>ck[k]))return 'terminez les contrôles du support.';
-  if(!s.fichier)return 'aucun fichier de révision n\'est renseigné dans la fiche du support.';
-  if(s.perime)return 'les données ont changé depuis les contrôles. Revérifiez le support.';
-  if(n)return n+' anomalie(s) bloquante(s) restent sur les offres utilisées par ce support.';
-  if(to==='valide'&&(s.mode||'client')==='client'){if(s.statut!=='bat')return 'en revue client, le support doit d\'abord passer par « BAT prêt pour revue ». Pour valider sans le client, choisissez « Approbation interne » dans la fiche.';if(!s.destinataire)return 'aucun destinataire de revue n\'est renseigné.'}
-  if(to==='livre'&&!ck.natifs)return 'les fichiers natifs ne sont pas déposés.';
-  return ''}
+function controlesRequis(s,to){
+  return CHECKS.filter(([k])=>(k!=='comparaison'||(s.rev||1)>1)&&(k!=='natifs'||to==='livre'));
+}
+function manquants(s,to){
+  return controlesRequis(s,to).filter(([k])=>!s.checks?.[k]).map(([k,l])=>lblCheck(s,k,l));
+}
+function memesOffres(archive,actuelles){
+  if(archive.length!==actuelles.length)return false;
+  const parId=new Map(actuelles.map(o=>[o.id,o]));
+  return archive.every(old=>{
+    const now=parId.get(old.id);
+    return now && Object.keys(old).every(k=>Object.hasOwn(now,k)&&old[k]===now[k]);
+  });
+}
+function revisionRequise(s){
+  if(s.perime)return true;
+  if(Array.isArray(s.pagesRev)){
+    const actuelles=pagesDe(s);
+    if(s.pagesRev.length!==actuelles.length || s.pagesRev.some((p,i)=>p.n!==actuelles[i].n||p.rubrique!==actuelles[i].rubrique||p.cases!==actuelles[i].cases))return true;
+  }
+  if(s.contexteRev){
+    const op=opById(s.op);
+    if(!op||s.contexteRev.reseau!==resOp(op)||s.contexteRev.debut!==op.debut||s.contexteRev.fin!==op.fin)return true;
+  }
+  if(Array.isArray(s.instantane))return !memesOffres(s.instantane,snapshot(s));
+  return false;
+}
+function memeRevision(s){
+  const current=S.supports.find(x=>x.id===s.id);
+  return current && !opById(s.op)?.cloture && (current.rev||1)===(s.rev||1) && current.statut===s.statut && current._v===s._v;
+}
+function refusStat(s,to){
+  if(s.statut==='livre')return 'Ce support est remis. Créez une nouvelle révision pour le modifier.';
+  if(to==='corrections')return '';
+  if(revisionRequise(s)||s.statut==='corrections')return 'Créez une nouvelle révision avec les corrections avant de poursuivre.';
+  if(gele(s) && ['maquette','amonter'].includes(to))return 'Créez une nouvelle révision pour reprendre la maquette.';
+  if(s.statut==='valide' && to==='bat')return 'Cette révision est déjà approuvée.';
+  if(!['bat','valide','livre'].includes(to))return '';
+  if(to==='livre'&&s.statut!=='valide')return 'Le support doit d’abord être approuvé.';
+  if(to==='valide' && (s.mode||'client')==='client' && (s.statut!=='bat'||!s.destinataire))return 'Présentez le BAT à son destinataire avant de déclarer l’approbation.';
+  if(to!=='bat'&&!s.fichier)return 'Renseignez le fichier dans la fiche du support.';
+  const manquent=manquants(s,to);
+  if(manquent.length)return 'Contrôles à terminer · '+manquent.join(' · ')+'.';
+  if(nbBloqS(s))return 'Corrigez les anomalies des offres utilisées par ce support.';
+  return '';
+}
+async function verifierDecision(s,to){
+  if(PUBLIC && !await charger())return 'Impossible de relire le dossier. Réessayez avant de confirmer.';
+
+  const actuel=S.supports.find(x=>x.id===s.id);
+  if(!memeRevision(s))return 'La fiche a changé. Rouvrez-la avant de statuer.';
+  return refusStat(actuel,to);
+}
+function retourHtml(retour){
+  if(!retour)return '';
+  return `<p class="note"><strong>Retour à ${esc(retour.responsable)}</strong>${retour.page?' · page '+esc(retour.page):''}<br>${esc(retour.motif)}</p>`;
+}
+function fichierHtml(value){
+  if(!value)return 'À renseigner';
+  try{
+    const url=new URL(value);
+    if(['https:','http:'].includes(url.protocol)&&!url.username&&!url.password)
+      return `<a href="${esc(url.href)}" target="_blank" rel="noopener noreferrer">Ouvrir le fichier de production ↗</a>`;
+  }catch{}
+  return esc(value)+' <small class="muted">(nom de fichier)</small>';
+}
 async function setStat(s,to){if((to==='valide'||to==='livre')&&!peutValider()){toast('Votre code Éditeur ne permet pas d\'approuver ni de déclarer une remise : ces décisions sont réservées au Responsable.');return render()}
   const rv='révision '+(s.rev||1)+' « '+(s.fichier||'')+' »';
   const refus=refusStat(s,to);if(refus){toast((to==='livre'?'Remise':to==='valide'?'Approbation':'Changement')+' impossible : '+refus);return render()}
+  if(to==='corrections'){
+    const champs=[{k:'motif',l:'Correction demandée',t:'area',req:1},{k:'responsable',l:'Personne chargée de la reprise',req:1}];
+    if(typ(s).pagine)champs.push({k:'page',l:'Page concernée (facultatif)',t:'int'});
+    return form('Demander une correction',champs,async r=>{
+      const refus=await verifierDecision(s,to);if(refus)return refus;
+      if(r.page!=null&&!pagesDe(s).some(p=>p.n===r.page))return 'Choisissez une page du chemin de fer.';
+      const retour={motif:r.motif,responsable:r.responsable,page:r.page??null};
+      if(!await w('supports/'+s.id,{statut:to,retour}))return false;
+      await jalon(s,'retours');
+      await log(s.op,titre(s)+' · '+rv+' · correction demandée à '+r.responsable+(r.page?' · page '+r.page:'')+' · '+r.motif,'modif');
+      return true;
+    },null,render);
+  }
   if(to==='bat'){const n=(s.bat||0)+1,rvn=s.rev||1,meme=revue(s)&&!!s.fichier;
-    return form('BAT prêt pour revue',[{k:'i',t:'info',l:'Le prototype n\'envoie rien. Cette action enregistre qu\'une révision est prête à être transmise au client.'+(meme?'<br><b>Renvoi de la révision '+rvn+' « '+esc(s.fichier)+' »</b>, déjà présentée en revue : son fichier ne change pas. Pour un nouveau fichier, annulez et créez une nouvelle révision.':'')},...(meme?[]:[{k:'fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier,req:1}]),{k:'dest',l:'Destinataire de la revue',v:s.destinataire,req:1}],async r=>{const f=meme?s.fichier:r.fichier;
-      if(!await w('supports/'+s.id,{statut:'bat',bat:n,batRev:rvn,fichier:f,destinataire:r.dest,instantane:meme&&s.instantane?s.instantane:snapshot(s)}))return false;await jalon(s,'bat1');
+    return form('BAT prêt à relire',[{k:'i',t:'info',l:'Le prototype n\'envoie rien. Cette action enregistre qu\'une révision est prête à être transmise au client.'+(meme?'<br><b>Renvoi de la révision '+rvn+' « '+esc(s.fichier)+' »</b>, déjà présentée en revue : son fichier ne change pas. Pour un nouveau fichier, annulez et créez une nouvelle révision.':'')},...(meme?[]:[{k:'fichier',l:'Fichier de la révision (nom ou lien)',v:s.fichier,req:1}]),{k:'dest',l:'Destinataire de la revue',v:s.destinataire,req:1}],async r=>{const refus=await verifierDecision(s,to);if(refus)return refus;
+      const f=meme?s.fichier:r.fichier;
+      if(!await w('supports/'+s.id,{statut:'bat',bat:n,batRev:rvn,fichier:f,destinataire:r.dest,contexteRev:s.contexteRev||contexteRevision(s),pagesRev:s.pagesRev||pagesDe(s),instantane:meme&&s.instantane?s.instantane:snapshot(s)}))return false;await jalon(s,'bat1');
       await log(s.op,titre(s)+' : BAT '+n+(meme?', renvoi sans changement de la révision '+rvn+' « '+f+' » à '+r.dest:' prêt pour revue (révision '+rvn+' « '+f+' », destinataire '+r.dest+')')+'. Aucun envoi effectué par le prototype.');return true},null,render)}
   if(to==='livre')return form('Remise déclarée',[{k:'i',t:'info',l:'Le prototype ne transmet aucun fichier et ne reçoit aucun reçu. Cette action enregistre une déclaration de remise pour la '+esc(rv)+'.'},{k:'a',l:'Destinataire ou canal de remise',req:1}],async r=>{
+    const refus=await verifierDecision(s,to);if(refus)return refus;
     if(!await w('supports/'+s.id,{statut:'livre',remiseA:r.a}))return false;await jalon(s,'remise');await log(s.op,titre(s)+' : '+rv+' déclarée remise à '+r.a+'. Aucun reçu : le prototype ne transmet pas de fichier.');return true},null,render);
   if(to==='valide')return form('Décision d\'approbation',[{k:'i',t:'info',l:((s.mode||'client')==='interne'?'Approbation interne, sans revue client.':'Approbation après revue de '+esc(s.destinataire)+'.')+' Le prototype enregistre une déclaration : il ne vérifie pas l\'identité de la personne.'},{k:'par',l:'Personne qui approuve',req:1}],async r=>{
-    if(!await w('supports/'+s.id,{statut:'valide',approuvePar:r.par,approuveLe:today(),instantane:s.instantane||snapshot(s)}))return false;await jalon(s,'approb');
+    const refus=await verifierDecision(s,to);if(refus)return refus;
+    if(!await w('supports/'+s.id,{statut:'valide',contexteRev:s.contexteRev||contexteRevision(s),pagesRev:s.pagesRev||pagesDe(s),approuvePar:r.par,approuveLe:today(),instantane:s.instantane||snapshot(s)}))return false;await jalon(s,'approb');
     await log(s.op,titre(s)+' : '+rv+((s.mode||'client')==='client'?' déclarée approuvée par '+r.par+' après revue de '+s.destinataire+'.':' approuvée en interne par '+r.par+', sans revue client.'));return true},null,render);
   if(await w('supports/'+s.id,{statut:to})){await log(s.op,titre(s)+' : '+(to==='valide'?rv+((s.mode||'client')==='client'?' déclarée approuvée après revue de '+s.destinataire+'.':' approuvée en interne, sans revue client.'):'passé à « '+libStat(to)+' ».'))}else render()}
-const snapshot=s=>offresDe(s).map(p=>({id:p.id,ref:p.ref||'',libelle:p.libelle,prix:prixDe(s,p),barre:p.barre??null,mecanique:mecaTxt(p),mention:p.mention||'',origine:p.origine||'',page:typ(s).pagine?place(p,s):null}));
+const contexteRevision=s=>{const o=opById(s.op);return {reseau:resOp(o),debut:o.debut,fin:o.fin}};
+const snapshot=s=>offresDe(s).map(p=>({id:p.id,ref:p.ref||'',libelle:p.libelle,marque:p.marque||'',unite:p.unite||'',description:p.description||'',validDu:p.validDu||'',validAu:p.validAu||'',mecaType:p.mecaType||'',lotQte:p.lotQte??null,condition:p.condition||'',prix:prixDe(s,p),barre:p.barre??null,mecanique:mecaTxt(p),mention:p.mention||'',origine:p.origine||'',page:typ(s).pagine?place(p,s):null}));
 const apItem=x=>`<div class="aoff"><span>${esc(x.libelle)}${x.mecanique?'<br><small>'+esc(x.mecanique)+'</small>':''}${x.mention?'<br><small>'+esc(x.mention)+'</small>':''}</span><b>${prixTxt(x.prix)}${x.barre!=null?'<br><s>'+prixTxt(x.barre)+'</s>':''}</b></div>`;
-function apercuHtml(s,o,srcs){if(typ(s).pagine){const pg=pagesDe(s);return '<div class="apg">'+pg.map(p=>`<div class="apage"><div class="aphd">${p.n} · ${esc(p.rubrique||'')}</div>${srcs.filter(x=>x.page===p.n).map(apItem).join('')||'<small>Page sans offre</small>'}</div>`).join('')+'</div>'}
+function apercuHtml(s,o,srcs,pg){if(typ(s).pagine){return '<div class="apg">'+pg.map(p=>`<div class="apage"><div class="aphd">${p.n} · ${esc(p.rubrique||'')}</div>${srcs.filter(x=>x.page===p.n).map(apItem).join('')||'<small>Page sans offre</small>'}</div>`).join('')+'</div>'}
   return `<div class="aban"><div class="aphd">${esc(resOp(o))} · ${periode(o)}</div>${srcs.slice(0,3).map(apItem).join('')||'<small>Création institutionnelle, sans offre</small>'}${srcs.length>3?`<small>+ ${srcs.length-3} autre(s) offre(s)</small>`:''}</div>`}
-function fApercu(s,rv){const o=opById(s.op),d=$('#dlg'),revs=[...(s.archives||[]).map(a=>({rev:a.rev,fichier:a.fichier,etat:a.etat,src:a.instantane,par:a.approuvePar,le:a.approuveLe})),{rev:s.rev||1,fichier:s.fichier,etat:libStat(s.statut).toLowerCase(),src:s.instantane,par:s.approuvePar,le:s.approuveLe,cur:1}],r=revs.find(x=>x.rev===rv)||revs[revs.length-1],live=snapshot(s),srcs=r.src||(r.cur?live:[]);
-  const ec=r.src&&r.cur?live.filter(l=>{const a=r.src.find(x=>x.id===l.id);return a&&a.prix!==l.prix}).map(l=>l.libelle+' : '+prixTxt(r.src.find(x=>x.id===l.id).prix)+' → '+prixTxt(l.prix)):[],diff=r.src&&r.cur&&JSON.stringify(r.src)!==JSON.stringify(live);
-  d.onclose=null;d.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px"><h2>${esc(titre(s))} : création</h2><p class="note" style="margin:0">Aperçu de démonstration généré par le prototype à partir des données. Ce n'est pas le fichier de production « ${esc(r.fichier||'non renseigné')} », que le prototype ne stocke pas.</p>
+function fApercu(s,rv){const o=opById(s.op),d=$('#dlg'),revs=[...(s.archives||[]).map(a=>({rev:a.rev,fichier:a.fichier,etat:a.etat,src:a.instantane,format:a.format,contexte:a.contexte,pages:a.pages,retour:a.retour,par:a.approuvePar,le:a.approuveLe})),{rev:s.rev||1,fichier:s.fichier,etat:libStat(s.statut).toLowerCase(),src:s.instantane,format:s.format,contexte:s.contexteRev,pages:s.pagesRev,retour:s.retour,par:s.approuvePar,le:s.approuveLe,cur:1}],r=revs.find(x=>x.rev===rv)||revs[revs.length-1],live=snapshot(s),srcs=r.src||(r.cur?live:[]);
+  const ec=r.src&&r.cur?live.filter(l=>{const a=r.src.find(x=>x.id===l.id);return a&&a.prix!==l.prix}).map(l=>l.libelle+' : '+prixTxt(r.src.find(x=>x.id===l.id).prix)+' → '+prixTxt(l.prix)):[],diff=r.src&&r.cur&&!memesOffres(r.src,live);
+  d.onclose=null;d.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px"><h2>${esc(titre(s))} · Aperçu des données</h2><p><strong>Fichier de production</strong> · ${fichierHtml(r.fichier)}</p>
+  <p class="muted small">L’illustration ci-dessous est générée à partir des offres de la révision.</p>${retourHtml(r.retour)}
   <label>Révision<select id="ap-rev">${revs.map(x=>`<option value="${x.rev}"${x===r?' selected':''}>Rév. ${x.rev} · ${esc(x.etat)}${x.cur?' (en cours)':''}</option>`).join('')}</select></label>
-  <p class="small muted" style="margin:0">Format : ${esc(s.format||'à préciser')} · ${magsSup(s,o).length} magasin(s). ${r.src?'Données figées lors de la revue de cette révision.':r.cur?'Données actuelles : cette révision n\'a pas encore été présentée en revue.':'Aucune donnée conservée pour cette ancienne révision.'}${r.par?' Approuvée par '+esc(r.par)+' le '+fd(r.le)+' (déclaration).':''}</p>
+  <p class="small muted" style="margin:0">Format : ${esc(r.format||'à préciser')}. ${r.src?'Données figées lors de la revue de cette révision.':r.cur?'Données actuelles : cette révision n\'a pas encore été présentée en revue.':'Aucune donnée conservée pour cette ancienne révision.'}${r.par?' Approuvée par '+esc(r.par)+' le '+fd(r.le)+' (déclaration).':''}</p>
   ${diff?'<p class="note" style="margin:0">Les données ont changé depuis cette revue'+(ec.length?' : '+esc(ec.join(' ; ')):' (composition ou textes)')+'. La création affichée correspond à ce qui a été revu.</p>':''}
-  ${apercuHtml(s,o,srcs)}<div class="row" style="justify-content:flex-end"><button class="btn" id="ap-no">Fermer</button></div></div>`;
+  ${apercuHtml(s,r.contexte||o,srcs,r.pages || (r.cur&&!r.src?pagesDe(s):[...new Set(srcs.map(p=>p.page).filter(n=>n!=null))].sort((a,b)=>a-b).map(n=>({n}))))}<div class="row" style="justify-content:flex-end"><button class="btn" id="ap-no">Fermer</button></div></div>`;
   $('#ap-no').onclick=()=>d.close();$('#ap-rev').onchange=e=>fApercu(s,+e.target.value);if(!d.open)d.showModal()}
 /* Paquet pour BigOne Media : proposition de contrat interne, préparée et contrôlée, jamais transmise par le prototype. */
 function manifest(s,o){return {schemaVersion:'studio-handoff-proposal/1',transferId:o.id+'.'+s.id+'.r'+(s.rev||1),organizationRef:resOp(o),studioOperationId:o.id,mediaOperationRef:null,items:[{supportId:baseDe(s).id,variantId:s.groupe?s.id:null,variantName:nomVar(s)||'Nationale',recipientStoreRefs:magsSup(s,o).map(m=>({id:m.id,code:m.code||null,nom:m.nom})),assetRevisionRef:{revision:s.rev||1,fichier:s.fichier||null,format:s.format||null},approvalRef:{par:s.approuvePar||null,le:s.approuveLe||null,mode:s.mode||'client'},sourceSnapshotRef:s.instantane||snapshot(s),validFrom:o.debut,validTo:o.fin}]}}
-function fPaquet(s){const o=opById(s.op),ms=magsSup(s,o),R=[[ms.length>0,'Au moins un magasin engagé dans le périmètre ('+ms.map(m=>m.nom).join(', ')+')'],[!!s.fichier,'Fichier de la révision renseigné'],[s.statut==='valide'||s.statut==='livre','Révision approuvée'],[!s.perime,'Données inchangées depuis l\'approbation'],[nbBloqS(s)===0,'Aucune anomalie bloquante sur les offres']],ok=R.every(x=>x[0]),js=JSON.stringify(manifest(s,o),null,2),d=$('#dlg');
+function fPaquet(s){const o=opById(s.op),ms=magsSup(s,o),R=[[ms.length>0,'Au moins un magasin engagé dans le périmètre ('+ms.map(m=>m.nom).join(', ')+')'],[!!s.fichier,'Fichier de la révision renseigné'],[s.statut==='valide'||s.statut==='livre','Révision approuvée'],[!revisionRequise(s),'Données inchangées depuis l\'approbation'],[nbBloqS(s)===0,'Aucune anomalie bloquante sur les offres']],ok=R.every(x=>x[0]),js=JSON.stringify(manifest(s,o),null,2),d=$('#dlg');
   d.onclose=null;d.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px"><h2>${esc(titre(s))} : paquet pour BigOne Media</h2><p class="note" style="margin:0">Niveau de démonstration : paquet préparé. Aucun transfert vers BigOne Media n'est effectué. La correspondance avec l'opération Media reste à établir (mediaOperationRef vide) et ce format est une proposition, pas le contrat de l'API Media.</p>
   <div class="list">${R.map(([v,l])=>`<div><span class="small">${esc(l)}</span><span class="pill ${v?'ok':'crit'}">${v?'Vérifié':'Refus'}</span></div>`).join('')}</div>
   ${ok?`<span class="pill ok">Prêt pour transfert</span><pre class="mani">${esc(js)}</pre>`:'<span class="pill crit">Paquet refusé : corrigez les points en refus.</span>'}
   <div class="row" style="justify-content:flex-end"><button class="btn" id="pq-no">Fermer</button>${ok?'<button class="btn pri" id="pq-ok">Copier le manifest</button>':''}</div></div>`;
   $('#pq-no').onclick=()=>d.close();if(ok)$('#pq-ok').onclick=async()=>{await copier(js,'Manifest copié. Rien n\'a été transmis à BigOne Media.');if((!PUBLIC||CODE)&&!o.cloture)await log(o.id,titre(s)+' : paquet Media préparé (révision '+(s.rev||1)+', '+ms.length+' magasin(s)), non transmis.')};d.showModal()}
 function brief(s){const o=opById(s.op),b=o.brief||{},ps=offresDe(s),ms=magsSup(s,o);
-  return ['BRIEF · '+titre(s)+' · '+o.nom,'Identifiants : opération '+o.id+' · support '+baseDe(s).id+(s.groupe?' · variante '+s.id:'')+' · révision '+(s.rev||1),'Réseau : '+resOp(o)+' · période commerciale : '+periode(o),'Échéance de remise : '+fd(echeance(s,o)),'Format : '+(s.format||'à préciser')+(s.versions?' · versions : '+s.versions:''),'Magasins ('+ms.length+') : '+(ms.map(m=>m.nom+(m.code?' ['+m.code+']':'')).join(', ')||'aucun magasin engagé sur ce périmètre'),'Objectif : '+(b.objectif||'à préciser'),'Responsable : '+(b.responsable||'à préciser')+(b.client?' · client : '+b.client:''),b.notes?'Contraintes : '+b.notes:'',baseDe(s).institutionnel?'Création institutionnelle, sans offre.':'Offres ('+ps.length+') :',...ps.map(p=>'- '+(typ(s).pagine?'p. '+place(p,s)+' · ':'')+p.libelle+(p.ref?' [réf. '+p.ref+']':'')+' · '+prixTxt(prixDe(s,p))+(s.prixVar&&s.prixVar[p.id]!=null?' (prix d\'exception, national '+prixTxt(p.prix)+')':'')+(p.barre!=null?' (barré '+prixTxt(p.barre)+')':'')+(mecaTxt(p)?' · '+mecaTxt(p):'')+(p.mention?' · mention : '+p.mention:'')+(p.origine?' · origine : '+p.origine:'')),'Contrôles attendus : '+CHECKS.map(([k,l])=>lblCheck(s,k,l)).join(' ; ')+'.'].filter(x=>x!=='').join('\n')}
+  return ['BRIEF · '+titre(s)+' · '+o.nom,'Identifiants : opération '+o.id+' · support '+baseDe(s).id+(s.groupe?' · variante '+s.id:'')+' · révision '+(s.rev||1),'Réseau : '+resOp(o)+' · période commerciale : '+periode(o),'Échéance de remise : '+fd(echeance(s,o)),'Format : '+(s.format||'à préciser')+(s.versions?' · ancienne indication de version : '+s.versions:''),'Magasins ('+ms.length+') : '+(ms.map(m=>m.nom+(m.code?' ['+m.code+']':'')).join(', ')||'aucun magasin engagé sur ce périmètre'),'Objectif : '+(b.objectif||'à préciser'),'Responsable : '+(b.responsable||'à préciser')+(b.client?' · client : '+b.client:''),b.notes?'Contraintes : '+b.notes:'',baseDe(s).institutionnel?'Création institutionnelle, sans offre.':'Offres ('+ps.length+') :',...ps.map(p=>'- '+(typ(s).pagine?'p. '+place(p,s)+' · ':'')+p.libelle+(p.ref?' [réf. '+p.ref+']':'')+' · '+prixTxt(prixDe(s,p))+(s.prixVar&&s.prixVar[p.id]!=null?' (prix d\'exception, national '+prixTxt(p.prix)+')':'')+(p.barre!=null?' (barré '+prixTxt(p.barre)+')':'')+(mecaTxt(p)?' · '+mecaTxt(p):'')+(p.mention?' · mention : '+p.mention:'')+(p.origine?' · origine : '+p.origine:'')),'Contrôles attendus : '+CHECKS.map(([k,l])=>lblCheck(s,k,l)).join(' ; ')+'.'].filter(x=>x!=='').join('\n')}
 
 /* ---------- import d'une matrice Excel ou CSV ---------- */
 const norm=s=>String(s??'').trim().toLowerCase();
@@ -599,7 +704,7 @@ function fImport(){const o=curOp(),d=$('#dlg');let R=null;d.onclose=null;
 
 /* ---------- événements ---------- */
 const copier=async(t,ok)=>{try{await navigator.clipboard.writeText(t);toast(ok)}catch(x){toast('Copie refusée par le navigateur.')}};
-document.addEventListener('click',async e=>{const t=e.target.closest('[data-act],[data-prod],[data-chk],[data-rev],[data-brief],[data-rub],[data-compo],[data-sup-edit],[data-ouvrir],[data-retro],[data-addpage],[data-chip],[data-choix],[data-engsup],[data-var-new],[data-var-edit],[data-apercu],[data-paquet],[data-vue],[data-mag]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act,sup=id=>S.supports.find(s=>s.id===id);
+document.addEventListener('click',async e=>{const t=e.target.closest('[data-act],[data-correction],[data-prod],[data-chk],[data-rev],[data-brief],[data-rub],[data-compo],[data-sup-edit],[data-ouvrir],[data-retro],[data-addpage],[data-chip],[data-choix],[data-engsup],[data-var-new],[data-var-edit],[data-apercu],[data-paquet],[data-vue],[data-mag]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act,sup=id=>S.supports.find(s=>s.id===id);
   if(a==='code')return askCode();
   if(d.compo){compo=compo===d.compo?null:d.compo;return render()}
   if(d.brief)return copier(brief(sup(d.brief)),'Brief copié. Collez-le dans votre message ou votre carte de suivi.');
@@ -608,10 +713,11 @@ document.addEventListener('click',async e=>{const t=e.target.closest('[data-act]
   if(d.paquet)return fPaquet(sup(d.paquet));
   const csv=L=>L.map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';')).join('\n');
   if(a==='csv')return copier(csv([['reference','libelle','description','marque','conditionnement','rayon','type_offre','prix','prix_barre','lot','condition','mecanique','valide_du','valide_au','origine','mention'],...prodsOf(o.id).map(p=>[p.ref,p.libelle,p.description,p.marque,p.unite,p.rayon,MECA[p.mecaType||'simple'],fmtN(p.prix),fmtN(p.barre),p.lotQte,p.condition,p.mecanique,p.validDu,p.validAu,p.origine,p.mention])]),'Offres copiées. Collez-les dans un tableur.');
-  if(a==='csv-dispo')return copier(csv([['support','variante','famille','format','versions','echeance','etat','revision','fichier','magasins','nb_offres','prix_exception'],...supsOf(o.id).map(s=>[s.type,nomVar(s),FAMILLES[typ(s).f],s.format||baseDe(s).format,s.versions,echeance(s,o),enProd(s)?libStat(s.statut):'En préparation',s.rev||1,s.fichier,magsSup(s,o).map(m=>m.nom).join(', '),offresDe(s).length,offresDe(s).filter(p=>s.prixVar&&s.prixVar[p.id]!=null).map(p=>p.libelle+' '+fmtN(s.prixVar[p.id])).join(', ')])]),'Dispositif copié. Collez-le dans un tableur.');
+  if(a==='csv-dispo')return copier(csv([['support','variante','famille','format','ancienne_indication_version','echeance','etat','revision','fichier','magasins','nb_offres','prix_exception'],...supsOf(o.id).map(s=>[s.type,nomVar(s),FAMILLES[typ(s).f],s.format||baseDe(s).format,s.versions,echeance(s,o),enProd(s)?libStat(s.statut):'En préparation',s.rev||1,s.fichier,magsSup(s,o).map(m=>m.nom).join(', '),offresDe(s).length,offresDe(s).filter(p=>s.prixVar&&s.prixVar[p.id]!=null).map(p=>p.libelle+' '+fmtN(s.prixVar[p.id])).join(', ')])]),'Dispositif copié. Collez-le dans un tableur.');
   if(!peutEcrire())return;
   if(a==='new-op')return fOp(null);
   if(!o)return;
+  if(d.correction&&!o.cloture)return setStat(sup(d.correction),'corrections');
   if(o.cloture&&a!=='note'&&a!=='rouvrir')return toast('Production clôturée : rouvrez le dossier pour le modifier.');
   if(d.prod)return fProd(S.produits.find(p=>p.id===d.prod));
   if(d.chk)return fChk(sup(d.chk));
@@ -638,6 +744,9 @@ document.addEventListener('click',async e=>{const t=e.target.closest('[data-act]
   if((a==='cloturer'||a==='rouvrir')&&!peutValider())return toast('Votre code Éditeur ne permet pas de clôturer ni de rouvrir un dossier : ces décisions sont réservées au Responsable.');
   if(a==='cloturer'){const ref=refusCloture(o);if(ref.length)return toast('Clôture impossible. '+ref[0]);
     return form('Clôturer la production',[{k:'i',t:'info',l:'La clôture fige le bilan de production et verrouille le dossier. Pour le modifier ensuite, il faudra le rouvrir avec un motif ; le bilan figé sera conservé.'},{k:'note',l:'Enseignements à retenir pour la prochaine opération',t:'area'}],async r=>{const ref2=refusCloture(o);if(ref2.length)return 'Clôture impossible. '+ref2.join(' ');
+      if(PUBLIC&&!await charger())return 'Impossible de relire le dossier avant la clôture.';
+      const actuelle=opById(o.id);if(!actuelle||actuelle.cloture||actuelle._v!==o._v)return 'Le dossier a changé. Rouvrez le bilan.';
+      const motifs=refusCloture(actuelle);if(motifs.length)return motifs.join(' ');
       if(!await w('operations/'+o.id,{cloture:true,bilan:Object.assign(calcBilan(o),{date:today(),note:r.note})}))return false;await log(o.id,'Production clôturée, bilan figé.'+(r.note?' Enseignements : '+r.note:''));return true})}
   if(a==='rouvrir')return form('Rouvrir le dossier',[{k:'i',t:'info',l:'Le bilan figé reste consultable dans les bilans précédents. Le dossier redevient modifiable.'},{k:'motif',l:'Motif de la réouverture',t:'area',req:1}],async r=>{
     if(!await w('operations/'+o.id,{cloture:false,bilan:null,bilansPrecedents:[...(o.bilansPrecedents||[]),Object.assign({},o.bilan||Object.assign(calcBilan(o),{date:today()}),{motifReouverture:r.motif})]}))return false;await log(o.id,'Dossier rouvert. Motif : '+r.motif,'modif');return true})});
@@ -671,7 +780,7 @@ document.addEventListener('dragover',e=>{const p=e.target.closest&&e.target.clos
 document.addEventListener('dragleave',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p)p.classList.remove('over')});
 document.addEventListener('drop',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();if(peutEcrire()&&!curOp().cloture)placer(S.supports.find(s=>s.id===p.dataset.sup),e.dataTransfer.getData('text/plain'),+p.dataset.page)}});
 document.querySelector('.skip-link').addEventListener('click',e=>{e.preventDefault();$('#view').focus();$('#view').scrollIntoView({block:'start'})});
-window.addEventListener('hashchange',()=>{render();window.scrollTo({top:0,behavior:'instant'})});
+window.addEventListener('hashchange',()=>{render();const r=route(),card=r.tab==='dispositif'&&r.context&&Array.from(document.querySelectorAll('[data-support-card]')).find(el=>el.dataset.supportCard===r.context);if(card){card.focus();card.scrollIntoView({block:'center'})}else window.scrollTo({top:0,behavior:'instant'})});
 init();
 </script>
 </body>
