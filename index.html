@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.6">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.7">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -46,12 +46,12 @@
 </dialog>
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="assets/list-filters.js?v=2026-11-26.6"></script>
+<script src="assets/list-filters.js?v=2026-11-26.7"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-26.6';
+const VERSION='2026-11-26.7';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -527,11 +527,13 @@ function refreshProductDialog(){
   const p=o&&suivi(o)&&prodsOf(o.id).find(item=>item.id===productDialog.dataset.productId);
   $('#product-dialog-title').textContent=p?.libelle||(p?'Produit sans libellé':'Produit indisponible');
   $('#product-dialog-operation').textContent=o?.nom||'';
-  $('.product-dialog-body',productDialog).innerHTML=p?productFacts(o,p)+productEditButton(o,p):vide('Ce produit est indisponible dans cette opération.');
+  const origin=productDialog.dataset.originSupport&&supsOf(o?.id).find(s=>s.id===productDialog.dataset.originSupport);
+  const local=p&&origin&&origin.prixVar?.[p.id]!=null?`<p class="support-local-price"><strong>Prix local · ${esc(prixTxt(prixDe(origin,p)))}</strong><br>${esc(titre(origin))}</p>`:'';
+  $('.product-dialog-body',productDialog).innerHTML=p?local+productFacts(o,p)+productEditButton(o,p):vide('Ce produit est indisponible dans cette opération.');
 }
 function openProductDialog(link){
   const {productId,operationId}=link.dataset;
-  Object.assign(productDialog.dataset,{productId,operationId});
+  Object.assign(productDialog.dataset,{productId,operationId,originSupport:link.dataset.originSupport||''});
   refreshProductDialog();
   const hash=location.hash;
   productDialog.onclose=()=>{
@@ -542,7 +544,7 @@ function openProductDialog(link){
       render();
       const target=Array.from(document.querySelectorAll('a[data-product-id]')).find(el=>el.dataset.productId===productId&&el.dataset.operationId===operationId);
       if(expanded&&target?.closest('details'))target.closest('details').open=true;
-      (target||$('#catalog-query')||$('#view')).focus({preventScroll:true});
+      (target||$('#support-query')||$('#catalog-query')||$('#view')).focus({preventScroll:true});
     }else if(link.isConnected)link.focus({preventScroll:true});
   };
   productDialog.showModal();
@@ -569,22 +571,65 @@ function tMagasins(o,context){const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m
   return `${back}<section class="card"><div class="row" style="justify-content:space-between"><h2>Magasins du réseau ${esc(resOp(o))}</h2><button class="btn sm" data-act="new-mag">Ajouter un magasin</button></div><p class="muted small" style="margin:0">${ne.length} engagé(s) sur ${ms.length} magasin(s) éligible(s)</p>
   ${list.toolbar}${list.count}<div class="list">${visibles.map(m=>{const e=eng(o,m),ch=bs.filter(b=>choisi(e,b)),nv=e.supports?bs.filter(b=>!e.supports.includes(b.id)).length:0;return `<div><span>${esc(m.nom)}${m.code?' <span class="muted small">['+esc(m.code)+']</span>':''}${e.statut==='engage'?'<br><span class="muted small">'+(ch.map(b=>{const v=varPour(b,m);return esc(b.type)+(v?', variante '+esc(v.variante):varsDe(b).length?', nationale':'')+(e.qte&&e.qte[b.id]?' ('+e.qte[b.id]+' ex.)':'')}).join(' · ')||'aucun support retenu')+(e.maj?' · confirmé le '+fd(e.maj):'')+'</span>'+(nv?' <span class="pill warn">'+nv+' support(s) à proposer</span>':'')+(!e.supports&&bs.length?' <span class="pill">Liste héritée, à confirmer</span>':''):''}</span><span class="row" style="justify-content:flex-end"><select data-eng="${esc(m.id)}" aria-label="Engagement ${esc(m.nom)}">${ENG.map(([k,l])=>`<option value="${k}"${e.statut===k?' selected':''}>${l}</option>`).join('')}</select>${e.statut==='engage'&&bs.length?`<button class="btn sm" data-engsup="${esc(m.id)}">Supports et quantités</button>`:''}<button class="btn sm" data-mag="${esc(m.id)}">Fiche</button></span></div>`}).join('')||vide(list.changed?'Aucun magasin avec ces filtres.':'Aucun magasin dans ce réseau. Ajoutez les magasins éligibles.')}</div></section>
   ${bs.length&&visibles.length?`<section class="card"><h2>Engagements par support</h2><div class="list">${bs.filter(b=>!filterParams().get('support')||filterParams().get('support')===b.id).map(b=>{const l=visibles.filter(m=>eng(o,m).statut==='engage'&&choisi(eng(o,m),b)),q=l.reduce((n,m)=>n+((eng(o,m).qte||{})[b.id]||0),0),vs=varsDe(b);return `<div><span>${esc(b.type)}${vs.length?'<br><span class="muted small">'+esc(['Nationale : '+(magsSup(b,o).filter(m=>visibles.includes(m)).map(m=>m.nom).join(', ')||'aucun'),...vs.map(v=>v.variante+' : '+(magsSup(v,o).filter(m=>visibles.includes(m)).map(m=>m.nom).join(', ')||'aucun'))].join(' · '))+'</span>':''}</span><span class="row"><span class="pill">${l.length} magasin(s)</span>${typ(b).f==='imprime'?`<span class="pill">${q} exemplaire(s)</span>`:''}</span></div>`}).join('')}</div></section>`:''}`}
+function supportProducts(s,o){
+  const products=offresDe(s),params=filterParams();
+  const query=params.get('q')||'',rayon=params.get('rayon')||'';
+  const words=normalized(query).trim().split(/\s+/);
+  const visible=products.filter(p=>{
+    const text=normalized([p.libelle,p.ref,p.marque,p.rayon].join(' '));
+    return (!rayon||p.rayon===rayon)&&words.every(word=>text.includes(word));
+  }).sort((a,b)=>compareFrench.compare(a.libelle||'',b.libelle||''));
+  const rayons=[...new Set(products.map(p=>p.rayon).filter(Boolean).concat(rayon?[rayon]:[]))].sort(compareFrench.compare);
+  const choose=s.groupe?`<a class="btn sm" href="${esc(innerLink(o.id,'dispositif',baseDe(s).id))}">Composition nationale</a>`:!o.cloture&&!baseDe(s).institutionnel?`<button class="btn sm" data-choix="${esc(s.id)}">${uiIcon('list')} Choisir les offres</button>`:'';
+  const rows=visible.map(p=>{
+    const price=prixDe(s,p),local=s.prixVar?.[p.id]!=null;
+    const offer=mecaTxt(p)||(p.barre!=null?'Prix barré':'Prix simple');
+    const details=[p.marque,p.ref&&'Réf. '+p.ref,typ(s).pagine&&place(p,s)!=null?'Page '+place(p,s):''].filter(Boolean);
+    return `<tr><td><a class="offer-name" data-origin-support="${esc(s.id)}" href="${esc(innerLink(o.id,'offres',p.id))}" ${productDialogAttrs({record:p,o})}>${esc(p.libelle||'Produit sans libellé')}</a>
+      ${details.length?`<small>${esc(details.join(' · '))}</small>`:''}<small class="offer-mobile-meta">${esc([p.rayon,offer].filter(Boolean).join(' · '))}</small></td>
+      <td class="offer-dimension">${esc(p.rayon||'—')}</td><td class="offer-dimension">${esc(offer)}</td>
+      <td class="offer-amount">${price!=null?esc(prixTxt(price)):'<span class="offer-missing">À renseigner</span>'}${local?'<small>Prix local</small>':''}${p.barre!=null?`<small><s>${esc(prixTxt(p.barre))}</s></small>`:''}</td>
+      <td class="offer-open" aria-hidden="true">${uiIcon('chevron')}</td></tr>`;
+  }).join('');
+  const total=products.length,filtered=Boolean(query||rayon);
+  const reset='<button class="filter-reset" type="button" data-clear-support-search>Effacer les filtres</button>';
+  const tools=total||filtered?`<div class="offer-tools"><label class="home-search">${uiIcon('search')}<span class="visually-hidden">Rechercher dans les offres du support</span><input type="search" id="support-query" value="${esc(query)}" placeholder="Rechercher un produit, une marque, une référence…"></label>
+    ${rayons.length?`<label class="offer-rayon"><span class="visually-hidden">Filtrer par rayon</span><select id="support-rayon" data-facet="rayon"><option value="">Tous les rayons</option>${rayons.map(v=>`<option value="${esc(v)}"${v===rayon?' selected':''}>${esc(v)}</option>`).join('')}</select></label>`:''}</div>`:'';
+  return `<section class="card support-products" aria-labelledby="support-products-title"><div class="offer-heading"><div class="row"><h2 id="support-products-title">Offres du support</h2><span class="count" aria-label="${total} offres">${total}</span></div>${choose}</div>
+    ${tools}${filtered?`<div class="offer-feedback"><span role="status">${visible.length} sur ${total}</span>${reset}</div>`:''}
+    ${rows?`<div class="offer-list-wrap"><table class="offer-list" aria-label="Produits utilisés par ce support"><thead><tr><th scope="col">Produit</th><th scope="col" class="offer-dimension">Rayon</th><th scope="col" class="offer-dimension">Offre</th><th scope="col" class="offer-amount">Prix de vente</th><th scope="col"><span class="visually-hidden">Fiche produit</span></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide(filtered?'Aucun produit ne correspond aux filtres.':baseDe(s).institutionnel?'Création institutionnelle : aucune offre attendue.':'Aucune offre sélectionnée.')}
+  </section>`;
+}
 function compoHtml(s,o){const ps=prodsOf(o.id);
-  if(!typ(s).pagine){const us=offresDe(s);return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Offres utilisées par ce support</h3><button class="btn sm" data-choix="${esc(s.id)}">Choisir les offres</button></div>${us.length?'<div class="row">'+us.map(p=>`<a class="chip" href="${esc(innerLink(o.id,'offres',p.id))}">${esc(p.libelle||'Produit sans libellé')}</a>`).join('')+'</div>':vide(s.institutionnel?'Création institutionnelle : aucune offre attendue.':'Aucune offre sélectionnée.')}</div>`}
   const pg=pagesDe(s),libres=ps.filter(p=>place(p,s)==null);
   return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Chemin de fer</h3><button class="btn sm" data-addpage="${esc(s.id)}">${pg.length?'Ajouter une page':'Créer le chemin de fer'}</button></div>
   ${(chemin(s)||{}).historique?`<p class="muted small" style="margin:0">Compositions précédentes conservées : ${chemin(s).historique.map(h=>'rév. '+h.rev+' du '+fd(h.date)+' ('+h.pages.length+' pages)').join(', ')}.</p>`:''}${pg.length?`<p class="muted small" style="margin:0">Touchez une offre pour choisir sa page, ou glissez-la sur une page.</p><div class="pages">${pg.map(p=>{const inn=ps.filter(x=>place(x,s)===p.n);return `<div class="page" data-page="${p.n}" data-sup="${esc(s.id)}"><div class="row" style="justify-content:space-between"><span class="pn">${p.n}</span><span class="pill ${inn.length>p.cases?'crit':inn.length===p.cases?'ok':''}">${inn.length}/${p.cases}</span></div><button class="btn sm" data-rub="${p.n}" data-sup="${esc(s.id)}" style="text-align:left">${esc(p.rubrique||'Rubrique')}</button>${inn.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div>`}).join('')}</div>${libres.length?`<div><h3>Offres non placées dans ce support</h3><div class="row" style="margin-top:6px">${libres.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div></div>`:''}`:vide('Pas encore de chemin de fer.')}</div>`}
-function carteSup(s,o){const pr=pretProd(s,o),ok=pr.every(x=>x[0]),n=offresDe(s).length,b=baseDe(s),ms=magsSup(s,o),exc=s.groupe?offresDe(s).filter(p=>s.prixVar&&s.prixVar[p.id]!=null).map(p=>p.libelle+' '+prixTxt(s.prixVar[p.id])):[];
-  return `<div class="supp" tabindex="-1" data-support-card="${esc(encodeURIComponent(s.id))}"><div class="row" style="justify-content:space-between"><span><strong class="support-name">${esc(titre(s))}</strong> ${s.groupe?'':`<span class="pill">${FAMILLES[typ(s).f]}</span>`} ${enProd(s)?`<span class="pill ok">En production · ${libStat(s.statut)}</span>`:'<span class="pill">En préparation</span>'}</span><span class="row">${s.groupe?`<button class="btn sm" data-var-edit="${esc(s.id)}">Modifier la variante</button>`:`<button class="btn sm" data-sup-edit="${esc(s.id)}">Modifier</button>${ms.length?`<button class="btn sm" data-var-new="${esc(s.id)}">Ajouter une variante</button>`:`<a class="btn sm" href="${lien('preparation',o.id,'magasins')}--${esc(encodeURIComponent(s.id))}">${varsDe(s).length?'Gérer les magasins des variantes':'Engager des magasins pour une variante'}</a>`}`}</span></div>
-    <span class="muted small">${s.groupe?esc('Magasins : '+(ms.map(m=>m.nom).join(', ')||'aucun')+' · prix d\'exception : '+(exc.join(', ')||'aucun')):esc((s.format||'Format à préciser')+' · '+(varsDe(s).length?'Nationale et '+varsDe(s).map(v=>v.variante).join(', '):'Nationale')+(s.versions?' · Ancienne indication : '+s.versions:''))} · échéance ${fd(echeance(s,o))} · ${b.institutionnel?'création institutionnelle':n+' offre(s)'}${typ(s).pagine?' · '+pagesDe(s).length+' page(s)':''}${s.groupe?'':' · '+ms.length+' magasin(s)'+(varsDe(s).length?' en version nationale':'')}</span>
-    ${enProd(s)?`<a href="${esc(supportLink(s))}">Suivre ce support en production →</a>`:`<details class="readiness"><summary>${ok?'Prêt pour la production':pr.filter(([met])=>!met).length+' prérequis à compléter'}</summary><div class="list">${pr.map(([v,l])=>`<div><span class="small">${esc(l)}</span><span class="pill ${v?'ok':'crit'}">${v?'Satisfait':'Manquant'}</span></div>`).join('')}</div></details><div class="row"><button class="btn pri sm" data-ouvrir="${esc(s.id)}"${ok?'':' disabled'}>Ouvrir en production</button>${ok?'':'<span class="muted small">Complétez les éléments manquants.</span>'}</div>`}
-    ${!s.groupe?compoHtml(s,o):`<a href="${esc(innerLink(o.id,'dispositif',b.id))}">Composition du support national</a>`}
-    ${!s.groupe&&varsDe(s).length?`<div><h3>Variantes locales</h3>${varsDe(s).map(v=>contentRow({o,name:titre(v),meta:[],href:innerLink(o.id,'dispositif',v.id)},'operations','supports')).join('')}</div>`:''}</div>`}
+function carteSup(s,o){
+  const b=baseDe(s),stores=magsSup(s,o),variants=s.groupe?[]:varsDe(s);
+  const state=enProd(s)?'En production · '+libStat(s.statut):'En préparation';
+  const back=`<a class="support-return" href="${esc(lien('preparation',o.id,'dispositif'))}">← Tous les supports</a>`;
+  const edit=s.groupe?`<button class="btn sm" data-var-edit="${esc(s.id)}">Modifier la variante</button>`:`<button class="btn sm" data-sup-edit="${esc(s.id)}">Modifier le support</button>`;
+  const addVariant=s.groupe?'':stores.length?`<button class="btn sm" data-var-new="${esc(s.id)}">Ajouter une variante</button>`:`<a class="btn sm" href="${esc(innerLink(o.id,'magasins',s.id))}">${variants.length?'Gérer les magasins des variantes':'Engager des magasins'}</a>`;
+  const facts=[['Format',s.format||b.format||'À préciser'],['Déclinaison',s.groupe?s.variante||'Locale':'Nationale'],['Échéance',fd(echeance(s,o))||'À renseigner'],[variants.length?'Magasins en version nationale':'Magasins',String(stores.length)]];
+  if(typ(s).pagine)facts.push(['Pages',String(pagesDe(s).length)]);
+  const legacy=s.versions&&normalized(s.versions)!==normalized(facts[1][1])?`<p class="small muted">Indication de version d’origine · ${esc(s.versions)}</p>`:'';
+  const readiness=pretProd(s,o),missing=readiness.filter(([ok])=>!ok);
+  const production=enProd(s)?`<a class="btn pri sm" href="${esc(supportLink(s))}">Suivre en production ${uiIcon('arrow')}</a>`:`<button class="btn pri sm" data-ouvrir="${esc(s.id)}"${missing.length||o.cloture?' disabled':''}>Ouvrir en production</button>`;
+  const resume=`<section class="card support-summary" data-support-card="${esc(encodeURIComponent(s.id))}" aria-labelledby="support-name">
+    <div class="support-titlebar"><div>${back}<div class="support-title"><h1 id="support-name">${esc(titre(s))}</h1><span class="pill purple">${esc(FAMILLES[typ(s).f])}</span></div></div>${production}</div>
+    <dl class="support-fact-strip"><div><dt>Statut</dt><dd>${esc(state)}</dd></div>${facts.map(([label,value])=>`<div><dt>${label}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>
+    ${legacy}${s.groupe&&stores.length?`<details><summary>Magasins de cette variante</summary><p>${esc(stores.map(m=>m.nom).join(' · '))}</p></details>`:''}
+    ${enProd(s)?'':`<details class="readiness"><summary>${missing.length?missing.length+' prérequis à compléter':'Prêt pour la production'}</summary><div class="list">${readiness.map(([ok,label])=>`<div><span>${esc(label)}</span><span class="pill ${ok?'ok':'crit'}">${ok?'Satisfait':'Manquant'}</span></div>`).join('')}</div></details>`}
+    ${o.cloture?'':`<div class="support-settings">${edit}${addVariant}</div>`}</section>`;
+  const composition=s.groupe||!typ(s).pagine?supportProducts(s,o):`<section class="card support-pagination">${compoHtml(s,o)}</section>`;
+  return resume+composition+
+    (variants.length?`<section class="card"><h2>Variantes locales</h2>${variants.map(v=>contentRow({o,name:titre(v),meta:[],href:innerLink(o.id,'dispositif',v.id)},'operations','supports')).join('')}</section>`:'');
+}
 function tDispositif(o,context){
   if(context){
     const s=supsOf(o.id).find(s=>encodeURIComponent(s.id)===context);
     const back=`<a class="support-back" href="${esc(lien('preparation',o.id,'dispositif'))}">← Tous les supports de l’opération</a>`;
-    return back+(s?carteSup(s,o):vide('Ce support est indisponible dans cette opération.'));
+    return s?carteSup(s,o):back+vide('Ce support est indisponible dans cette opération.');
   }
   const list=filterList(contentItems('supports',o.id),contentFilters.supports.filter(k=>k!=='op'),contentSorts.supports),docs=list.visible;
   return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports et variantes</h2><span class="row"><button class="btn sm" data-act="csv-dispo">Copier tout le dispositif (CSV)</button><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></span></div>
@@ -605,7 +650,9 @@ function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><s
 function vPreparation(tab,context){const o=curOp();if(!o)return `<div class="hd"><div><p class="eyebrow">Préparation en amont</p><h1>Préparer une opération</h1><p class="sub">Définissez vos offres, supports et engagements magasins.</p></div><button class="btn pri" data-act="new-op">Créer une opération</button></div>${banner()}<section class="card">${vide('Aucun dossier pour le moment.')}</section>`;
  const T={cadrage:tCadrage,offres:tOffres,magasins:tMagasins,dispositif:tDispositif,calendrier:tCalendrier};
  const content=T[tab](o,context);
- return workspace(enTete(o,tab),content,operationHeading(o,'preparation',tab)+banner())}
+ const onSupport=tab==='dispositif'&&context&&supsOf(o.id).some(s=>encodeURIComponent(s.id)===context);
+ const heading=onSupport?`<div class="support-context"><div><strong>${esc(o.nom)}</strong><span>${esc(resOp(o))} · ${periode(o)}${o.cloture?' · Dossier clôturé':''}</span></div>${opSelect('preparation',tab)}</div>`:operationHeading(o,'preparation',tab);
+ return workspace(enTete(o,tab),content,heading+banner())}
 
 
 /* ---------- Production : les supports ouverts, leurs révisions et leurs preuves ---------- */
@@ -875,7 +922,28 @@ async function placer(s,pid,n){const p=S.produits.find(x=>x.id===pid),o=opById(s
 function fPlacer(s,pid){const p=S.produits.find(x=>x.id===pid);form('Placer « '+p.libelle+' »',[{k:'page',l:'Page du support '+s.type,t:'select',o:[['','Non placé'],...pagesDe(s).map(x=>[x.n,'Page '+x.n+' · '+(x.rubrique||'')])],v:place(p,s)??''}],r=>placer(s,pid,r.page===''?null:+r.page))}
 function fChoix(s){const o=curOp(),ps=prodsOf(o.id);if(!ps.length)return toast('Ajoutez d\'abord des offres dans l\'onglet Offres.');
   form(titre(s)+' : offres utilisées',ps.map(p=>({k:p.id,l:p.libelle+(p.prix!=null?' · '+prixTxt(p.prix):''),t:'check',v:utilise(s,p)})),async r=>{const ids=ps.filter(p=>r[p.id]).map(p=>p.id),av=offresDe(s).map(p=>p.id);if(ids.length===av.length&&ids.every(i=>av.includes(i)))return true;
-    if(!await w('supports/'+s.id,{produits:ids}))return false;await perimer(o,'Sélection d\'offres du support '+titre(s)+' modifiée.',x=>x.id===s.id);return true})}
+    if(!await w('supports/'+s.id,{produits:ids}))return false;await perimer(o,'Sélection d\'offres du support '+titre(s)+' modifiée.',x=>x.id===s.id);return true})
+  const picker=$('#f'),labels=[...picker.querySelectorAll('label.ck')];
+  const list=document.createElement('div');list.className='offer-picker-list';
+  labels[0].before(list);list.append(...labels);
+  list.insertAdjacentHTML('beforebegin',`<label class="offer-picker-search">Rechercher dans les produits de l’opération<input type="search" placeholder="Nom, référence, marque ou rayon"></label><p class="offer-picker-status small muted" role="status"></p>`);
+  const search=$('.offer-picker-search input',picker),status=$('.offer-picker-status',picker);
+  function updateSelection(){
+    const words=normalized(search.value.trim()).split(/\s+/);
+    let shown=0,checked=0;
+    labels.forEach((label,i)=>{
+      const p=ps[i],terms=normalized([p.libelle,p.ref,p.marque,p.rayon].join(' '));
+      label.hidden=!words.every(word=>terms.includes(word));
+      if(!label.hidden)shown++;
+      if(label.querySelector('input').checked)checked++;
+    });
+    status.textContent=checked+' sélectionnée'+(checked>1?'s':'')+' sur '+ps.length+(search.value.trim()?' · '+shown+' résultat'+(shown>1?'s':''):'');
+  }
+  search.addEventListener('input',updateSelection);
+  search.addEventListener('keydown',e=>{if(e.key==='Enter')e.preventDefault()});
+  list.addEventListener('change',updateSelection);
+  updateSelection();search.focus();
+}
 function fEngSup(m){const o=curOp(),bs=basesOf(o.id),e=eng(o,m);form(m.nom+' : supports et quantités',[{k:'i',t:'info',l:'Le magasin confirme les supports qu\'il retient. Un support ajouté plus tard au dispositif lui sera proposé, jamais ajouté d\'office.'},...bs.flatMap(s=>[{k:s.id,l:s.type,t:'check',v:!e.supports||e.supports.includes(s.id)},...(typ(s).f==='imprime'?[{k:'q_'+s.id,l:'Quantité d\'exemplaires · '+s.type,t:'int',v:(e.qte||{})[s.id]}]:[])])],async r=>{const ids=bs.filter(s=>r[s.id]).map(s=>s.id),qte={};ids.forEach(i=>{if(r['q_'+i]!=null)qte[i]=r['q_'+i]});
     if(JSON.stringify([e.supports,e.qte||{}])===JSON.stringify([ids,qte]))return true;
     if(!await ecrireEng(o,m,{supports:ids,qte}))return false;if(supsOf(o.id).some(enProd))await log(o.id,m.nom+' : '+ids.length+' support(s) retenu(s) sur '+bs.length+(Object.keys(qte).length?', quantités : '+bs.filter(s=>qte[s.id]).map(s=>titre(s)+' '+qte[s.id]).join(', '):'')+'.','modif');return true})}
@@ -1077,6 +1145,14 @@ document.addEventListener('click',async e=>{
     target.scrollIntoView({block:'start'});
     return;
   }
+  if(e.target.closest('[data-clear-support-search]')){
+    const params=filterParams();params.delete('q');params.delete('rayon');
+    writeFilterParams(params);render();$('#support-query')?.focus({preventScroll:true});return;
+  }
+  const supportLinkInDialog=e.target.closest('#product-dialog a[href]');
+  if(supportLinkInDialog&&supportLinkInDialog.hash===location.hash.split('?')[0]&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey){
+    e.preventDefault();productDialog.close();return;
+  }
   const productLink=e.target.closest('a[data-product-id]');
   if(productLink){
     if(e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
@@ -1174,7 +1250,7 @@ document.addEventListener('toggle',e=>{
   }
 },true);
 document.addEventListener('input',e=>{
-  if(['catalog-query','operation-query','q-prod'].includes(e.target.id))return refreshFilteredView(e.target);
+  if(['catalog-query','operation-query','q-prod','support-query'].includes(e.target.id))return refreshFilteredView(e.target);
 });
 document.addEventListener('change',async e=>{const t=e.target,d=t.dataset,o=curOp();
   if(d.facet)return refreshFilteredView(t);
