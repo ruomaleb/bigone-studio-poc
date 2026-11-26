@@ -42,7 +42,10 @@ for(const tab of ['magasins','modeles','droits','connexions']){
 }
 // Une priorité BAT doit mener à la bonne variante, même après un rechargement.
 run(`S.supports.push({id:'meta-id',op:'qa-design',type:'Bannières Meta',prod:true,statut:'bat',bat:2,rev:2});`);
+assert.ok(!run('vAccueil()').includes('id="priority-filter"'));
+run('suiviOpen=true');
 assert.ok(run('vAccueil()').includes('#production--qa-design--support-meta-id'));
+run('suiviOpen=false');
 location.hash='#production--qa-design--support-meta-id';
 assert.ok(run('vProduction(route().tab)').includes('Préparer le paquet Media'));
 location.hash='#production--qa-design--support-inconnu';
@@ -102,4 +105,30 @@ assert.ok(run("fichierHtml('V1.pdf').includes('nom de fichier')"));
 assert.ok(run("!fichierHtml('javascript:alert(1)').includes('<a ')"));
 assert.ok(run("fichierHtml('https://example.org/affiche.pdf').includes('<a ')"));
 
+// Les recherches mènent au dossier, au document et à la révision correspondants.
+run(`S.operations.push({id:'clos',nom:'Automne',cloture:true,debut:'2026-09-01',fin:'2026-09-10'});
+  S.produits.push({id:'autre',op:'clos',libelle:'Jardinière',ref:'ARC-91',prix:18});
+  national.archives=[{rev:1,fichier:'https://example.org/Catalogue%20archive.pdf'}];
+  national.rev=2;national.fichier='https://example.org/Affiche-final.pdf';
+  S.supports.push({id:'prep',op:'op',type:'Prospectus',prod:false,remise:'2027-03-02'})`);
+assert.equal(run("findItems('produits','jardiniere','').length"),2);
+assert.equal(run("findItems('produits','arc-91','')[0].href"),'#preparation--clos--offres--autre');
+assert.equal(run("findItems('produits','arc-91','op').length"),0);
+assert.equal(run("findItems('supports','Prospectus','')[0].href"),'#preparation--op--dispositif--prep');
+assert.equal(run("findItems('assets','Prospectus','').length"),0);
+assert.equal(run("findItems('assets','catalogue archive','')[0].href"),'#production--op--support-affiche--rev-1');
+location.hash='#preparation--clos--offres--autre';
+assert.ok(run("vPreparation(route().tab,route().context)").includes('18,00 €'));
+location.hash='#preparation--op--offres--autre';
+assert.ok(run("vPreparation(route().tab,route().context)").includes('Ce produit est indisponible'));
+location.hash='#production--op--support-affiche--rev-1';
+assert.match(run("vProduction(route().tab,route().context)"),/Catalogue%20archive.pdf/);
+assert.ok(!run("vProduction(route().tab,route().context)").includes('Affiche-final.pdf'));
+location.hash='#preparation--inconnue--offres--produit';
+assert.equal(run('route().v'),'absent');
+location.hash='#contenus--produits?q=ARC-91&op=clos';
+assert.equal(run('route().tab'),'produits');
+assert.ok(run('vDirectory(route().tab)').includes('#preparation--clos--offres--autre'));
+location.hash='#accueil?q=ARC-91';
+assert.ok(run('vAccueil()').includes('#preparation--clos--offres--autre'));
 console.log(JSON.stringify({result:'PASS',checks:'5 onglets préparation, continuité production, 4 rubriques administration, routes inconnues, états vides, données échappées, assets locaux',contrast:ratios},null,2));
