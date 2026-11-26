@@ -75,7 +75,7 @@ const ratios=[];
 for(const [fg,bg] of [['111721','ffffff'],['626571','ffffff'],['626571','f5f5fb'],['7440dd','ffffff'],['7440dd','f4f0ff'],['033fe2','eef3ff'],['236842','eaf5ed'],['994d0c','fff4e6'],['b42336','fff0f2'],['ffffff','111721']]){
  const a=lum(fg),b=lum(bg),ratio=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);assert.ok(ratio>=4.5,`${fg}/${bg}: ${ratio}`);ratios.push({foreground:'#'+fg,background:'#'+bg,ratio:+ratio.toFixed(2)});
 }
-for(const file of ['bigone-logo.png','fonts/gilmer-400.otf','fonts/gilmer-700.otf','fonts/diagramm-700.otf'])assert.ok(fs.statSync(path.join(root,'assets',file)).size>1000);
+for(const file of ['preparation.webp','produits.webp','production.webp','bigone-logo.png','fonts/gilmer-400.otf','fonts/gilmer-700.otf','fonts/diagramm-700.otf'])assert.ok(fs.statSync(path.join(root,'assets',file)).size>1000);
 assert.ok(!html.includes('fonts.googleapis.com'));
 assert.ok(!css.includes('#c2185b'));
 
