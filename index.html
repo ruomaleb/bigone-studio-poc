@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.5">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.6">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -24,6 +24,15 @@
   </header>
   <main id="view" tabindex="-1"></main>
 </div>
+<dialog id="product-dialog" aria-labelledby="product-dialog-title">
+  <header class="product-dialog-header">
+    <div><h2 id="product-dialog-title"></h2><p id="product-dialog-operation" class="muted"></p></div>
+    <button type="button" class="btn product-dialog-close" aria-label="Fermer la fiche produit" autofocus>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+  </header>
+  <div class="product-dialog-body"></div>
+</dialog>
 <dialog id="dlg"></dialog>
 <dialog id="acces-dialog" aria-labelledby="acces-titre">
   <form id="acces-form">
@@ -37,12 +46,12 @@
 </dialog>
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="assets/list-filters.js?v=2026-11-26.5"></script>
+<script src="assets/list-filters.js?v=2026-11-26.6"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-26.5';
+const VERSION='2026-11-26.6';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -188,7 +197,7 @@ async function charger(){const e0=ecrits;try{const r=await fetch(SB+'/rest/v1/do
     if(sig===charger.sig&&status==='ok')return true;charger.sig=sig;Object.keys(S).forEach(k=>N[k]=[]);
     rows.forEach(x=>{if(N[x.col])N[x.col].push(Object.assign({id:x.id},x.data,{_v:x.version}))});Object.assign(S,N);status='ok';schedule();return true}catch(e){if(status!=='ok')status='err';schedule();return false}}
 async function init(){render();
-  if(PUBLIC){await charger();if(CODE&&!ROLE)rpc({p_code:CODE,p_op:'check'}).then(r=>{if(r&&r.ok===true)retenirCode(CODE,r);else oublierCode();render()}).catch(()=>{});setInterval(()=>{if(!document.hidden&&!$('#dlg').open&&!$('#acces-dialog').open)charger()},20000);return}
+  if(PUBLIC){await charger();if(CODE&&!ROLE)rpc({p_code:CODE,p_op:'check'}).then(r=>{if(r&&r.ok===true)retenirCode(CODE,r);else oublierCode();render()}).catch(()=>{});setInterval(()=>{if(!document.hidden&&!$('#dlg').open&&!$('#acces-dialog').open&&!$('#product-dialog').open)charger()},20000);return}
   let n=0;while(!(window.claude&&window.claude.use)&&n++<30)await new Promise(r=>setTimeout(r,100));
   if(!(window.claude&&window.claude.use)){status='nodb';return render()}
   timer=setTimeout(()=>{if(status==='loading'){status='slow';render()}},10000);
@@ -360,9 +369,12 @@ function contentRow(r,kind,icon=kind){
   const meta=[...(kind==='operations'?[]:[r.o.nom]),...r.meta,r.badge].filter(Boolean);
   return `<a class="content-row" href="${esc(r.href)}"><span class="row-icon">${uiIcon(icon)}</span><span class="row-copy"><strong>${esc(r.name)}</strong>${meta.length?`<small>${esc(meta.join(' · '))}</small>`:''}</span><span class="row-open" aria-hidden="true">${uiIcon('chevron')}</span></a>`;
 }
+function productDialogAttrs(r){
+  return `data-product-id="${esc(r.record.id)}" data-operation-id="${esc(r.o.id)}" aria-haspopup="dialog" aria-controls="product-dialog"`;
+}
 function contentCard(r,kind){
   const meta=r.meta.filter(Boolean).join(' · ');
-  return `<a class="content-row object-card" href="${esc(r.href)}">
+  return `<a class="content-row object-card" href="${esc(r.href)}"${kind==='produits'?' '+productDialogAttrs(r):''}>
     <span class="object-head"><span class="row-icon">${uiIcon(kind)}</span><span class="object-badge">${esc(r.badge)}</span></span>
     <span class="row-copy"><strong>${esc(r.name)}</strong>${meta?`<small>${esc(meta)}</small>`:''}</span>
     <span class="object-foot"><span>${uiIcon('operations')}${esc(r.o.nom)}</span><span class="row-open" aria-hidden="true">${uiIcon('chevron')}</span></span>
@@ -398,7 +410,7 @@ function productViewSwitch(mode){
 function productTable(rows){
   const body=rows.map(r=>{
     const p=r.record;
-    return `<tr><td><a class="product-name" href="${esc(r.href)}">${esc(r.name)}</a>
+    return `<tr><td><a class="product-name" href="${esc(r.href)}" ${productDialogAttrs(r)}>${esc(r.name)}</a>
       ${p.ref?`<small>Réf. ${esc(p.ref)}</small>`:''}
       <small class="product-context">${esc([p.marque,p.rayon,r.o.nom].filter(Boolean).join(' · '))}</small></td>
       <td class="product-dimension">${esc(p.marque||'—')}</td><td class="product-dimension">${esc(p.rayon||'—')}</td>
@@ -493,17 +505,49 @@ function productDetail(o,context){
   const back=`<a class="support-back" href="${esc(lien('preparation',o.id,'offres'))}">← Tous les produits de l’opération</a>`;
   const p=prodsOf(o.id).find(p=>encodeURIComponent(p.id)===context);
   if(!p)return back+vide('Ce produit est indisponible dans cette opération.');
+  return back+`<section class="card product-card"><div class="card-heading"><div class="icon-heading">${iconBadge('produits')}<h2>${esc(p.libelle||'Produit sans libellé')}</h2></div>${productEditButton(o,p)}</div>${productFacts(o,p)}</section>`;
+}
+function productEditButton(o,p){
+  return o.cloture?'':`<button class="btn sm" data-prod="${esc(p.id)}">Modifier le produit</button>`;
+}
+function productFacts(o,p){
   const fields=[['Référence',p.ref],['Marque',p.marque],['Rayon',p.rayon],['Conditionnement',p.unite],
     ['Prix de vente',p.prix==null?'À renseigner':prixTxt(p.prix)],['Prix barré',p.barre!=null?prixTxt(p.barre):''],
     ['Offre',mecaTxt(p)],['Validité',p.validDu||p.validAu?fd(p.validDu||o.debut)+' → '+fd(p.validAu||o.fin):''],
     ['Origine',p.origine],['Mention légale',p.mention]];
   const supports=supsOf(o.id).filter(s=>!baseDe(s).institutionnel&&utilise(s,p));
-  return back+`<section class="card product-card"><div class="card-heading"><div class="icon-heading">${iconBadge('produits')}<h2>${esc(p.libelle||'Produit sans libellé')}</h2></div>
-    ${o.cloture?'':`<button class="btn sm" data-prod="${esc(p.id)}">Modifier le produit</button>`}</div>
-    ${p.description?`<p>${esc(p.description)}</p>`:''}
+  return `${p.description?`<p>${esc(p.description)}</p>`:''}
     <dl class="product-facts">${fields.filter(([,v])=>v).map(([label,value])=>`<div${label==='Prix de vente'?' class="product-price"':''}><dt>${label}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>
-    <h3>Supports utilisant ce produit</h3><div>${supports.map(s=>contentRow({o,name:titre(s),meta:[typ(s).pagine?'Page '+place(p,s):'',s.prixVar?.[p.id]!=null?'Prix local '+prixTxt(s.prixVar[p.id]):''],href:innerLink(o.id,'dispositif',s.id)},'operations','supports')).join('')||vide('Aucun support associé.')}</div></section>`;
+    <h3>Supports utilisant ce produit</h3><div>${supports.map(s=>contentRow({o,name:titre(s),meta:[typ(s).pagine?'Page '+place(p,s):'',s.prixVar?.[p.id]!=null?'Prix local '+prixTxt(s.prixVar[p.id]):''],href:innerLink(o.id,'dispositif',s.id)},'operations','supports')).join('')||vide('Aucun support associé.')}</div>`;
 }
+const productDialog=$('#product-dialog');
+let catalogNeedsRender=false;
+function refreshProductDialog(){
+  const o=opById(productDialog.dataset.operationId);
+  const p=o&&suivi(o)&&prodsOf(o.id).find(item=>item.id===productDialog.dataset.productId);
+  $('#product-dialog-title').textContent=p?.libelle||(p?'Produit sans libellé':'Produit indisponible');
+  $('#product-dialog-operation').textContent=o?.nom||'';
+  $('.product-dialog-body',productDialog).innerHTML=p?productFacts(o,p)+productEditButton(o,p):vide('Ce produit est indisponible dans cette opération.');
+}
+function openProductDialog(link){
+  const {productId,operationId}=link.dataset;
+  Object.assign(productDialog.dataset,{productId,operationId});
+  refreshProductDialog();
+  const hash=location.hash;
+  productDialog.onclose=()=>{
+    if(location.hash!==hash)return;
+    if(catalogNeedsRender){
+      const expanded=!!link.closest('details')?.open;
+      catalogNeedsRender=false;
+      render();
+      const target=Array.from(document.querySelectorAll('[data-product-id]')).find(el=>el.dataset.productId===productId&&el.dataset.operationId===operationId);
+      if(expanded&&target?.closest('details'))target.closest('details').open=true;
+      (target||$('#catalog-query')||$('#view')).focus({preventScroll:true});
+    }else if(link.isConnected)link.focus({preventScroll:true});
+  };
+  productDialog.showModal();
+}
+$('.product-dialog-close',productDialog).addEventListener('click',()=>productDialog.close());
 function tOffres(o,context){
   if(context)return productDetail(o,context);
   const ps=prodsOf(o.id),bs=basesOf(o.id),nu=nbBloq(utilisees(o)),nb=nbBloq(ps),na=ps.reduce((n,p)=>n+controles(p).a.length,0);
@@ -654,7 +698,10 @@ function vAdministration(tab){let content='';
 const VUES={accueil:vAccueil,contenus:vDirectory,absent:vAbsent,preparation:vPreparation,production:vProduction,administration:vAdministration};
 function vAbsent(v){return banner()+(status==='ok'?vide('Cette opération est indisponible.'):'')+`<a href="${directoryLink(v==='production'?'assets':'operations')}">Retour aux contenus</a>`}
 function profilAcces(){return ROLE==='responsable'?'Responsable':ROLE==='editeur'?'Éditeur':'Accès en cours de vérification'}
-function render(){const r=route(),o=curOp(),inOp=r.v==='preparation'||r.v==='production';
+function render(){
+ if(productDialog.open){catalogNeedsRender=true;refreshProductDialog();return}
+ catalogNeedsRender=false;
+ const r=route(),o=curOp(),inOp=r.v==='preparation'||r.v==='production';
  const dir=r.v==='contenus'?r.tab:r.v==='production'?'assets':r.v==='preparation'?(r.tab==='offres'?'produits':r.tab==='dispositif'?'supports':'operations'):null;
  const active=dir?directories[dir].nav:r.v==='accueil'?'pilotage':r.v;
  document.querySelectorAll('.global-nav a[data-v]').forEach(a=>{if(a.dataset.v===active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
@@ -780,7 +827,7 @@ function fOp(o){
     const id=uid('op');if(!await w('operations/'+id,Object.assign(data,{suivi:true,brief:{},source:null}),'set'))return false;await log(id,'Dossier créé.');aller('preparation',id,'cadrage');return true})}
 function fBrief(o){const b=o.brief||{};form('Brief de l\'opération',[{k:'objectif',l:'Objectif commercial',t:'area',v:b.objectif,req:1},{k:'contacts',t:'info',l:'Renseignez au moins un contact pour le suivi du dossier.'},{k:'client',l:'Pilote côté enseigne',v:b.client},{k:'responsable',l:'Contact agence (Nanotera)',v:b.responsable},{k:'notes',l:'Contraintes et décisions à retenir',t:'area',v:b.notes}],async r=>{if(!briefComplet(r))return 'Indiquez le pilote côté enseigne ou le contact agence.';if(JSON.stringify([b.objectif||'',b.responsable||'',b.client||'',b.notes||''])===JSON.stringify([r.objectif,r.responsable,r.client,r.notes]))return true;if(!await w('operations/'+o.id,{brief:r}))return false;if(!b.objectif)await log(o.id,'Brief renseigné (responsable : '+(r.client||r.responsable)+').');else await log(o.id,'Brief modifié.',supsOf(o.id).some(enProd)?'modif':'');return true})}
 const usageAuto=s=>{const b=baseDe(s);return !typ(b).pagine&&!b.produits&&!b.institutionnel};
-function fProd(p){const o=curOp();
+function fProd(p,o=curOp()){
   form(p?'Modifier l\'offre':'Ajouter une offre',[{k:'libelle',l:'Libellé du produit',v:p&&p.libelle,req:1},{k:'ref',l:'Référence produit (SKU, EAN ou code interne)',v:p&&p.ref},{k:'marque',l:'Marque',v:p&&p.marque},{k:'unite',l:'Conditionnement (ex. 2 L, lot de 3, le kg)',v:p&&p.unite},{k:'description',l:'Description',t:'area',v:p&&p.description},{k:'rayon',l:'Rayon',t:'select',o:[['','—'],...[...new Set([...RAYONS,...(p&&p.rayon?[p.rayon]:[])])].map(x=>[x,x])],v:p&&p.rayon},
     {k:'mecaType',l:'Type d\'offre',t:'select',o:Object.entries(MECA),v:p&&p.mecaType||(p?.barre!=null?'remise':p?.lotQte?'lot':p?.condition?'cond':'simple')},{k:'prix',l:'Prix de l\'offre (€)',t:'number',v:p&&p.prix},{k:'barre',when:'remise',l:'Prix de référence barré (€)',t:'number',v:p&&p.barre},{k:'lotQte',when:'lot',l:'Nombre d’unités du lot',t:'int',v:p&&p.lotQte},{k:'condition',when:'cond',l:'Condition de l\'avantage (ex. avec la carte de fidélité)',v:p&&p.condition},{k:'mecanique',l:'Libellé affiché de la mécanique (facultatif)',v:p?p.mecanique:''},{k:'validDu',l:'Validité : du (si différente de l\'opération)',t:'date',v:p&&p.validDu},{k:'validAu',l:'Validité : au',t:'date',v:p&&p.validAu},{k:'origine',l:'Origine',v:p&&p.origine},{k:'mention',l:'Mention légale',v:p&&p.mention}],async r=>{
     if(r.validDu&&r.validAu&&r.validAu<r.validDu)return 'La fin de validité précède son début.';
@@ -1030,6 +1077,12 @@ document.addEventListener('click',async e=>{
     target.scrollIntoView({block:'start'});
     return;
   }
+  const productLink=e.target.closest('[data-product-id]');
+  if(productLink){
+    if(e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+    e.preventDefault();
+    return openProductDialog(productLink);
+  }
   const viewButton=e.target.closest('[data-product-view]');
   if(viewButton){
     const mode=viewButton.dataset.productView,params=filterParams();
@@ -1043,7 +1096,9 @@ document.addEventListener('click',async e=>{
   }
   const reset=e.target.closest('[data-reset-filters]');
   if(reset)return refreshFilteredView(reset,reset.dataset.resetFilters);
-  const t=e.target.closest('[data-act],[data-correction],[data-prod],[data-chk],[data-rev],[data-brief],[data-rub],[data-sup-edit],[data-ouvrir],[data-retro],[data-addpage],[data-chip],[data-choix],[data-engsup],[data-var-new],[data-var-edit],[data-apercu],[data-paquet],[data-vue],[data-mag]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act,sup=id=>S.supports.find(s=>s.id===id);
+  const t=e.target.closest('[data-act],[data-correction],[data-prod],[data-chk],[data-rev],[data-brief],[data-rub],[data-sup-edit],[data-ouvrir],[data-retro],[data-addpage],[data-chip],[data-choix],[data-engsup],[data-var-new],[data-var-edit],[data-apercu],[data-paquet],[data-vue],[data-mag]');if(!t)return;
+  const d=t.dataset,a=d.act,sup=id=>S.supports.find(s=>s.id===id);
+  const o=t.closest('#product-dialog')?opById(productDialog.dataset.operationId):curOp();
   if(a==='code')return askCode();
 
   if(d.brief)return copier(brief(sup(d.brief)),'Brief copié. Collez-le dans votre message ou votre carte de suivi.');
@@ -1058,7 +1113,11 @@ document.addEventListener('click',async e=>{
   if(!o)return;
   if(d.correction&&!o.cloture)return setStat(sup(d.correction),'corrections');
   if(o.cloture&&a!=='note'&&a!=='rouvrir')return toast('Production clôturée : rouvrez le dossier pour le modifier.');
-  if(d.prod)return fProd(S.produits.find(p=>p.id===d.prod));
+  if(d.prod){
+    const p=prodsOf(o.id).find(item=>item.id===d.prod);
+    if(p)return fProd(p,o);
+    return toast('Ce produit est indisponible dans cette opération.');
+  }
   if(d.chk)return fChk(sup(d.chk));
   if(d.rev)return fRev(sup(d.rev));
   if(d.supEdit)return fSup(sup(d.supEdit));
@@ -1131,7 +1190,7 @@ document.addEventListener('dragover',e=>{const p=e.target.closest&&e.target.clos
 document.addEventListener('dragleave',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p)p.classList.remove('over')});
 document.addEventListener('drop',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();if(peutEcrire()&&!curOp().cloture)placer(S.supports.find(s=>s.id===p.dataset.sup),e.dataTransfer.getData('text/plain'),+p.dataset.page)}});
 document.querySelector('.skip-link').addEventListener('click',e=>{e.preventDefault();$('#view').focus();$('#view').scrollIntoView({block:'start'})});
-window.addEventListener('hashchange',()=>{render();$('#view').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'})});
+window.addEventListener('hashchange',()=>{if(productDialog.open)productDialog.close();render();$('#view').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'})});
 init();
 </script>
 </body>
