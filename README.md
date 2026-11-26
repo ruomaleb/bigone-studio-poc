@@ -3,7 +3,7 @@
 Prototype Nanotera : Pilotage, Préparation, Production et Administration.
 
 - Application : https://ruomaleb.github.io/bigone-studio-poc/
-- Version : **2026-11-26.4** — filtres métier combinables et tri des listes dans le pilotage, les catalogues, les dossiers et les référentiels.
+- Version : **2026-11-26.5** — affichage du catalogue produits en cartes ou en liste, avec conservation du tri et des filtres.
 - Identité et références : [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
 - Recette et limites : [docs/QA_REFONTE_20261116.md](docs/QA_REFONTE_20261116.md).
 
@@ -29,6 +29,6 @@ Version publiée avant cette évolution : **2026-11-16.2**, commit `bfdbaf6e768b
 1. Relire et intégrer la branche de refonte dans `main`.
 2. Reporter la version validée sur `gh-pages` par avance rapide ou fusion normale, sans forcer l'historique.
 3. Attendre la réussite du déploiement Pages.
-4. Vérifier l'URL publique, la version `2026-11-26.4` en pied de page, les polices, le logo et les routes profondes.
+4. Vérifier l'URL publique, la version `2026-11-26.5` en pied de page, les polices, le logo et les routes profondes.
 
 Retour arrière : revert explicite. Aucun changement de base, de droits serveur ou d'hébergement n'est nécessaire pour cette refonte.

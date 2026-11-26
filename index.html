@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.4">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.5">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -37,12 +37,12 @@
 </dialog>
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="assets/list-filters.js?v=2026-11-26.4"></script>
+<script src="assets/list-filters.js?v=2026-11-26.5"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-26.4';
+const VERSION='2026-11-26.5';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -245,6 +245,7 @@ function actions(o){const b=o.brief||{},ss=supsOf(o.id),nu=nbBloq(utilisees(o)),
 /* En-tête et navigation uniques du dossier, partagés par Préparation et Production. */
 const iconPaths={
   home:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/>',
   operations:'<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
   produits:'<path d="M3 4h9l9 9-8 8L3 11Z"/><circle cx="8" cy="9" r="1.4"/>',
   assets:'<path d="M3 7h13v12H3zM6 4h13v12M9 1h13v12M5 16l3-3 2 2 2-3 2 4"/>',
@@ -384,10 +385,33 @@ function operationResults(){
     categories.map(k=>{const group=list.visible.filter(r=>r.contenu===k);
       return group.length?`<section class="result-group"><div class="result-heading">${iconBadge(k)}<h2>${directories[k].item}</h2><span class="count">${group.length}</span></div>${rowsBlock(group,k,5)}</section>`:''}).join('');
 }
-function directoryResults(kind,query,operation,list){
+let preferredProductView='cartes';
+try{if(localStorage.getItem('bos-produits-vue')==='liste')preferredProductView='liste'}catch{}
+function productView(){
+  const mode=filterParams().get('vue');
+  return mode==='liste'||mode==='cartes'?mode:preferredProductView;
+}
+function productViewSwitch(mode){
+  return `<div class="product-view-switch" role="group" aria-label="Affichage des produits">${[['cartes','Cartes','home'],['liste','Liste','list']].map(([key,label,icon])=>
+    `<button type="button" data-product-view="${key}" aria-pressed="${mode===key}">${uiIcon(icon)}${label}</button>`).join('')}</div>`;
+}
+function productTable(rows){
+  const body=rows.map(r=>{
+    const p=r.record;
+    return `<tr><td><a class="product-name" href="${esc(r.href)}">${esc(r.name)}</a>
+      ${p.ref?`<small>Réf. ${esc(p.ref)}</small>`:''}
+      <small class="product-context">${esc([p.marque,p.rayon,r.o.nom].filter(Boolean).join(' · '))}</small></td>
+      <td class="product-dimension">${esc(p.marque||'—')}</td><td class="product-dimension">${esc(p.rayon||'—')}</td>
+      <td class="product-price">${esc(r.badge)}</td><td class="product-dimension">${esc(r.o.nom)}</td></tr>`;
+  }).join('');
+  return `<div class="product-table-wrap"><table class="product-table" aria-label="Liste des produits"><thead><tr><th scope="col">Produit</th>
+    <th scope="col" class="product-dimension">Marque</th><th scope="col" class="product-dimension">Rayon</th>
+    <th scope="col" class="product-price">Prix</th><th scope="col" class="product-dimension">Opération</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+function directoryResults(kind,operation,list,mode){
   const rows=list.visible,o=opById(operation);
   const opLink=o&&suivi(o)?`<a class="directory-operation" href="${esc(kind==='assets'?lien('production',o.id):lien('preparation',o.id,kind==='produits'?'offres':'dispositif'))}">${kind==='assets'?'Production de l’opération':kind==='produits'?'Gérer les produits de l’opération':'Gérer les supports de l’opération'} →</a>`:'';
-  if(rows.length)return opLink+ `<p class="result-count" role="status">${rows.length} résultat${rows.length>1?'s':''}</p>${rowsBlock(rows,kind,24,kind==='produits'||kind==='assets')}`;
+  if(rows.length)return opLink+ `<p class="result-count" role="status">${rows.length} résultat${rows.length>1?'s':''}</p>${kind==='produits'&&mode==='liste'?productTable(rows):rowsBlock(rows,kind,24,kind==='produits'||kind==='assets')}`;
   if(list.changed)return opLink+'<p role="status">Aucun résultat avec ces filtres.</p>';
   const texts={operations:'Aucune opération suivie.',supports:'Aucun support préparé.',produits:'Aucun produit dans les opérations suivies.',assets:'Aucun support ouvert en production.'};
   return vide(texts[kind])+(kind==='operations'?'<button class="btn pri" data-act="new-op">Créer une opération</button>':`<a href="${directoryLink(kind==='assets'?'supports':'operations')}">${kind==='assets'?'Ouvrir les supports en préparation':'Ouvrir les opérations'}</a>`);
@@ -399,14 +423,14 @@ function directoryState(){
 function vDirectory(kind){
   const d=directories[kind],{q,op}=directoryState(),ops=sorted().filter(suivi);
   const list=filterList(contentItems(kind),contentFilters[kind],contentSorts[kind],{query:q,searchKey:'q',matches:matchesContent,ids:{op:'catalog-op'},options:{op:ops.map(o=>o.id)}});
-  const prep=d.nav==='preparation';
-  const heading=`<div class="hd"><div class="icon-heading">${iconBadge(kind)}<h1>${d.label}</h1></div>${prep?'<button class="btn pri" data-act="new-op">Créer une opération</button>':''}</div>${banner()}`;
+  const prep=d.nav==='preparation',mode=kind==='produits'?productView():null;
+  const heading=`<div class="hd"><div class="icon-heading">${iconBadge(kind)}<h1>${d.label}</h1></div>${mode?productViewSwitch(mode):''}${prep?'<button class="btn pri" data-act="new-op">Créer une opération</button>':''}</div>${banner()}`;
   const navigation=`<aside class="catalog-sidebar">
     ${prep?`<nav class="workspace-menu" aria-label="Contenus de préparation"><p>Préparation</p>${['operations','supports'].map(k=>`<a href="${directoryLink(k)}"${k===kind?' aria-current="page"':''}>${uiIcon(k)}${directories[k].item}</a>`).join('')}</nav>`:''}
     ${list.toolbar}</aside>`;
   const placeholders={operations:'Rechercher une opération, une enseigne ou un pilote…',supports:'Rechercher un support, un format ou un magasin…',produits:'Rechercher un libellé, une référence ou un rayon…',assets:'Rechercher un fichier, un support, un BAT ou un magasin…'};
   const search=`<label class="home-search" for="catalog-query">${uiIcon('search')}<span class="visually-hidden">Rechercher</span><input type="search" id="catalog-query" value="${esc(q)}" placeholder="${placeholders[kind]}"></label>`;
-  return workspace(navigation,search+`<section class="result-panel" id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,q,op,list):''}</section>`,heading);
+  return workspace(navigation,search+`<section class="result-panel" id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,op,list,mode):''}</section>`,heading);
 }
 function suiviContent(ops){
  const rank={crit:0,warn:1,ok:2};
@@ -1004,6 +1028,17 @@ document.addEventListener('click',async e=>{
     const heading=target.querySelector('summary')||target;
     heading.focus({preventScroll:true});
     target.scrollIntoView({block:'start'});
+    return;
+  }
+  const viewButton=e.target.closest('[data-product-view]');
+  if(viewButton){
+    const mode=viewButton.dataset.productView,params=filterParams();
+    preferredProductView=mode;
+    try{localStorage.setItem('bos-produits-vue',mode)}catch{}
+    params.set('vue',mode);
+    writeFilterParams(params);
+    render();
+    document.querySelector(`[data-product-view="${mode}"]`)?.focus({preventScroll:true});
     return;
   }
   const reset=e.target.closest('[data-reset-filters]');
