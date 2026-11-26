@@ -17,6 +17,12 @@ const context=vm.createContext({document,location,window:{addEventListener(){},h
 vm.runInContext(js,context);
 const run=s=>vm.runInContext(s,context);
 run(`S.operations.push({id:'qa-design',nom:'Opération <test> & prix',reseau:'Réseau QA',debut:'2027-01-05',fin:'2027-01-17',brief:{objectif:'Trafic',responsable:'QA'}});cur='qa-design';status='ok';`);
+assert.equal(run("banner()"),'');
+assert.equal(run("src('demo')"),'');
+assert.ok(run("src('public')").includes('Relevé public'));
+assert.equal(html.match(/data-act="code"/g)?.length,1);
+assert.ok(html.includes('aria-controls="acces-dialog"'));
+assert.ok(!run("vAdministration('droits')").includes('prototype'));
 for(const tab of ['cadrage','offres','magasins','dispositif','calendrier']){
   location.hash='#preparation--qa-design--'+tab;
   assert.equal(run('route().tab'),tab);
