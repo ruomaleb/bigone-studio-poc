@@ -165,4 +165,20 @@ assert.match(run("vDirectory('produits')"),/data-product-id="autre" data-operati
 assert.ok(!run("productEditButton(opById('clos'),S.produits.find(p=>p.id==='autre'))").includes('data-prod'));
 location.hash='#contenus--assets?vue=liste';
 assert.ok(!run("vDirectory('assets')").includes('data-product-view'));
+// Depuis le support, la fiche conserve la sélection et les prix de la variante.
+location.hash='#preparation--op--dispositif--locale';
+const variantProducts=run("supportProducts(local,opById('op'))");
+assert.match(variantProducts,/19,90 €/);
+assert.match(variantProducts,/Prix local/);
+assert.match(variantProducts,/data-product-id="produit" data-operation-id="op"/);
+assert.doesNotMatch(variantProducts,/data-choix=|ARC-91/);
+assert.match(run("supportProducts(national,opById('op'))"),/22,90 €/);
+location.hash='#preparation--op--dispositif--locale?q=jardiniere';
+assert.match(run("supportProducts(local,opById('op'))"),/data-product-id="produit"/);
+location.hash='#preparation--op--dispositif--locale?rayon=Inexistant';
+assert.match(run("supportProducts(local,opById('op'))"),/Aucun produit ne correspond/);
+location.hash='#preparation--op--dispositif--affiche';
+assert.match(run("supportProducts({...national,produits:[]},opById('op'))"),/Aucune offre sélectionnée/);
+assert.match(run("supportProducts({...national,institutionnel:true},opById('op'))"),/aucune offre attendue/);
+assert.match(run("tDispositif(opById('op'),'affiche')"),/<h1 id="support-name">/);
 console.log(JSON.stringify({result:'PASS',checks:'5 onglets préparation, continuité production, 4 rubriques administration, routes inconnues, états vides, données échappées, assets locaux',contrast:ratios},null,2));
