@@ -370,3 +370,30 @@ details[open]>summary{margin-bottom:8px}
 @media(min-width:901px){.workspace-grid.with-heading:has(>.catalog-sidebar){grid-template-rows:max-content 1fr}}
 @media(max-width:900px){.catalog-sidebar:has(.list-filters){max-height:none;overflow:visible}.catalog-sidebar .filter-fields{grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr))}}
 @media(max-width:650px){.filter-fields,.catalog-sidebar .filter-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.list-filters{padding:11px}.filter-fields select{padding-inline:6px;min-height:44px}.filters-heading{margin-bottom:6px}.filter-reset{min-height:34px}}
+
+/* Affichage du catalogue produits */
+.product-view-switch{display:inline-flex;align-self:center;align-items:center;gap:2px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.product-view-switch button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 12px;font:600 13px var(--body);border:0;border-radius:5px;color:var(--muted);background:transparent;cursor:pointer}
+.product-view-switch button:hover{background:var(--soft);color:var(--ink)}
+.product-view-switch button[aria-pressed="true"]{background:var(--violet-soft);color:var(--violet-text)}
+.product-view-switch .icon{width:16px;height:16px}
+.product-table-wrap{container-type:inline-size;border:1px solid var(--line);border-radius:8px}
+.product-table th:first-child{border-top-left-radius:8px}
+.product-table th:last-child{border-top-right-radius:8px}
+.product-table td{padding:10px 14px;vertical-align:middle;overflow-wrap:anywhere}
+.product-table small{display:block;margin-top:2px;color:var(--muted);font-size:12px}
+.product-table small.product-context{display:none}
+.product-table .product-name{font-weight:700;color:var(--accent);text-underline-offset:3px}
+.product-table .product-price{text-align:right;font-variant-numeric:tabular-nums}
+.product-table td.product-price{font-weight:700;width:9em}
+@container (max-width:640px){
+  .product-table .product-dimension{display:none}
+  .product-table small.product-context{display:block}
+  .product-table th,.product-table td{padding:9px 10px}
+  .product-table td.product-price{width:7.2em}
+  .product-table .product-name{display:inline-flex;align-items:center;min-height:28px}
+}
+@media(max-width:650px){
+  .product-view-switch{align-self:flex-start}
+  .product-view-switch button{min-height:44px}
+}

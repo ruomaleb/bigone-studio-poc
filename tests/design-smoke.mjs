@@ -150,4 +150,16 @@ location.hash='#contenus--assets?version=Archivée';
 assert.equal(run("filterList(contentItems('assets'),contentFilters.assets,contentSorts.assets).visible[0].href"),'#production--op--support-affiche--rev-1');
 location.hash='#contenus--produits?rayon=Inexistant';
 assert.match(run("vDirectory('produits')"),/Aucun résultat avec ces filtres/);
+// Le même ensemble filtré ouvre les mêmes fiches dans les deux affichages.
+location.hash='#contenus--produits?op=clos&tri=prix&vue=liste';
+const productList=run("vDirectory('produits')");
+assert.match(productList,/<table class="product-table"/);
+assert.match(productList,/href="#preparation--clos--offres--autre"/);
+assert.ok(!productList.includes('#preparation--op--offres--produit'));
+assert.match(productList,/Réf. ARC-91/);
+assert.match(productList,/18,00 €/);
+location.hash=location.hash.replace('vue=liste','vue=cartes');
+assert.match(run("vDirectory('produits')"),/content-row object-card/);
+location.hash='#contenus--assets?vue=liste';
+assert.ok(!run("vDirectory('assets')").includes('data-product-view'));
 console.log(JSON.stringify({result:'PASS',checks:'5 onglets préparation, continuité production, 4 rubriques administration, routes inconnues, états vides, données échappées, assets locaux',contrast:ratios},null,2));
