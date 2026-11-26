@@ -7,14 +7,14 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.1">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.2">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
 <div class="app">
   <header class="app-header">
     <a class="brand" href="#accueil" aria-label="BigOne Studio — vue d’ensemble"><img src="assets/bigone-logo.png" alt="BigOne" width="36" height="36"><span>Studio</span></a>
-    <nav class="global-nav" aria-label="Espaces Studio"><a href="#accueil" data-v="pilotage"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Pilotage</span></a><a href="#preparation" data-v="preparation"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3" fill="white"/><circle cx="16" cy="17" r="3" fill="white"/></svg><span>Préparation</span></a><a href="#production" data-v="production"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><span>Production</span></a><a href="#administration" data-v="administration" class="admin-link"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="16" cy="7" r="3" fill="white"/><circle cx="8" cy="17" r="3" fill="white"/></svg><span>Administration</span></a></nav><div class="suite-signature"><strong>BigOne</strong>par Nanotera</div>
+    <nav class="global-nav" aria-label="Espaces Studio"><a href="#accueil" data-v="pilotage"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Pilotage</span></a><a href="#contenus--operations" data-v="preparation"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3" fill="white"/><circle cx="16" cy="17" r="3" fill="white"/></svg><span>Préparation</span></a><a href="#contenus--produits" data-v="produits"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h9l9 9-8 8-10-10Z"/><circle cx="8" cy="9" r="1.4"/></svg><span>Produits</span></a><a href="#contenus--assets" data-v="production"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><span>Production</span></a><a href="#administration" data-v="administration" class="admin-link"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="16" cy="7" r="3" fill="white"/><circle cx="8" cy="17" r="3" fill="white"/></svg><span>Administration</span></a></nav><div class="suite-signature"><strong>BigOne</strong>par Nanotera</div>
     <button type="button" id="acces-studio" class="access-button" data-act="code" aria-haspopup="dialog" aria-controls="acces-dialog" aria-label="Saisir un code d’accès" title="Saisir un code d’accès" hidden>
       <svg width="24" height="24" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 25c3.6-3.1 14.8-11 14.8-16 0-2.5-1.5-4.2-3.6-4.2-2 0-3.5 1.2-4.2 3.3-.9-2.1-2.3-3.3-4.2-3.3-2.1 0-3.6 1.7-3.6 4.2 0 5 11.2 12.9 14.8 16"/>
@@ -41,7 +41,7 @@
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-26.1';
+const VERSION='2026-11-26.2';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -54,10 +54,10 @@ const FAMILLES={imprime:'Imprimé',numerique:'Numérique',flux:'Flux'};
 const MODELES={imprime:[['donnees','Données reçues',-15],['cdf','Chemin de fer validé',-12,1],['bat1','BAT 1 prêt pour revue',-8],['retours','Retours client',-6],['approb','BAT final approuvé',-2],['remise','Fichiers remis à l\'imprimeur',0]],
   numerique:[['donnees','Données reçues',-10],['cdf','Chemin de fer validé',-8,1],['bat1','BAT 1 prêt pour revue',-6],['approb','Approbation',-3],['remise','Remise pour mise en ligne',0]],
   flux:[['donnees','Offres prêtes pour le flux',-4],['approb','Contrôle du flux',-2],['remise','Flux déposé',0]]};
-const TABS=[['cadrage','Cadrage'],['offres','Offres'],['magasins','Engagements magasins'],['dispositif','Supports et variantes'],['calendrier','Calendrier']];
+const TABS=[['cadrage','Brief'],['offres','Produits et offres'],['dispositif','Supports'],['magasins','Magasins'],['calendrier','Calendrier']];
 const S={operations:[],produits:[],magasins:[],supports:[],taches:[],journal:[],chemins:[],engagements:[]};
-let db=null,status='loading',cur=null,compo=null,timer=null;
-let planningOpen=false;
+let db=null,status='loading',cur=null,timer=null;
+let planningOpen=false,suiviOpen=false;
 let priorityFilter='all', operationQuery='';
 try{cur=localStorage.getItem('bos-op')}catch(e){}
 let contexteOperation=cur;
@@ -122,7 +122,7 @@ function magsSup(s,o){const b=baseDe(s),eg=magsDe(o).filter(m=>{const e=eng(o,m)
   if(s.groupe)return eg.filter(m=>(s.magasinsVar||[]).includes(m.id));const pris=new Set(varsDe(b).flatMap(v=>v.magasinsVar||[]));return eg.filter(m=>!pris.has(m.id))}
 const SUPPORT_PREFIX='support-';
 const supportLink=s=>lien('production',s.op,SUPPORT_PREFIX+encodeURIComponent(s.id));
-const libStat=k=>STATUTS.find(x=>x[0]===k)[1],sansCoche=()=>Object.fromEntries(CHECKS.map(([k])=>[k,false]));
+const libStat=k=>STATUTS.find(x=>x[0]===k)?.[1]||'État à renseigner',sansCoche=()=>Object.fromEntries(CHECKS.map(([k])=>[k,false]));
 const FIGE=['bat','valide','livre'];
 const revue=s=>(s.batRev??(s.bat>0?1:0))===(s.rev||1);
 const gele=s=>FIGE.includes(s.statut)||revue(s)||s.statut==='corrections'||!!s.instantane;
@@ -199,12 +199,15 @@ async function init(){render();
 
 /* ---------- navigation : la vue, l'opération et l'onglet sont dans l'adresse ---------- */
 const lien=(v,id,tab)=>'#'+v+(id?'--'+id+(tab?'--'+tab:''):'');
-function route(){let [v,oid,tab,context]=(location.hash.slice(1)||'accueil').split('--');
+function route(){let [v,oid,tab,context]=(location.hash.slice(1).split('?')[0]||'accueil').split('--');
   if(v==='pilotage'){planningOpen=true;v='accueil';window.history.replaceState(null,'','#accueil')}
-  if(oid&&opById(oid))contexteOperation=oid;
-  if(oid&&opById(oid)&&oid!==cur){cur=oid;compo=null;try{localStorage.setItem('bos-op',cur)}catch(e){}}
-  if(v==='production')return {v,tab:tab?.startsWith(SUPPORT_PREFIX) ? tab.slice(SUPPORT_PREFIX.length) : null};
-  return {v:VUES[v]?v:'accueil',context:v==='preparation'&&basesOf(oid).some(b=>encodeURIComponent(b.id)===context)?context:null,tab:v==='administration'?(ADMIN_TABS.some(t=>t[0]===oid)?oid:'magasins'):TABS.some(t=>t[0]===tab)?tab:'cadrage'}}
+  if(v==='contenus'){return {v,tab:Object.hasOwn(directories,oid)?oid:'operations'}}
+  const dossier=v==='preparation'||v==='production';
+  if(dossier&&oid&&(!opById(oid)||!suivi(opById(oid))))return {v:'absent',tab:v};
+  if(dossier&&oid)contexteOperation=oid;
+  if(dossier&&oid&&oid!==cur){cur=oid;try{localStorage.setItem('bos-op',cur)}catch(e){}}
+  if(v==='production')return {v,tab:tab?.startsWith(SUPPORT_PREFIX) ? tab.slice(SUPPORT_PREFIX.length) : null,context};
+  return {v:Object.hasOwn(VUES,v)?v:'accueil',context:v==='preparation'?context:null,tab:v==='administration'?(ADMIN_TABS.some(t=>t[0]===oid)?oid:'magasins'):TABS.some(t=>t[0]===tab)?tab:'cadrage'}}
 function aller(v,id,tab){const h=lien(v,id,tab);if(location.hash===h)render();else location.hash=h}
 function curOp(){if(status==='loading'&&!S.operations.length)return null;let o=opById(cur);if(!o||!suivi(o)){o=sorted().find(x=>suivi(x)&&!x.cloture)||sorted().find(suivi);cur=o?o.id:null}return o}
 
@@ -239,17 +242,13 @@ function actions(o){const b=o.brief||{},ss=supsOf(o.id),nu=nbBloq(utilisees(o)),
   if(briefComplet(b) && !prodsOf(o.id).length && (!ss.length || ss.some(s=>!baseDe(s).institutionnel)))t.push({c:'warn',t:'Ajouter les offres',d:'Saisir une offre ou importer une matrice',o,h:lien('preparation',o.id,'offres')});
   if(!refusCloture(o).length)t.push({c:'ok',t:'Production à clôturer',d:'Tous les supports sont remis et à jour',o,h:lien('production',o.id)});return t}
 /* En-tête et navigation uniques du dossier, partagés par Préparation et Production. */
-function enTete(o,actif){const a=actions(o)[0],J=jalons(o),et=k=>(J.find(j=>j[0]===k)||[])[5]||'',onglets=[...TABS.map(([k,l])=>[lien('preparation',o.id,k),l,et(k),k===actif]),[lien('production',o.id),'Production',J[4][5],actif==='production']];
-  return `<div class="operation-strip"><div class="row" style="justify-content:space-between"><div class="row">${src(o.source)} ${phasePill(o)} ${alertPills(o)}</div><span class="small muted">${periode(o)}</span></div>
-  <div class="next-action"><b>Prochaine action</b>${a?`<a href="${a.h}">${esc(a.t)} · ${esc(a.d)}</a>`:'<span class="muted">'+(o.cloture?'Production clôturée.':'Aucune action en attente.')+'</span>'}</div></div>
-  <nav class="tabs" aria-label="Rubriques de l’opération">${onglets.map(([h,l,e,sel])=>`<a href="${h}"${sel?' aria-current="page"':''}>${l}<small>${e}</small></a>`).join('')}</nav>`}
-function operationHeading(o,espace,tab){return `<div class="hd"><div><p class="eyebrow">${espace==='production'?'Production des supports':'Préparation de l’opération'}</p><h1>${esc(o.nom)}</h1><p class="sub">${esc(resOp(o))} · ${espace==='production'?'Créations, révisions, contrôles et remise':'Offres, dispositif, calendrier et engagements'}</p></div>${opSelect(espace,tab)}</div>`}
-function operationAside(o){const b=o.brief||{},ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='engage').length;
- return `<aside class="dossier-aside" aria-label="Contexte de l’opération"><section class="summary-card"><span class="section-label">Opération</span><h3>${esc(o.nom)}</h3><div class="summary-line"><span>Période</span><strong>${periode(o)}</strong></div><div class="summary-line"><span>Réseau</span><strong>${esc(resOp(o))}</strong></div><div class="summary-line"><span>Pilote côté enseigne</span><strong>${esc(b.client||'—')}</strong></div><div class="summary-line"><span>Contact agence</span><strong>${esc(b.responsable||'—')}</strong></div><div class="summary-line"><span>Supports</span><strong>${supsOf(o.id).length}</strong></div><div class="summary-line"><span>Magasins engagés</span><strong>${ne} / ${ms.length}</strong></div></section><p class="context-note">Un même dossier pour préparer l’opération et produire ses supports. La préparation reste accessible pendant la production.</p></aside>`}
-function operationRow(o){const ms=magsDe(o),ne=ms.filter(m=>eng(o,m).statut==='engage').length,sp=supsOf(o.id).filter(enProd),a=alertes(o),prod=sp.length>0;return `<div class="operation-row"><div><strong>${esc(o.nom)}</strong><p>${periode(o)} · ${esc(resOp(o))}</p></div><div class="operation-state">${phasePill(o)}<small>${prod?sp.filter(s=>s.statut!=='livre').length+' support(s) à réaliser':ne+' / '+ms.length+' magasin(s) engagés'}${a.bloq?' · '+a.bloq+' anomalie(s)':''}</small></div><a class="btn sm" href="${lien(prod?'production':'preparation',o.id)}">${prod?'Voir la production':'Voir la préparation'}</a></div>`}
-
-
-/* ---------- Accueil : ce qu'il faut traiter maintenant ---------- */
+function enTete(o,actif){
+  const links=TABS.map(([k,label])=>[lien('preparation',o.id,k),label,k]);
+  links.push([lien('production',o.id),'Assets et BAT','production']);
+  return `<nav class="tabs dossier-tabs" aria-label="Rubriques de l’opération">${links.map(([h,label,k])=>`<a href="${esc(h)}"${k===actif?' aria-current="page"':''}>${label}</a>`).join('')}</nav>`;
+}
+function operationHeading(o,espace,tab){return `<div class="hd"><div><h1>${esc(o.nom)}</h1><p class="sub">${esc(resOp(o))} · ${periode(o)}${o.cloture?' · Dossier clôturé':''}</p></div>${opSelect(espace,tab)}</div>`}
+/* ---------- Pilotage, recherche et accès aux contenus ---------- */
 const priorityGroups = [
   ['all','Toutes'], ['crit','À débloquer'], ['warn','À examiner'], ['ok','Prêtes à poursuivre']
 ];
@@ -267,39 +266,129 @@ function priorityPanel(todo){
     ${visible.slice(0,3).map(row).join('') || vide('Aucune action dans cette sélection.')}
     ${visible.length>3?`<details><summary>Afficher les ${visible.length-3} autres actions</summary>${visible.slice(3).map(row).join('')}</details>`:''}</section>`;
 }
-function matchesOperation(o,query){
-  const normalize=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr');
-  return normalize([o.nom,resOp(o),...(o.enseignes||[]),o.brief?.client,o.brief?.responsable].filter(Boolean).join(' ')).includes(normalize(query.trim()));
+const directories={
+  operations:{label:'Préparation',nav:'preparation',hint:'Opérations, briefs et supports',item:'Opérations'},
+  supports:{label:'Préparation',nav:'preparation',item:'Supports à préparer'},
+  produits:{label:'Contenus produits',nav:'produits',hint:'Références, prix et offres',item:'Produits'},
+  assets:{label:'Production des assets',nav:'production',hint:'Fichiers, versions et BAT',item:'Assets et BAT'}
+};
+const directoryLink=key=>'#contenus--'+key;
+const innerLink=(op,tab,id)=>lien('preparation',op,tab)+'--'+encodeURIComponent(id);
+const normalized=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr');
+const operationTerms=o=>[o.nom,resOp(o),...(o.enseignes||[]),o.brief?.client,o.brief?.responsable].filter(Boolean).join(' ');
+function matchesOperation(o,query){return normalized(operationTerms(o)).includes(normalized(query.trim()))}
+function fileName(value){
+  if(!value)return '';
+  try{const url=new URL(value);const name=url.pathname.split('/').filter(Boolean).pop();return name?decodeURIComponent(name):url.hostname}catch{return value}
+}
+function contentItems(kind,operation){
+  const ops=sorted().filter(o=>suivi(o)&&(!operation||operation===o.id));
+  const byId=new Map(ops.map(o=>[o.id,o]));
+  if(kind==='operations')return ops.map(o=>({o,name:o.nom,meta:[resOp(o),periode(o),o.cloture?'Clôturée':''],href:lien('preparation',o.id,'cadrage')}));
+  if(kind==='produits')return S.produits.filter(p=>byId.has(p.op)).map(p=>({
+    o:byId.get(p.op),name:p.libelle||'Produit sans libellé',meta:[p.ref,p.marque,p.rayon,p.prix!=null?prixTxt(p.prix):'Prix à renseigner'],
+    terms:[p.description,p.unite,p.origine],href:innerLink(p.op,'offres',p.id)
+  }));
+  const rows=[];
+  for(const s of S.supports){
+    const o=byId.get(s.op);
+    if(!o||kind==='assets'&&!enProd(s))continue;
+    const name=titre(s),format=s.format||baseDe(s).format,family=FAMILLES[typ(s).f];
+    const stores=magsSup(s,o).map(m=>m.nom);
+    if(kind==='supports'){
+      rows.push({o,name,meta:[format,family,enProd(s)?'En production':'En préparation'],terms:stores,href:innerLink(o.id,'dispositif',s.id)});
+      continue;
+    }
+    const asset=(v,archived)=>({
+      o,name:fileName(v.fichier)||name,meta:[v.fichier?name:'Fichier à renseigner',v.format||format,'Rév. '+(v.rev||1),archived?'Archivée':libStat(s.statut)],
+      terms:[name,family,v.fichier,...(archived?[]:[s.bat?'BAT '+s.bat:'',...stores])],href:supportLink(s)+(archived?'--rev-'+v.rev:'')
+    });
+    rows.push(asset(s,false),...(s.archives||[]).map(v=>asset(v,true)));
+  }
+  return rows;
+}
+function findItems(kind,query,operation){
+  const words=normalized(query.trim()).split(/\s+/).filter(Boolean);
+  return contentItems(kind,operation).filter(r=>{
+    const fields=normalized([r.name,...r.meta,...(r.terms||[]),operationTerms(r.o)].join(' '));
+    return words.every(w=>fields.includes(w));
+  }).sort((a,b)=>Number(!!a.o.cloture)-Number(!!b.o.cloture)||a.name.localeCompare(b.name,'fr',{numeric:true}));
+}
+function contentRow(r,kind){
+  const meta=[...(kind==='operations'?[]:[r.o.nom]),...r.meta].filter(Boolean);
+  return `<a class="content-row" href="${esc(r.href)}"><span><strong>${esc(r.name)}</strong>${meta.length?`<small>${esc(meta.join(' · '))}</small>`:''}</span><span aria-hidden="true">→</span></a>`;
+}
+function rowsBlock(rows,kind,limit=24){
+  const renderRows=list=>list.map(r=>contentRow(r,kind)).join('');
+  const rest=rows.slice(limit);
+  return renderRows(rows.slice(0,limit))+(rest.length?`<details class="more-results"><summary>Afficher les ${rest.length} autres résultats</summary>${renderRows(rest)}</details>`:'');
 }
 function operationResults(ops){
-  if(operationQuery.trim())ops=sorted().filter(suivi);
-  const found=ops.filter(o=>matchesOperation(o,operationQuery));
-  return `<p class="small muted" role="status">${found.length} dossier${found.length>1?'s':''} sur ${ops.length}</p>
-    <div class="operation-list">${found.map(operationRow).join('') || vide(ops.length?'Aucune opération correspondante. Essayez un autre nom ou une enseigne.':'Aucun dossier ouvert. Créez votre première opération.')}</div>`;
+  if(!operationQuery.trim())return `<h2>Opérations ouvertes</h2>${rowsBlock(ops.map(o=>({o,name:o.nom,meta:[resOp(o),periode(o)],href:lien('preparation',o.id,'cadrage')})),'operations',5)||vide('Aucun dossier ouvert.')}`;
+  const groups=Object.keys(directories).map(k=>[k,findItems(k,operationQuery)]);
+  const count=groups.reduce((n,[,rows])=>n+rows.length,0);
+  return `<p class="result-count" role="status">${count?count+' résultat'+(count>1?'s':''):'Aucun résultat. Essayez un autre nom ou une référence.'}</p>`+
+    groups.filter(([,rows])=>rows.length).map(([k,rows])=>`<section class="result-group"><h2>${directories[k].item}</h2>${rowsBlock(rows,k,5)}</section>`).join('');
 }
-function vAccueil(){
- const ops=sorted().filter(o=>suivi(o)&&!o.cloture);
+function directoryResults(kind,query,operation){
+  const rows=findItems(kind,query,operation),o=opById(operation);
+  const opLink=o&&suivi(o)?`<a class="directory-operation" href="${esc(kind==='assets'?lien('production',o.id):lien('preparation',o.id,kind==='produits'?'offres':'dispositif'))}">${kind==='assets'?'Production de l’opération':kind==='produits'?'Gérer les produits de l’opération':'Gérer les supports de l’opération'} →</a>`:'';
+  if(rows.length)return opLink+ `<p class="result-count" role="status">${rows.length} résultat${rows.length>1?'s':''}</p>${rowsBlock(rows,kind)}`;
+  if(query||operation)return opLink+'<p role="status">Aucun résultat avec ces filtres.</p><button class="btn sm" type="button" data-clear-search>Effacer les filtres</button>';
+  const texts={operations:'Aucune opération suivie.',supports:'Aucun support préparé.',produits:'Aucun produit dans les opérations suivies.',assets:'Aucun support ouvert en production.'};
+  return vide(texts[kind])+(kind==='operations'?'<button class="btn pri" data-act="new-op">Créer une opération</button>':`<a href="${directoryLink(kind==='assets'?'supports':'operations')}">${kind==='assets'?'Ouvrir les supports en préparation':'Ouvrir les opérations'}</a>`);
+}
+function directoryState(){
+  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  return {q:params.get('q')||'',op:params.get('op')||''};
+}
+function vDirectory(kind){
+  const d=directories[kind],{q,op}=directoryState(),ops=sorted().filter(suivi);
+  const prep=d.nav==='preparation';
+  return `<div class="hd"><h1>${d.label}</h1>${prep?'<button class="btn pri" data-act="new-op">Créer une opération</button>':''}</div>${banner()}
+    ${prep?`<nav class="tabs" aria-label="Contenus de préparation">${['operations','supports'].map(k=>`<a href="${directoryLink(k)}"${k===kind?' aria-current="page"':''}>${directories[k].item}</a>`).join('')}</nav>`:''}
+    <div class="catalog-tools"><label>Rechercher<input type="search" id="catalog-query" value="${esc(q)}" placeholder="${({operations:'Nom, enseigne ou pilote',supports:'Type, format, variante ou magasin',produits:'Libellé, référence, rayon…',assets:'Fichier, support, BAT ou magasin'})[kind]}"></label>
+    ${kind==='operations'?'':`<label>Opération<select id="catalog-op"><option value="">Toutes les opérations</option>${ops.map(o=>`<option value="${esc(o.id)}"${o.id===op?' selected':''}>${esc(o.nom)}${o.cloture?' · clôturée':''}</option>`).join('')}</select></label>`}</div>
+    <section id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,q,op):''}</section>`;
+}
+function updateDirectory(clear=false){
+  const list=$('#catalog-results'),input=$('#catalog-query'),select=$('#catalog-op');
+  const r=route();
+  if(!list||!input||r.v!=='contenus'||r.tab!==list.dataset.kind)return;
+  if(clear){input.value='';if(select)select.value='';input.focus()}
+  const params=new URLSearchParams(),q=input.value,op=select?.value||'';
+  if(q)params.set('q',q);
+  if(op)params.set('op',op);
+  window.history.replaceState(null,'',directoryLink(list.dataset.kind)+(params.size?'?'+params:''));
+  list.innerHTML=directoryResults(list.dataset.kind,q,op);
+}
+function suiviContent(ops){
  const rank={crit:0,warn:1,ok:2};
  const todo=ops.flatMap(actions).sort((a,b)=>rank[a.c]-rank[b.c] || (a.due||'9999').localeCompare(b.due||'9999'));
  const sp=S.supports.filter(s=>ops.some(o=>o.id===s.op)&&enProd(s));
- const jr=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
  const ano=ops.reduce((n,o)=>n+nbBloq(utilisees(o)),0), ret=todo.filter(x=>x.due).length;
- const header=`<div class="hd"><div><p class="eyebrow">Pilotage</p><h1>Plan d’action commerciale</h1>
- <p class="sub">Opérations, échéances et décisions attendues.</p></div>
- <button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div>${banner()}`;
- if(status!=='ok'&&!S.operations.length)return header;
- return `${header}<div class="pac-overview">
+ return `<div class="pac-overview">
    ${priorityPanel(todo)}
    <section class="pac-summary" aria-label="Chiffres du plan"><h2>Le PAC en chiffres</h2>
    ${[[ops.length,'Dossiers ouverts'],[sp.filter(s=>s.statut!=='livre').length,'Supports en production'],
      [sp.filter(s=>s.statut==='bat'&&!revisionRequise(s)).length,'BAT à examiner'],[ano,'Anomalies sur les offres utilisées'],
      [ret,'Jalons en retard'],[S.operations.filter(enCours).length,'Périodes commerciales en cours']].map(([n,label])=>`<div><span>${label}</span><b>${n}</b></div>`).join('')}
-   </section></div>
- <details id="planning" class="planning-block"${planningOpen?' open':''}><summary><span><span class="planning-title">Planning des opérations</span><span class="planning-caption">Plan de commerce · ${S.operations.length} opération(s)</span></span><span class="planning-toggle"><span class="when-closed">Afficher le planning</span><span class="when-open">Masquer le planning</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary><div class="planning-content">${planningContent()}</div></details>
- <section class="section-plain"><div class="card-heading"><h2>Opérations suivies</h2>
- <label class="operation-search">Rechercher un dossier ouvert ou clôturé<input type="search" id="operation-query" placeholder="Opération, enseigne, pilote ou contact agence" value="${esc(operationQuery)}"></label></div>
+   </section></div>`;
+}
+function vAccueil(){
+ operationQuery=directoryState().q;
+ const ops=sorted().filter(o=>suivi(o)&&!o.cloture);
+ const jr=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+ const header=`<div class="hd"><div><h1>Plan d’action commerciale</h1></div>
+ <button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div>${banner()}`;
+ const nav=`<nav class="content-doors" aria-label="Accès aux contenus">${['operations','produits','assets'].map(k=>`<a href="${directoryLink(k)}"><span><strong>${directories[k].label}</strong><small>${directories[k].hint}</small></span><span aria-hidden="true">→</span></a>`).join('')}</nav>`;
+ if(status!=='ok'&&!S.operations.length)return header+nav;
+ return `${header}${nav}
+ <section class="home-find"><label for="operation-query">Rechercher dans Studio</label><input id="operation-query" type="search" placeholder="Opération, produit, support ou fichier…" value="${esc(operationQuery)}">
  <div id="operation-results">${operationResults(ops)}</div></section>
- <section class="section-plain"><h2>Activité récente</h2><div class="list">${jr.map(j=>{const o=opById(j.op);return `<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(texteJournal(j))}<br><span class="muted small">${esc(o?o.nom:'')} · ${fdh(j.date)}</span></span></div>`}).join('')||vide('Aucune activité enregistrée.')}</div></section>`}
+ <details class="quiet-panel" id="pac-suivi"${suiviOpen?' open':''}><summary>Actions prioritaires et indicateurs</summary><div id="pac-chiffres">${suiviOpen?suiviContent(ops):''}</div></details>
+ <details id="planning" class="planning-block"${planningOpen?' open':''}><summary><span><span class="planning-title">Planning des opérations</span><span class="planning-caption">Plan de commerce · ${S.operations.length} opération(s)</span></span><span class="planning-toggle"><span class="when-closed">Afficher le planning</span><span class="when-open">Masquer le planning</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary><div class="planning-content">${planningOpen?planningContent():''}</div></details>
+ <details class="quiet-panel"><summary>Activité récente</summary><div class="list">${jr.map(j=>{const o=opById(j.op);return `<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(texteJournal(j))}<br><span class="muted small">${esc(o?o.nom:'')} · ${fdh(j.date)}</span></span></div>`}).join('')||vide('Aucune activité enregistrée.')}</div></details>`}
 
 
 /* ---------- Planning repliable dans l’accueil ---------- */
@@ -318,11 +407,28 @@ function planningContent(){const ops=sorted(),su=ops.filter(suivi),pu=ops.filter
 function tCadrage(o){const b=o.brief||{},l=(k,v,requis=false)=>`<div><span class="muted">${k}</span><span style="text-align:right">${v?esc(v):requis?'<span class="pill crit">À renseigner</span>':'—'}</span></div>`;
   return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Brief</h2><span class="row"><button class="btn sm" data-act="edit-op">Nom, réseau et dates</button><button class="btn sm pri" data-act="brief">Modifier le brief</button></span></div>
   <div class="list">${l('Objectif commercial',b.objectif,true)}${l('Pilote côté enseigne',b.client,!b.responsable)}${l('Contact agence',b.responsable)}<div><span class="muted">Réseau</span><span>${esc(resOp(o))}</span></div><div><span class="muted">Portée</span><span>${esc(o.portee||'—')}</span></div><div><span class="muted">Période commerciale</span><span>${periode(o)}</span></div><div><span class="muted">Contraintes et décisions</span><span style="text-align:right">${esc(b.notes||'—')}</span></div></div></section>`}
-function tOffres(o){const ps=prodsOf(o.id),bs=basesOf(o.id),nu=nbBloq(utilisees(o)),nb=nbBloq(ps),na=ps.reduce((n,p)=>n+controles(p).a.length,0);
-  const rows=ps.map(p=>{const c=controles(p),us=bs.filter(s=>!s.institutionnel&&utilise(s,p)).map(s=>s.type+(typ(s).pagine?' p. '+place(p,s):'')),ex=S.supports.filter(v=>v.op===o.id&&v.groupe&&v.prixVar&&v.prixVar[p.id]!=null).map(v=>'exception '+v.variante+' : '+prixTxt(v.prixVar[p.id])),CT=c.b.map(x=>`<span class="pill crit">${esc(x)}</span>`).join(' ')+' '+c.a.map(x=>`<span class="pill warn">${esc(x)}</span>`).join(' ')+(!c.b.length&&!c.a.length?'<span class="pill ok" title="Ne vaut pas validation juridique ou commerciale.">Contrôles de données réussis</span>':'');
-    return `<tr><td style="min-width:170px"><b>${esc(p.libelle)}</b><br><span class="muted small">${esc([p.ref&&'réf. '+p.ref,p.marque,p.unite].filter(Boolean).join(' · '))}</span> ${src(p.source)}${p.description?'<br><span class="muted small">'+esc(p.description)+'</span>':''}<br>${CT}</td><td>${esc(p.rayon||'')}</td><td class="num">${p.prix!=null?prixTxt(p.prix):'—'}${p.barre!=null?'<br><s class="muted small">'+prixTxt(p.barre)+'</s>':''}${ex.length?'<br><span class="small">'+esc(ex.join(' ; '))+'</span>':''}</td><td>${esc(mecaTxt(p))}${p.validDu||p.validAu?'<br><span class="muted small">du '+fd(p.validDu||o.debut)+' au '+fd(p.validAu||o.fin)+'</span>':''}</td><td class="small">${us.length?esc(us.join(', ')):'<span class="muted">Hors dispositif</span>'}</td><td><button class="btn sm" data-prod="${esc(p.id)}">Modifier</button></td></tr>`}).join('');
-  return `<div class="row"><span class="pill ${nu?'crit':'ok'}">${nu} anomalie(s) sur des offres utilisées</span>${nb-nu?`<span class="pill">${nb-nu} anomalie(s) hors dispositif, non bloquantes</span>`:''}<span class="pill ${na?'warn':'ok'}">${na} avertissement(s)</span><span class="pill">${ps.length} offre(s)</span></div>
-  <section class="card"><div class="row" style="justify-content:space-between"><h2>Offres de l’opération</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${ps.length?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide('Aucune offre. Les prix peuvent arriver plus tard : ajoutez-les quand ils sont connus.')}</section>`}
+function productDetail(o,context){
+  const back=`<a class="support-back" href="${esc(lien('preparation',o.id,'offres'))}">← Tous les produits de l’opération</a>`;
+  const p=prodsOf(o.id).find(p=>encodeURIComponent(p.id)===context);
+  if(!p)return back+vide('Ce produit est indisponible dans cette opération.');
+  const fields=[['Référence',p.ref],['Marque',p.marque],['Rayon',p.rayon],['Conditionnement',p.unite],
+    ['Prix de vente',p.prix==null?'À renseigner':prixTxt(p.prix)],['Prix barré',p.barre!=null?prixTxt(p.barre):''],
+    ['Offre',mecaTxt(p)],['Validité',p.validDu||p.validAu?fd(p.validDu||o.debut)+' → '+fd(p.validAu||o.fin):''],
+    ['Origine',p.origine],['Mention légale',p.mention]];
+  const supports=supsOf(o.id).filter(s=>!baseDe(s).institutionnel&&utilise(s,p));
+  return back+`<section class="card"><div class="card-heading"><h2>${esc(p.libelle||'Produit sans libellé')}</h2>
+    ${o.cloture?'':`<button class="btn sm" data-prod="${esc(p.id)}">Modifier le produit</button>`}</div>
+    ${p.description?`<p>${esc(p.description)}</p>`:''}
+    <dl class="product-facts">${fields.filter(([,v])=>v).map(([label,value])=>`<div><dt>${label}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>
+    <h3>Supports utilisant ce produit</h3><div>${supports.map(s=>contentRow({o,name:titre(s),meta:[typ(s).pagine?'Page '+place(p,s):'',s.prixVar?.[p.id]!=null?'Prix local '+prixTxt(s.prixVar[p.id]):''],href:innerLink(o.id,'dispositif',s.id)},'operations')).join('')||vide('Aucun support associé.')}</div></section>`;
+}
+function tOffres(o,context){
+  if(context)return productDetail(o,context);
+  const ps=prodsOf(o.id),bs=basesOf(o.id),nu=nbBloq(utilisees(o)),nb=nbBloq(ps),na=ps.reduce((n,p)=>n+controles(p).a.length,0);
+  const rows=ps.map(p=>{const c=controles(p),us=bs.filter(s=>!s.institutionnel&&utilise(s,p)).map(s=>s.type+(typ(s).pagine?' p. '+place(p,s):'')),ex=S.supports.filter(v=>v.op===o.id&&v.groupe&&v.prixVar&&v.prixVar[p.id]!=null).map(v=>'exception '+v.variante+' : '+prixTxt(v.prixVar[p.id])),CT=c.b.map(x=>`<span class="pill crit">${esc(x)}</span>`).join(' ')+' '+c.a.map(x=>`<span class="pill warn">${esc(x)}</span>`).join(' ');
+    return `<tr><td style="min-width:170px"><a href="${esc(innerLink(o.id,'offres',p.id))}"><strong>${esc(p.libelle||'Produit sans libellé')}</strong></a><br><span class="muted small">${esc([p.ref&&'réf. '+p.ref,p.marque,p.unite].filter(Boolean).join(' · '))}</span> ${src(p.source)}${p.description?'<br><span class="muted small">'+esc(p.description)+'</span>':''}<br>${CT}</td><td>${esc(p.rayon||'')}</td><td class="num">${p.prix!=null?prixTxt(p.prix):'—'}${p.barre!=null?'<br><s class="muted small">'+prixTxt(p.barre)+'</s>':''}${ex.length?'<br><span class="small">'+esc(ex.join(' ; '))+'</span>':''}</td><td>${esc(mecaTxt(p))}${p.validDu||p.validAu?'<br><span class="muted small">du '+fd(p.validDu||o.debut)+' au '+fd(p.validAu||o.fin)+'</span>':''}</td><td class="small">${us.length?esc(us.join(', ')):'<span class="muted">Hors dispositif</span>'}</td><td><button class="btn sm" data-prod="${esc(p.id)}">Modifier</button></td></tr>`}).join('');
+  return `${nb||na?`<div class="row">${nu?`<span class="pill crit">${nu} anomalie(s) sur des offres utilisées</span>`:''}${nb>nu?`<span class="pill">${nb-nu} anomalie(s) hors dispositif</span>`:''}${na?`<span class="pill warn">${na} avertissement(s)</span>`:''}</div>`:''}
+  <section class="card"><div class="row" style="justify-content:space-between"><h2>Produits et offres</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${ps.length?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide('Aucune offre. Les prix peuvent arriver plus tard : ajoutez-les quand ils sont connus.')}</section>`}
 const varPour=(b,m)=>varsDe(b).find(v=>(v.magasinsVar||[]).includes(m.id));
 function tMagasins(o,context){const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m=>eng(o,m).statut==='engage'),choisi=(e,b)=>!e.supports||e.supports.includes(b.id);
   const support=context&&basesOf(o.id).find(b=>encodeURIComponent(b.id)===context);
@@ -331,33 +437,40 @@ function tMagasins(o,context){const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m
   <div class="list">${ms.map(m=>{const e=eng(o,m),ch=bs.filter(b=>choisi(e,b)),nv=e.supports?bs.filter(b=>!e.supports.includes(b.id)).length:0;return `<div><span>${esc(m.nom)}${m.code?' <span class="muted small">['+esc(m.code)+']</span>':''}${e.statut==='engage'?'<br><span class="muted small">'+(ch.map(b=>{const v=varPour(b,m);return esc(b.type)+(v?', variante '+esc(v.variante):varsDe(b).length?', nationale':'')+(e.qte&&e.qte[b.id]?' ('+e.qte[b.id]+' ex.)':'')}).join(' · ')||'aucun support retenu')+(e.maj?' · confirmé le '+fd(e.maj):'')+'</span>'+(nv?' <span class="pill warn">'+nv+' support(s) à proposer</span>':'')+(!e.supports&&bs.length?' <span class="pill">Liste héritée, à confirmer</span>':''):''}</span><span class="row" style="justify-content:flex-end"><select data-eng="${esc(m.id)}" aria-label="Engagement ${esc(m.nom)}">${ENG.map(([k,l])=>`<option value="${k}"${e.statut===k?' selected':''}>${l}</option>`).join('')}</select>${e.statut==='engage'&&bs.length?`<button class="btn sm" data-engsup="${esc(m.id)}">Supports et quantités</button>`:''}<button class="btn sm" data-mag="${esc(m.id)}">Fiche</button></span></div>`}).join('')||vide('Aucun magasin dans ce réseau. Ajoutez les magasins éligibles.')}</div></section>
   ${bs.length?`<section class="card"><h2>Engagements par support</h2><div class="list">${bs.map(b=>{const l=ne.filter(m=>choisi(eng(o,m),b)),q=l.reduce((n,m)=>n+((eng(o,m).qte||{})[b.id]||0),0),vs=varsDe(b);return `<div><span>${esc(b.type)}${vs.length?'<br><span class="muted small">'+esc(['Nationale : '+(magsSup(b,o).map(m=>m.nom).join(', ')||'aucun'),...vs.map(v=>v.variante+' : '+(magsSup(v,o).map(m=>m.nom).join(', ')||'aucun'))].join(' · '))+'</span>':''}</span><span class="row"><span class="pill">${l.length} magasin(s)</span>${typ(b).f==='imprime'?`<span class="pill">${q} exemplaire(s)</span>`:''}</span></div>`}).join('')}</div></section>`:''}`}
 function compoHtml(s,o){const ps=prodsOf(o.id);
-  if(!typ(s).pagine){const us=offresDe(s);return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Offres utilisées par ce support</h3><button class="btn sm" data-choix="${esc(s.id)}">Choisir les offres</button></div>${us.length?'<div class="row">'+us.map(p=>`<span class="chip">${esc(p.libelle)}</span>`).join('')+'</div>':vide(s.institutionnel?'Création institutionnelle : aucune offre attendue.':'Aucune offre sélectionnée.')}</div>`}
+  if(!typ(s).pagine){const us=offresDe(s);return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Offres utilisées par ce support</h3><button class="btn sm" data-choix="${esc(s.id)}">Choisir les offres</button></div>${us.length?'<div class="row">'+us.map(p=>`<a class="chip" href="${esc(innerLink(o.id,'offres',p.id))}">${esc(p.libelle||'Produit sans libellé')}</a>`).join('')+'</div>':vide(s.institutionnel?'Création institutionnelle : aucune offre attendue.':'Aucune offre sélectionnée.')}</div>`}
   const pg=pagesDe(s),libres=ps.filter(p=>place(p,s)==null);
   return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Chemin de fer</h3><button class="btn sm" data-addpage="${esc(s.id)}">${pg.length?'Ajouter une page':'Créer le chemin de fer'}</button></div>
   ${(chemin(s)||{}).historique?`<p class="muted small" style="margin:0">Compositions précédentes conservées : ${chemin(s).historique.map(h=>'rév. '+h.rev+' du '+fd(h.date)+' ('+h.pages.length+' pages)').join(', ')}.</p>`:''}${pg.length?`<p class="muted small" style="margin:0">Touchez une offre pour choisir sa page, ou glissez-la sur une page.</p><div class="pages">${pg.map(p=>{const inn=ps.filter(x=>place(x,s)===p.n);return `<div class="page" data-page="${p.n}" data-sup="${esc(s.id)}"><div class="row" style="justify-content:space-between"><span class="pn">${p.n}</span><span class="pill ${inn.length>p.cases?'crit':inn.length===p.cases?'ok':''}">${inn.length}/${p.cases}</span></div><button class="btn sm" data-rub="${p.n}" data-sup="${esc(s.id)}" style="text-align:left">${esc(p.rubrique||'Rubrique')}</button>${inn.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div>`}).join('')}</div>${libres.length?`<div><h3>Offres non placées dans ce support</h3><div class="row" style="margin-top:6px">${libres.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div></div>`:''}`:vide('Pas encore de chemin de fer.')}</div>`}
 function carteSup(s,o){const pr=pretProd(s,o),ok=pr.every(x=>x[0]),n=offresDe(s).length,b=baseDe(s),ms=magsSup(s,o),exc=s.groupe?offresDe(s).filter(p=>s.prixVar&&s.prixVar[p.id]!=null).map(p=>p.libelle+' '+prixTxt(s.prixVar[p.id])):[];
-  return `<div class="supp" tabindex="-1" data-support-card="${esc(encodeURIComponent(s.id))}"><div class="row" style="justify-content:space-between"><span><b>${esc(s.groupe?'Variante '+(s.variante||'locale'):s.type)}</b> ${s.groupe?'':`<span class="pill">${FAMILLES[typ(s).f]}</span>`} ${enProd(s)?`<span class="pill ok">En production · ${libStat(s.statut)}</span>`:'<span class="pill">En préparation</span>'}</span><span class="row">${s.groupe?`<button class="btn sm" data-var-edit="${esc(s.id)}">Modifier la variante</button>`:`<button class="btn sm" data-compo="${esc(s.id)}">${compo===s.id?'Fermer':typ(s).pagine?'Chemin de fer':'Offres du support'}</button><button class="btn sm" data-sup-edit="${esc(s.id)}">Modifier</button>${ms.length?`<button class="btn sm" data-var-new="${esc(s.id)}">Ajouter une variante</button>`:`<a class="btn sm" href="${lien('preparation',o.id,'magasins')}--${esc(encodeURIComponent(s.id))}">${varsDe(s).length?'Gérer les magasins des variantes':'Engager des magasins pour une variante'}</a>`}`}</span></div>
+  return `<div class="supp" tabindex="-1" data-support-card="${esc(encodeURIComponent(s.id))}"><div class="row" style="justify-content:space-between"><span><strong class="support-name">${esc(titre(s))}</strong> ${s.groupe?'':`<span class="pill">${FAMILLES[typ(s).f]}</span>`} ${enProd(s)?`<span class="pill ok">En production · ${libStat(s.statut)}</span>`:'<span class="pill">En préparation</span>'}</span><span class="row">${s.groupe?`<button class="btn sm" data-var-edit="${esc(s.id)}">Modifier la variante</button>`:`<button class="btn sm" data-sup-edit="${esc(s.id)}">Modifier</button>${ms.length?`<button class="btn sm" data-var-new="${esc(s.id)}">Ajouter une variante</button>`:`<a class="btn sm" href="${lien('preparation',o.id,'magasins')}--${esc(encodeURIComponent(s.id))}">${varsDe(s).length?'Gérer les magasins des variantes':'Engager des magasins pour une variante'}</a>`}`}</span></div>
     <span class="muted small">${s.groupe?esc('Magasins : '+(ms.map(m=>m.nom).join(', ')||'aucun')+' · prix d\'exception : '+(exc.join(', ')||'aucun')):esc((s.format||'Format à préciser')+' · '+(varsDe(s).length?'Nationale et '+varsDe(s).map(v=>v.variante).join(', '):'Nationale')+(s.versions?' · Ancienne indication : '+s.versions:''))} · échéance ${fd(echeance(s,o))} · ${b.institutionnel?'création institutionnelle':n+' offre(s)'}${typ(s).pagine?' · '+pagesDe(s).length+' page(s)':''}${s.groupe?'':' · '+ms.length+' magasin(s)'+(varsDe(s).length?' en version nationale':'')}</span>
-    ${enProd(s)?`<a href="${esc(supportLink(s))}">Suivre ce support en production →</a>`:`<details class="readiness"${ok?'':' open'}><summary>${ok?'Prêt pour la production':pr.filter(([met])=>!met).length+' prérequis à compléter'}</summary><div class="list">${pr.map(([v,l])=>`<div><span class="small">${esc(l)}</span><span class="pill ${v?'ok':'crit'}">${v?'Satisfait':'Manquant'}</span></div>`).join('')}</div></details><div class="row"><button class="btn pri sm" data-ouvrir="${esc(s.id)}"${ok?'':' disabled'}>Ouvrir en production</button>${ok?'':'<span class="muted small">Complétez les éléments manquants.</span>'}</div>`}
-    ${compo===s.id?compoHtml(s,o):''}${s.groupe?'':varsDe(s).map(v=>carteSup(v,o)).join('')}</div>`}
-function tDispositif(o){const bs=basesOf(o.id);
+    ${enProd(s)?`<a href="${esc(supportLink(s))}">Suivre ce support en production →</a>`:`<details class="readiness"><summary>${ok?'Prêt pour la production':pr.filter(([met])=>!met).length+' prérequis à compléter'}</summary><div class="list">${pr.map(([v,l])=>`<div><span class="small">${esc(l)}</span><span class="pill ${v?'ok':'crit'}">${v?'Satisfait':'Manquant'}</span></div>`).join('')}</div></details><div class="row"><button class="btn pri sm" data-ouvrir="${esc(s.id)}"${ok?'':' disabled'}>Ouvrir en production</button>${ok?'':'<span class="muted small">Complétez les éléments manquants.</span>'}</div>`}
+    ${!s.groupe?compoHtml(s,o):`<a href="${esc(innerLink(o.id,'dispositif',b.id))}">Composition du support national</a>`}
+    ${!s.groupe&&varsDe(s).length?`<div><h3>Variantes locales</h3>${varsDe(s).map(v=>contentRow({o,name:titre(v),meta:[],href:innerLink(o.id,'dispositif',v.id)},'operations')).join('')}</div>`:''}</div>`}
+function tDispositif(o,context){
+  if(context){
+    const s=supsOf(o.id).find(s=>encodeURIComponent(s.id)===context);
+    const back=`<a class="support-back" href="${esc(lien('preparation',o.id,'dispositif'))}">← Tous les supports de l’opération</a>`;
+    return back+(s?carteSup(s,o):vide('Ce support est indisponible dans cette opération.'));
+  }
+  const docs=contentItems('supports',o.id);
   return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports et variantes</h2><span class="row"><button class="btn sm" data-act="csv-dispo">Copier le dispositif (CSV)</button><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></span></div>
-  ${bs.length?bs.map(s=>carteSup(s,o)).join(''):vide('Aucun support. Composez le dispositif : prospectus, affiche, e-catalogue, bannières, flux.')}</section>`}
+  ${docs.length?docs.map(r=>contentRow(r,'operations')).join(''):vide('Aucun support dans cette opération.')}</section>`}
 function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><span><input type="checkbox" data-task="${esc(x.id)}"${x.fait?' checked':''}> ${esc(x.libelle)}</span><span class="pill ${tardif(x)?'warn':x.fait?'ok':enRetard(x)?'crit':''}">${tardif(x)?'Terminé en retard · échéance '+fd(x.echeance):x.fait?'Fait':nonAppl(x)?'Non applicable, approbation interne':enRetard(x)?'Retard · '+fd(x.echeance):fd(x.echeance)}</span></label>`,anc=ts.filter(t=>!t.support||!ss.some(s=>s.id===t.support));
   return ss.map(s=>{const l=ts.filter(t=>t.support===s.id);return `<section class="card"><div class="row" style="justify-content:space-between"><h2>${esc(titre(s))}</h2><button class="btn sm" data-retro="${esc(s.id)}">${l.length?'Recalculer':'Générer les jalons'}</button></div><p class="muted small" style="margin:0">Échéance ${fd(echeance(s,o))} · modèle ${FAMILLES[typ(s).f].toLowerCase()}</p><div class="list">${l.map(ligne).join('')||vide('Aucun jalon pour ce support.')}</div></section>`}).join('')+(anc.length?`<section class="card"><h2>Jalons généraux</h2><p class="muted small" style="margin:0">Créés avant le calendrier par support.</p><div class="list">${anc.map(ligne).join('')}</div></section>`:'')||`<section class="card">${vide('Le calendrier se construit à partir des supports du dispositif. Ajoutez un support.')}</section>`}
 function vPreparation(tab,context){const o=curOp();if(!o)return `<div class="hd"><div><p class="eyebrow">Préparation en amont</p><h1>Préparer une opération</h1><p class="sub">Définissez vos offres, supports et engagements magasins.</p></div><button class="btn pri" data-act="new-op">Créer une opération</button></div>${banner()}<section class="card">${vide('Aucun dossier pour le moment.')}</section>`;
  const T={cadrage:tCadrage,offres:tOffres,magasins:tMagasins,dispositif:tDispositif,calendrier:tCalendrier};
  const content=T[tab](o,context);
- return `${operationHeading(o,'preparation',tab)}${banner()}${enTete(o,tab)}${tab==='offres'?content:`<div class="dossier-layout"><div class="dossier-main">${content}</div>${operationAside(o)}</div>`}`}
+ return `${operationHeading(o,'preparation',tab)}${banner()}${enTete(o,tab)}${content}`}
 
 
 /* ---------- Production : les supports ouverts, leurs révisions et leurs preuves ---------- */
 let vueProd='liste',filtreProd='tous',qProd='';try{vueProd=localStorage.getItem('bos-vue')||'liste'}catch(e){}
 const prochaine=s=>revisionRequise(s)?'Créer une nouvelle révision avec les données corrigées':({amonter:'Monter la création',maquette:manquants(s,'bat').length?'Terminer les contrôles du BAT':'Présenter le BAT en revue',bat:'Obtenir la décision de '+(s.destinataire||'du destinataire'),corrections:'Corriger, puis créer la révision à renvoyer',valide:'Déclarer la remise',livre:'Aucune'})[s.statut];
 function probleme(s){const r=[],n=nbBloqS(s),t=S.taches.filter(x=>x.support===s.id&&enRetard(x)).length;if(revisionRequise(s))r.push(s.perimeMotif||'Données modifiées');if(n)r.push(n+' anomalie(s) sur ses offres');if(t)r.push(t+' jalon(s) en retard');if(s.prod===undefined)r.push('Hérité, non requalifié');return r}
-const boutons=s=>`<button class="btn sm" data-chk="${esc(s.id)}">Contrôles et fiche</button><button class="btn sm" data-apercu="${esc(s.id)}">Aperçu des données</button><button class="btn sm" data-brief="${esc(s.id)}">Copier le brief</button>${typ(s).f!=='imprime'?`<button class="btn sm" data-paquet="${esc(s.id)}">Préparer le paquet Media</button>`:''}${gele(s)?`<button class="btn sm" data-rev="${esc(s.id)}">Nouvelle révision</button>`:''}`;
+const boutons=s=>`<button class="btn sm" data-chk="${esc(s.id)}">Contrôles et fiche</button><button class="btn sm" data-brief="${esc(s.id)}">Copier le brief</button>${typ(s).f!=='imprime'?`<button class="btn sm" data-paquet="${esc(s.id)}">Préparer le paquet Media</button>`:''}${gele(s)?`<button class="btn sm" data-rev="${esc(s.id)}">Nouvelle révision</button>`:''}`;
 const selStat=s=>`<select data-stat="${esc(s.id)}" aria-label="Statut ${esc(titre(s))}">${STATUTS.map(([k,l])=>`<option value="${k}"${s.statut===k?' selected':''}>${l}</option>`).join('')}</select>`;
-function vProduction(supportKey){const o=curOp();if(!o)return '<div class="hd"><div><p class="eyebrow">Production des supports</p><h1>Production</h1></div><a class="btn" href="#preparation">Ouvrir la préparation</a></div>'+banner()+vide('Les supports apparaîtront ici une fois préparés dans le dispositif.');
+function vProduction(supportKey,revisionKey){const o=curOp();if(!o)return '<div class="hd"><div><p class="eyebrow">Production des supports</p><h1>Production</h1></div><a class="btn" href="#preparation">Ouvrir la préparation</a></div>'+banner()+vide('Les supports apparaîtront ici une fois préparés dans le dispositif.');
   const tous=supsOf(o.id),att=tous.filter(s=>!enProd(s)),jr=S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date)),q=qProd.trim().toLowerCase();
   const ss=tous.filter(enProd).filter(s=>(filtreProd==='tous'||(filtreProd==='traiter'&&(revisionRequise(s)||s.statut!=='livre'&&s.statut!=='valide'))||(filtreProd==='retard'&&S.taches.some(x=>x.support===s.id&&enRetard(x))))&&(!q||(titre(s)+' '+(s.fichier||'')).toLowerCase().includes(q)));
   const pills=s=>{const checks=controlesRequis(s,s.statut==='valide'||s.statut==='livre'?'livre':'bat'),n=checks.filter(([k])=>s.checks?.[k]).length;return `${revisionRequise(s)?`<span class="pill crit" title="${esc(s.perimeMotif||'')}">Nouvelle révision requise</span>`:''}<span class="pill">Rév. ${s.rev||1}</span><span class="pill">${s.bat?'BAT '+s.bat:'Pas de BAT'}</span>${s.statut==='valide'||s.statut==='livre'?`<span class="pill warn">Déclaré${(s.mode||'client')==='interne'?', interne':''}${s.approuvePar?' par '+esc(s.approuvePar):''}</span>`:''}<span class="pill ${n===checks.length?'ok':''}">Contrôles ${n}/${checks.length}</span>`};
@@ -369,42 +482,49 @@ function vProduction(supportKey){const o=curOp();if(!o)return '<div class="hd"><
     const back=`<a class="support-back" href="${lien('production',o.id)}">← Tous les supports de l’opération</a>`;
     if(!s)return operationHeading(o,'production')+banner()+back+vide('Ce support est indisponible dans la production de cette opération.');
     const problems=probleme(s), stores=magsSup(s,o);
-    return `${operationHeading(o,'production')}${banner()}${back}
+    if(revisionKey){
+      const archive=(s.archives||[]).find(a=>'rev-'+a.rev===revisionKey);
+      return operationHeading(o,'production')+banner()+enTete(o,'production')+`<a class="support-back" href="${esc(supportLink(s))}">← Version actuelle du support</a>`+(archive?`<section class="card"><h2>${esc(titre(s))} · Révision ${esc(archive.rev)}</h2><p>Version archivée${archive.date?' · '+fd(archive.date):''}</p>${assetFile(archive.fichier)}<button class="btn sm" data-apercu="${esc(s.id)}" data-version="${esc(archive.rev)}">Aperçu de cette révision</button></section>`:vide('Cette révision est indisponible.'));
+    }
+    return `${operationHeading(o,'production')}${banner()}${enTete(o,'production')}${back}
       <section class="card support-detail"><div class="card-heading"><div><p class="eyebrow">${esc(FAMILLES[typ(s).f])}</p>
       <h2>${esc(titre(s))}</h2><p class="sub">${esc(s.format||'Format à préciser')} · Échéance ${fd(echeance(s,o))}</p></div>
       <label>État du support ${selStat(s)}</label></div>
-      <div class="action-guidance"><strong>Prochaine action</strong><span>${esc(prochaine(s))}</span></div>
+      <div class="asset-file"><h3>Fichier de production · Rév. ${s.rev||1}</h3>${assetFile(s.fichier)}
+      <button class="btn sm" data-apercu="${esc(s.id)}">Aperçu des données</button>
+      ${s.archives?.length?`<details><summary>Versions précédentes</summary>${s.archives.map(a=>`<a class="content-row" href="${esc(supportLink(s)+'--rev-'+a.rev)}">Rév. ${esc(a.rev)} · ${esc(fileName(a.fichier)||'Sans fichier')} →</a>`).join('')}</details>`:''}</div>
+      <details class="asset-tracking"><summary>Suivi de production et contrôles</summary><div class="asset-tracking-body"><div class="action-guidance"><strong>Prochaine action</strong><span>${esc(prochaine(s))}</span></div>
       ${s.statut!=='livre' && manquants(s,s.statut==='valide'?'livre':'bat').length?`<p class="small">Contrôles à terminer · ${esc(manquants(s,s.statut==='valide'?'livre':'bat').join(' · '))}</p>`:''}
       ${retourHtml(s.retour)}
       ${s.statut==='corrections'?`<button class="btn sm" data-correction="${esc(s.id)}">${s.retour?'Préciser la correction':'Renseigner la correction'}</button>`:''}
       ${problems.length?`<div class="row">${problems.map(item=>`<span class="pill crit">${esc(item)}</span>`).join('')}</div>`:''}
       <div class="row">${pills(s)}</div>
-      <dl class="support-facts"><div><dt>Fichier</dt><dd>${fichierHtml(s.fichier)}</dd></div>
+      <dl class="support-facts">
       <div><dt>Revue</dt><dd>${esc(s.destinataire||'À renseigner')}</dd></div>
       <div><dt>Remis à</dt><dd>${esc(s.remiseA||'—')}</dd></div>
       <div><dt>Magasins engagés</dt><dd>${stores.length}</dd></div></dl>
-      <div class="row">${boutons(s)}</div>
+      </div></details><div class="row">${boutons(s)}</div>
       ${typ(s).f!=='imprime'?'<p class="muted small">Ce paquet prépare les éléments pour BigOne Media. L’activation se programme ensuite dans Media.</p>':''}
-      <a href="${lien('preparation',o.id,'dispositif')}">Voir les supports et variantes en préparation</a></section>`;
+      <a href="${esc(innerLink(o.id,'dispositif',s.id))}">Ouvrir ce support en préparation</a></section>`;
   }
   const liste=()=>`<div class="scroll"><table class="lp"><thead><tr><th>Support et variante</th><th>État</th><th>Échéance</th><th>Prochaine action</th><th></th></tr></thead><tbody>
-    ${ss.map(s=>`<tr><td><b>${esc(titre(s))}</b><div class="muted small">${magsSup(s,o).length} magasin(s) · Rév. ${s.rev||1}</div></td>
+    ${ss.map(s=>`<tr><td><b>${esc(titre(s))}</b><div class="muted small">${esc(fileName(s.fichier)||'Fichier à renseigner')} · Rév. ${s.rev||1}</div></td>
       <td data-l="État"><span class="pill">${esc(libStat(s.statut))}</span></td><td class="num" data-l="Échéance">${fd(echeance(s,o))}</td>
       <td data-l="Prochaine action">${esc(prochaine(s))}${probleme(s).length?`<div class="small issue-text">${esc(probleme(s).join(' · '))}</div>`:''}</td>
       <td>${openSupport(s)}</td></tr>`).join('')}</tbody></table></div>`;
   return `${operationHeading(o,'production')}${banner()}${enTete(o,'production')}
-  <p class="muted small" style="margin:0">Les remises et les approbations sont déclarées dans Studio.</p>
+  <h2>Assets et BAT</h2>
   <div class="row"><span class="row" role="group" aria-label="Affichage"><button class="btn sm ${vueProd==='liste'?'pri':''}" aria-pressed="${vueProd==='liste'}" data-vue="liste">Liste</button><button class="btn sm ${vueProd==='kanban'?'pri':''}" aria-pressed="${vueProd==='kanban'}" data-vue="kanban">Colonnes</button></span><select id="filtre-prod" aria-label="Filtrer les supports">${[['tous','Tous les supports'],['traiter','À traiter'],['retard','Avec un jalon en retard']].map(([k,l])=>`<option value="${k}"${filtreProd===k?' selected':''}>${l}</option>`).join('')}</select><input id="q-prod" type="search" placeholder="Rechercher un support ou un fichier" value="${esc(qProd)}" aria-label="Rechercher"></div>
   ${ss.length?(vueProd==='liste'?`<section class="card">${liste()}</section>`:`<div class="kan">${STATUTS.map(([k,l])=>{const c=ss.filter(s=>s.statut===k);return `<div class="col"><h3>${l}<span class="muted">${c.length}</span></h3>${c.map(card).join('')}</div>`}).join('')}</div>`):`<section class="card">${vide(tous.some(enProd)?'Aucun support ne correspond à ce filtre.':'Aucun support en production.')}</section>`}
-  ${att.length?`<section class="card"><h2>Encore en préparation</h2><div class="list">${att.map(s=>`<div><span>${esc(titre(s))}</span><a class="btn sm" href="${lien('preparation',o.id,'dispositif')}">Voir les prérequis</a></div>`).join('')}</div></section>`:''}
+  ${att.length?`<section class="card"><h2>Encore en préparation</h2><div class="list">${att.map(s=>`<div><span>${esc(titre(s))}</span><a class="btn sm" href="${esc(innerLink(o.id,'dispositif',s.id))}">Voir les prérequis</a></div>`).join('')}</div></section>`:''}
   ${(()=>{const fige=o.cloture&&o.bilan,B=fige?o.bilan:calcBilan(o),ref=refusCloture(o),prec=o.bilansPrecedents||[];
-  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Bilan de production</h2>${o.cloture?'<span class="row"><span class="pill ok">Production clôturée'+(fige?' le '+fd(B.date):'')+'</span><button class="btn sm" data-act="rouvrir">Rouvrir le dossier</button></span>':`<button class="btn sm pri" data-act="cloturer"${ref.length?' disabled':''}>Clôturer la production</button>`}</div>
+  return `<details class="quiet-panel"><summary>Bilan de production</summary><div class="card"><div class="row" style="justify-content:space-between">${o.cloture?'<span class="row"><span class="pill ok">Production clôturée'+(fige?' le '+fd(B.date):'')+'</span><button class="btn sm" data-act="rouvrir">Rouvrir le dossier</button></span>':`<button class="btn sm pri" data-act="cloturer"${ref.length?' disabled':''}>Clôturer la production</button>`}</div>
   <p class="muted small" style="margin:0">${fige?'Bilan figé à la clôture : il ne change plus tant que le dossier n\'est pas rouvert.':o.cloture?'Dossier clôturé avant le gel du bilan : chiffres recalculés sur l\'état actuel.':'La clôture porte sur la production des supports. Elle ne dit rien de la période commerciale ni des campagnes.'}</p>
   <div class="grid tiles"><div class="tile"><b>${B.remis}/${B.total}</b><span>supports remis</span></div><div class="tile"><b>${B.bat}</b><span>BAT préparés</span></div><div class="tile"><b>${B.revs}</b><span>révisions supplémentaires</span></div><div class="tile ${B.modifs?'warn':''}"><b>${B.modifs}</b><span>changements depuis l'ouverture en production</span></div><div class="tile ${B.jret?'crit':B.jtard?'warn':''}"><b>${B.jf}/${B.jt}</b><span>jalons terminés${B.jtard?', dont '+B.jtard+' en retard':''}${B.jret?' · '+B.jret+' en retard à faire':''}</span></div></div>
   ${fige?'<div class="list">'+B.supports.map(x=>`<div><span>${esc(x.type)} · rév. ${x.rev} « ${esc(x.fichier||'sans fichier')} »</span><span class="muted small">remis à ${esc(x.remiseA||'—')}</span></div>`).join('')+'</div>'+(B.note?'<p style="margin:0"><b>Enseignements :</b> '+esc(B.note)+'</p>':''):''}
   ${!o.cloture&&ref.length?'<div class="list">'+ref.map(x=>`<div><span class="small">${esc(x)}</span><span class="pill crit">Bloque la clôture</span></div>`).join('')+'</div>':''}
-  ${prec.length?'<p class="muted small" style="margin:0">Bilans précédents conservés : '+prec.map(b=>'clôture du '+fd(b.date)+' ('+b.remis+'/'+b.total+' remis, rouvert : '+esc(b.motifReouverture||'')+')').join(' ; ')+'.</p>':''}</section>`})()}
-  <section class="card"><div class="row" style="justify-content:space-between"><h2>Journal de l'opération</h2><button class="btn sm" data-act="note">Ajouter une note</button></div><div class="list">${jr.map(j=>`<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(texteJournal(j))}${j.par?'<br><span class="muted small">par '+esc(j.par)+'</span>':''}</span><span class="muted small" style="white-space:nowrap">${fdh(j.date)}</span></div>`).join('')||vide('Aucune note.')}</div></section>`}
+  ${prec.length?'<p class="muted small" style="margin:0">Bilans précédents conservés : '+prec.map(b=>'clôture du '+fd(b.date)+' ('+b.remis+'/'+b.total+' remis, rouvert : '+esc(b.motifReouverture||'')+')').join(' ; ')+'.</p>':''}</div></details>`})()}
+  <details class="quiet-panel"><summary>Journal de l’opération</summary><div class="row"><button class="btn sm" data-act="note">Ajouter une note</button></div><div class="list">${jr.map(j=>`<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(texteJournal(j))}${j.par?'<br><span class="muted small">par '+esc(j.par)+'</span>':''}</span><span class="muted small" style="white-space:nowrap">${fdh(j.date)}</span></div>`).join('')||vide('Aucune note.')}</div></details>`}
 
 /* Administration : lecture des référentiels existants, sans simuler des connecteurs ou des droits. */
 const ADMIN_TABS=[['magasins','Magasins','Réseaux et identifiants magasins'],['modeles','Supports et modèles','Familles et jalons réutilisés'],['droits','Utilisateurs et droits','Accès et responsabilités'],['connexions','Connexions','Services et passage vers Media']];
@@ -415,17 +535,21 @@ function vAdministration(tab){const networks=[...new Set(S.magasins.map(m=>m.res
  if(tab==='droits')content=`<section class="card"><span class="section-label">Profils d’accès</span><h2>Utilisateurs et droits</h2><p>Accès actuel : <b>${CODE?profilAcces():'Lecture seule'}</b>.</p><div class="scroll"><table><thead><tr><th>Profil</th><th>Possibilités</th></tr></thead><tbody><tr><td>Consultation</td><td>Parcourir les dossiers et les créations.</td></tr><tr><td>Éditeur</td><td>Préparer et modifier les dossiers ; sans droit d’approbation ni de clôture.</td></tr><tr><td>Responsable</td><td>Approuver, déclarer une remise, clôturer et rouvrir la production.</td></tr></tbody></table></div></section>`;
  if(tab==='connexions')content=`<section class="card"><span class="section-label">Écosystème BigOne</span><h2>Connexions</h2><div class="list"><div><span><b>Données Studio</b><br><span class="small muted">Opérations, offres, magasins, supports et journal partagés.</span></span><span class="pill ${status==='ok'?'ok':'warn'}">${status==='ok'?'Données chargées':'Chargement à vérifier'}</span></div><div><span><b>BigOne Media</b><br><span class="small muted">Paquet de préparation accessible sur les supports numériques en Production. La programmation et la diffusion se font dans BigOne Media.</span></span><span class="pill">Préparation du paquet</span></div><div><span><b>BigOne Stores / BOSS</b><br><span class="small muted">Les magasins affichés sont ceux de Studio ; aucune synchronisation BOSS n’est implémentée.</span></span><span class="pill">Non connecté</span></div></div><div><a class="btn" href="${lien('production',cur)}">Ouvrir les supports de production</a></div></section>`;
  return `<div class="hd"><div><p class="eyebrow">Configuration du réseau</p><h1>Administration</h1><p class="sub">Référentiels et réglages permanents, partagés entre les opérations.</p></div></div>${banner()}<nav class="grid admin-cards" aria-label="Rubriques de l’administration">${ADMIN_TABS.map(([k,n,d])=>`<a class="admin-card" href="#administration--${k}"${tab===k?' aria-current="page"':''}><span><strong>${n}</strong><small>${d}</small></span></a>`).join('')}</nav>${content}`}
-const VUES={accueil:vAccueil,preparation:vPreparation,production:vProduction,administration:vAdministration};
+const VUES={accueil:vAccueil,contenus:vDirectory,absent:vAbsent,preparation:vPreparation,production:vProduction,administration:vAdministration};
+function vAbsent(v){return banner()+(status==='ok'?vide('Cette opération est indisponible.'):'')+`<a href="${directoryLink(v==='production'?'assets':'operations')}">Retour aux contenus</a>`}
 function profilAcces(){return ROLE==='responsable'?'Responsable':ROLE==='editeur'?'Éditeur':'Accès en cours de vérification'}
-function render(){const r=route(),o=curOp(),active=r.v==='accueil'?'pilotage':r.v;
- document.querySelectorAll('.global-nav a[data-v]').forEach(a=>{const v=a.dataset.v;a.setAttribute('href',lien(v==='pilotage'?'accueil':v,v==='preparation'||v==='production'?cur:null));v===active?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
- const names={accueil:'Pilotage',pilotage:'Pilotage',preparation:'Préparation',production:'Production',administration:'Administration'},inOp=r.v==='preparation'||r.v==='production';
- $('#view').innerHTML=`<div class="breadcrumb"><a href="#accueil">Studio</a><span aria-hidden="true">›</span><span>${names[r.v]}</span>${inOp&&o?`<span class="network-label">${esc(resOp(o))}</span>`:''}</div>`+VUES[r.v](r.tab,r.context)+`<footer class="app-footer"><span><strong>BigOne Studio</strong> · Nanotera</span><span>Version ${VERSION}</span></footer>`;
+function render(){const r=route(),o=curOp(),inOp=r.v==='preparation'||r.v==='production';
+ const dir=r.v==='contenus'?r.tab:r.v==='production'?'assets':r.v==='preparation'?(r.tab==='offres'?'produits':r.tab==='dispositif'?'supports':'operations'):null;
+ const active=dir?directories[dir].nav:r.v==='accueil'?'pilotage':r.v;
+ document.querySelectorAll('.global-nav a[data-v]').forEach(a=>{if(a.dataset.v===active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+ const label=dir?directories[dir].label:r.v==='administration'?'Administration':'Pilotage';
+ const trail=r.v==='accueil'?'':`<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="#accueil">Studio</a><span aria-hidden="true">›</span>${inOp?`<a href="${directoryLink(dir)}">${label}</a>`:`<span>${label}</span>`}</nav>`;
+ $('#view').innerHTML=trail+VUES[r.v](r.tab,r.context)+`<footer class="app-footer"><span><strong>BigOne Studio</strong> · Nanotera</span><span>Version ${VERSION}</span></footer>`;
  const access=$('#acces-studio');
  access.hidden=!PUBLIC;
  access.title=CODE?'Changer de code d’accès · '+profilAcces():'Saisir un code d’accès';
  access.setAttribute('aria-label',access.title);
- document.title=(inOp&&o?o.nom+' — ':names[r.v]+' — ')+'BigOne Studio';
+ document.title=(inOp&&o?o.nom+' — ':label+' — ')+'BigOne Studio';
 }
 
 
@@ -569,7 +693,7 @@ function fSup(s){const o=curOp(),fige=s&&gele(s);
     if(s){const data=fige?{remise:d,institutionnel:r.institutionnel}:{format:r.format,remise:d,institutionnel:r.institutionnel};if(!await w('supports/'+s.id,data))return false;if(!!s.institutionnel!==r.institutionnel)await perimer(o,titre(s)+' : '+(r.institutionnel?'passé en création institutionnelle, sans offre':'offres réintroduites')+'.',x=>x.id===s.id);
       const p=planTaches(s,o,d);if(p.maj.length){await appliquerPlan({maj:p.maj,crea:[]});await log(o.id,titre(s)+' : échéance déplacée au '+fd(d)+', '+p.maj.length+' jalon(s) recalculé(s).',enProd(s)?'modif':'')}return true}
     const id=uid('s'),ns={op:o.id,type:r.type,format:r.format,remise:d,institutionnel:r.institutionnel,statut:'amonter',prod:false,bat:0,rev:1,checks:sansCoche(),mode:'client',source:null};
-    if(!await w('supports/'+id,ns,'set'))return false;await appliquerPlan(planTaches(Object.assign({id},ns),o,d));await log(o.id,r.type+' ajouté au dispositif, échéance '+fd(d)+'.');compo=id;return true},
+    if(!await w('supports/'+id,ns,'set'))return false;await appliquerPlan(planTaches(Object.assign({id},ns),o,d));await log(o.id,r.type+' ajouté au dispositif, échéance '+fd(d)+'.');location.hash=innerLink(o.id,'dispositif',id);return true},
     s&&!enProd(s)&&!varsDe(s).length?async()=>{for(const t of S.taches.filter(t=>t.support===s.id))await w('taches/'+t.id,null,'delete');return w('supports/'+s.id,null,'delete')}:null)}
 function fRetro(s){const o=curOp(),txt=p=>(p.maj.length||p.crea.length?'<b>Aperçu.</b> '+p.maj.map(m=>esc(m.libelle)+' : '+fd(m.de)+' → '+fd(m.a)).concat(p.crea.map(t=>'Nouveau jalon : '+esc(t.libelle)+' ('+fd(t.echeance)+')')).join('<br>'):'Aucun changement avec cette date.')+'<br>Les jalons terminés restent terminés.';
   form(titre(s)+' : calendrier',[{k:'remise',l:'Échéance de remise',t:'date',v:echeance(s,o),req:1},{k:'prev',t:'info',l:''}],async r=>{const refus=refusEch(s,o,r.remise);if(refus)return refus;
@@ -668,6 +792,11 @@ async function verifierDecision(s,to){
 function retourHtml(retour){
   if(!retour)return '';
   return `<p class="note"><strong>Retour à ${esc(retour.responsable)}</strong>${retour.page?' · page '+esc(retour.page):''}<br>${esc(retour.motif)}</p>`;
+}
+function assetFile(value){
+  if(!value)return '<span class="muted">Aucun fichier renseigné</span>';
+  const link=fichierHtml(value);
+  return link.startsWith('<a ')?`<strong>${esc(fileName(value))}</strong> ${link}`:link;
 }
 function fichierHtml(value){
   if(!value)return 'À renseigner';
@@ -773,12 +902,12 @@ function fImport(){const o=curOp(),d=$('#dlg');let R=null;d.onclose=null;
 
 /* ---------- événements ---------- */
 const copier=async(t,ok)=>{try{await navigator.clipboard.writeText(t);toast(ok)}catch(x){toast('Copie refusée par le navigateur.')}};
-document.addEventListener('click',async e=>{const t=e.target.closest('[data-act],[data-correction],[data-prod],[data-chk],[data-rev],[data-brief],[data-rub],[data-compo],[data-sup-edit],[data-ouvrir],[data-retro],[data-addpage],[data-chip],[data-choix],[data-engsup],[data-var-new],[data-var-edit],[data-apercu],[data-paquet],[data-vue],[data-mag]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act,sup=id=>S.supports.find(s=>s.id===id);
+document.addEventListener('click',async e=>{if(e.target.closest('[data-clear-search]'))return updateDirectory(true);const t=e.target.closest('[data-act],[data-correction],[data-prod],[data-chk],[data-rev],[data-brief],[data-rub],[data-sup-edit],[data-ouvrir],[data-retro],[data-addpage],[data-chip],[data-choix],[data-engsup],[data-var-new],[data-var-edit],[data-apercu],[data-paquet],[data-vue],[data-mag]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act,sup=id=>S.supports.find(s=>s.id===id);
   if(a==='code')return askCode();
-  if(d.compo){compo=compo===d.compo?null:d.compo;return render()}
+
   if(d.brief)return copier(brief(sup(d.brief)),'Brief copié. Collez-le dans votre message ou votre carte de suivi.');
   if(d.vue){vueProd=d.vue;try{localStorage.setItem('bos-vue',vueProd)}catch(x){}return render()}
-  if(d.apercu)return fApercu(sup(d.apercu));
+  if(d.apercu)return fApercu(sup(d.apercu),d.version?Number(d.version):undefined);
   if(d.paquet)return fPaquet(sup(d.paquet));
   const csv=L=>L.map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';')).join('\n');
   if(a==='csv')return copier(csv([['reference','libelle','description','marque','conditionnement','rayon','type_offre','prix','prix_barre','lot','condition','mecanique','valide_du','valide_au','origine','mention'],...prodsOf(o.id).map(p=>[p.ref,p.libelle,p.description,p.marque,p.unite,p.rayon,MECA[p.mecaType||'simple'],fmtN(p.prix),fmtN(p.barre),p.lotQte,p.condition,p.mecanique,p.validDu,p.validAu,p.origine,p.mention])]),'Offres copiées. Collez-les dans un tableur.');
@@ -820,16 +949,33 @@ document.addEventListener('click',async e=>{const t=e.target.closest('[data-act]
   if(a==='rouvrir')return form('Rouvrir le dossier',[{k:'i',t:'info',l:'Le bilan figé reste consultable dans les bilans précédents. Le dossier redevient modifiable.'},{k:'motif',l:'Motif de la réouverture',t:'area',req:1}],async r=>{
     if(!await w('operations/'+o.id,{cloture:false,bilan:null,bilansPrecedents:[...(o.bilansPrecedents||[]),Object.assign({},o.bilan||Object.assign(calcBilan(o),{date:today()}),{motifReouverture:r.motif})]}))return false;await log(o.id,'Dossier rouvert. Motif : '+r.motif,'modif');return true})});
 // L’état choisi reste stable quand les données ou la vue sont actualisées.
-document.addEventListener('toggle',e=>{if(e.target.id==='planning'&&e.target===$('#planning'))planningOpen=e.target.open},true);
+document.addEventListener('toggle',e=>{
+  const panel=e.target;
+  if(!panel.isConnected)return;
+  if(panel.id==='planning'){
+    planningOpen=panel.open;
+    const content=panel.querySelector('.planning-content');
+    if(planningOpen&&!content.hasChildNodes())content.innerHTML=planningContent();
+  }
+  if(panel.id==='pac-suivi'){
+    suiviOpen=panel.open;
+    const content=panel.querySelector('#pac-chiffres');
+    if(suiviOpen&&!content.hasChildNodes())content.innerHTML=suiviContent(sorted().filter(o=>suivi(o)&&!o.cloture));
+  }
+},true);
 document.addEventListener('input',e=>{
+  if(e.target.id==='catalog-query')return updateDirectory();
   if(e.target.id==='operation-query'){
     operationQuery=e.target.value;
+    window.history.replaceState(null,'','#accueil'+(operationQuery?'?'+new URLSearchParams({q:operationQuery}):''));
     $('#operation-results').innerHTML=operationResults(sorted().filter(o=>suivi(o)&&!o.cloture));
     return;
   }
   if(e.target.id!=='q-prod')return;qProd=e.target.value;render();const q=$('#q-prod');if(q){q.focus();q.setSelectionRange(qProd.length,qProd.length)}});
 document.addEventListener('change',async e=>{const t=e.target,d=t.dataset,o=curOp();
+  if(t.id==='catalog-op')return updateDirectory();
   if(t.id==='priority-filter'){
+    suiviOpen=true;
     priorityFilter=t.value;
     render();
     $('#priority-filter').focus();
@@ -849,7 +995,7 @@ document.addEventListener('dragover',e=>{const p=e.target.closest&&e.target.clos
 document.addEventListener('dragleave',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p)p.classList.remove('over')});
 document.addEventListener('drop',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();if(peutEcrire()&&!curOp().cloture)placer(S.supports.find(s=>s.id===p.dataset.sup),e.dataTransfer.getData('text/plain'),+p.dataset.page)}});
 document.querySelector('.skip-link').addEventListener('click',e=>{e.preventDefault();$('#view').focus();$('#view').scrollIntoView({block:'start'})});
-window.addEventListener('hashchange',()=>{render();const r=route(),card=r.tab==='dispositif'&&r.context&&Array.from(document.querySelectorAll('[data-support-card]')).find(el=>el.dataset.supportCard===r.context);if(card){card.focus();card.scrollIntoView({block:'center'})}else window.scrollTo({top:0,behavior:'instant'})});
+window.addEventListener('hashchange',()=>{render();$('#view').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'})});
 init();
 </script>
 </body>
