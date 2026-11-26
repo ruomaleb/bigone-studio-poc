@@ -14,6 +14,7 @@ const node={addEventListener(){},querySelector(){return node},focus(){},setAttri
 const document={querySelector(){return node},querySelectorAll(){return []},addEventListener(){},title:''};
 const location={hash:'#accueil'};
 const context=vm.createContext({document,location,window:{addEventListener(){},history:{replaceState(_state,_title,hash){location.hash=hash}}},localStorage:{getItem(){return null}},console,setTimeout,clearTimeout,URL,URLSearchParams,Date});
+vm.runInContext(fs.readFileSync(path.join(root,'assets/list-filters.js'),'utf8'),context);
 vm.runInContext(js,context);
 const run=s=>vm.runInContext(s,context);
 run(`S.operations.push({id:'qa-design',nom:'Opération <test> & prix',reseau:'Réseau QA',debut:'2027-01-05',fin:'2027-01-17',brief:{objectif:'Trafic',responsable:'QA'}});cur='qa-design';status='ok';`);
@@ -111,12 +112,12 @@ run(`S.operations.push({id:'clos',nom:'Automne',cloture:true,debut:'2026-09-01',
   national.archives=[{rev:1,fichier:'https://example.org/Catalogue%20archive.pdf'}];
   national.rev=2;national.fichier='https://example.org/Affiche-final.pdf';
   S.supports.push({id:'prep',op:'op',type:'Prospectus',prod:false,remise:'2027-03-02'})`);
-assert.equal(run("findItems('produits','jardiniere','').length"),2);
-assert.equal(run("findItems('produits','arc-91','')[0].href"),'#preparation--clos--offres--autre');
-assert.equal(run("findItems('produits','arc-91','op').length"),0);
-assert.equal(run("findItems('supports','Prospectus','')[0].href"),'#preparation--op--dispositif--prep');
-assert.equal(run("findItems('assets','Prospectus','').length"),0);
-assert.equal(run("findItems('assets','catalogue archive','')[0].href"),'#production--op--support-affiche--rev-1');
+assert.equal(run("contentItems('produits','').filter(r=>matchesContent(r,'jardiniere')).length"),2);
+assert.equal(run("contentItems('produits','').filter(r=>matchesContent(r,'arc-91'))[0].href"),'#preparation--clos--offres--autre');
+assert.equal(run("contentItems('produits','op').filter(r=>matchesContent(r,'arc-91')).length"),0);
+assert.equal(run("contentItems('supports','').filter(r=>matchesContent(r,'Prospectus'))[0].href"),'#preparation--op--dispositif--prep');
+assert.equal(run("contentItems('assets','').filter(r=>matchesContent(r,'Prospectus')).length"),0);
+assert.equal(run("contentItems('assets','').filter(r=>matchesContent(r,'catalogue archive'))[0].href"),'#production--op--support-affiche--rev-1');
 location.hash='#preparation--clos--offres--autre';
 assert.ok(run("vPreparation(route().tab,route().context)").includes('18,00 €'));
 location.hash='#preparation--op--offres--autre';
@@ -131,4 +132,22 @@ assert.equal(run('route().tab'),'produits');
 assert.ok(run('vDirectory(route().tab)').includes('#preparation--clos--offres--autre'));
 location.hash='#accueil?q=ARC-91';
 assert.ok(run('vAccueil()').includes('#preparation--clos--offres--autre'));
+// Les filtres sont propres à leur liste et se combinent avec la recherche et le tri.
+run(`const filterRows=[
+  {name:'Lot 10',rayon:'Jardin',marque:'Atelier',prix:null,magasin:['a','b']},
+  {name:'Lot 2',rayon:'Jardin',marque:'Atelier',prix:2,magasin:['a']},
+  {name:'Lot 15',rayon:'Jardin',marque:'Atelier',prix:100,magasin:['b']},
+  {name:'Meuble',rayon:'Maison',marque:'Mobilier',prix:5,magasin:[]}
+];`);
+location.hash='#contenus--produits?rayon=Jardin&marque=Atelier&tri=prixDesc';
+const filtered=run("filterList(filterRows,['rayon','marque'],['nom','prix','prixDesc'])");
+assert.deepEqual(Array.from(filtered.visible,r=>r.name),['Lot 15','Lot 2','Lot 10']);
+assert.ok(!filtered.toolbar.includes('Mobilier'));
+location.hash='#accueil?plan-tri=nomDesc&magasin=b';
+assert.deepEqual(Array.from(run("filterList(filterRows,['magasin'],['nom','nomDesc']).visible"),r=>r.name),['Lot 10','Lot 15']);
+assert.equal(run("filterList(filterRows,[],['nom','nomDesc'],{prefix:'plan-'}).visible[0].name"),'Meuble');
+location.hash='#contenus--assets?version=Archivée';
+assert.equal(run("filterList(contentItems('assets'),contentFilters.assets,contentSorts.assets).visible[0].href"),'#production--op--support-affiche--rev-1');
+location.hash='#contenus--produits?rayon=Inexistant';
+assert.match(run("vDirectory('produits')"),/Aucun résultat avec ces filtres/);
 console.log(JSON.stringify({result:'PASS',checks:'5 onglets préparation, continuité production, 4 rubriques administration, routes inconnues, états vides, données échappées, assets locaux',contrast:ratios},null,2));

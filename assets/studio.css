@@ -349,3 +349,24 @@ details[open]>summary{margin-bottom:8px}
   .quiet-panel>summary,.planning-block>summary{padding:12px 14px}
 }
 @media(max-width:360px){.global-nav{margin-inline:-6px}.global-nav a,.global-nav a.admin-link{padding-inline:2px}.content-doors img{width:65px}.content-row small{font-size:11px}}
+
+/* Les mêmes commandes accompagnent les listes et les catalogues. */
+.list-filters{margin:0 0 12px;padding:14px;background:var(--soft);border:1px solid var(--line);border-radius:10px;min-width:0}
+.filters-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.filters-heading strong{display:inline-flex;align-items:center;gap:7px;font-size:13px}
+.filters-heading .icon{color:var(--violet-text);width:16px;height:16px}
+.filter-reset{background:transparent;border:0;color:var(--accent);padding:3px 0;font-size:12px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.filter-reset:disabled{color:var(--muted);text-decoration:none;cursor:default}
+.filter-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:8px 12px}
+.filter-fields label,.priority-panel .filter-fields label{display:grid;min-width:0;gap:3px;color:var(--ink);font-size:12px;font-weight:600}
+.filter-fields select{width:100%;max-width:100%;background:var(--surface)}
+.filter-fields select:has(option:checked:not([value=""])){color:var(--violet-text);background:var(--violet-soft);border-color:var(--violet-text);font-weight:600}
+.filter-count{margin:0;color:var(--muted);font-size:12px}
+.catalog-sidebar .list-filters{margin:0;background:var(--surface)}
+.catalog-sidebar .filter-fields{grid-template-columns:minmax(0,1fr)}
+.catalog-sidebar:has(.list-filters){max-height:calc(100dvh - 110px);overflow-y:auto}
+.filtered-tasks>div{display:grid;justify-content:stretch}
+.filtered-tasks label{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media(min-width:901px){.workspace-grid.with-heading:has(>.catalog-sidebar){grid-template-rows:max-content 1fr}}
+@media(max-width:900px){.catalog-sidebar:has(.list-filters){max-height:none;overflow:visible}.catalog-sidebar .filter-fields{grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr))}}
+@media(max-width:650px){.filter-fields,.catalog-sidebar .filter-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.list-filters{padding:11px}.filter-fields select{padding-inline:6px;min-height:44px}.filters-heading{margin-bottom:6px}.filter-reset{min-height:34px}}

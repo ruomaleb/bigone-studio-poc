@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.3">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.4">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -37,11 +37,12 @@
 </dialog>
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="assets/list-filters.js?v=2026-11-26.4"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-26.3';
+const VERSION='2026-11-26.4';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -58,7 +59,7 @@ const TABS=[['cadrage','Brief'],['offres','Produits et offres'],['dispositif','S
 const S={operations:[],produits:[],magasins:[],supports:[],taches:[],journal:[],chemins:[],engagements:[]};
 let db=null,status='loading',cur=null,timer=null;
 let planningOpen=false,suiviOpen=false;
-let priorityFilter='all', operationQuery='';
+let operationQuery='';
 try{cur=localStorage.getItem('bos-op')}catch(e){}
 let contexteOperation=cur;
 
@@ -277,20 +278,17 @@ function enTete(o,actif){
 }
 function operationHeading(o,espace,tab){return `<div class="hd"><div><h1>${esc(o.nom)}</h1><p class="sub">${esc(resOp(o))} · ${periode(o)}${o.cloture?' · Dossier clôturé':''}</p></div>${opSelect(espace,tab)}</div>`}
 /* ---------- Pilotage, recherche et accès aux contenus ---------- */
-const priorityGroups = [
-  ['all','Toutes'], ['crit','À débloquer'], ['warn','À examiner'], ['ok','Prêtes à poursuivre']
-];
+const priorityGroups={crit:'À débloquer',warn:'À examiner',ok:'Prêtes à poursuivre'};
 function priorityPanel(todo){
-  const visible = todo.filter(action => priorityFilter==='all' || action.c===priorityFilter);
+  const list=filterList(todo.map(action=>({record:action,name:action.t,op:action.o.id,priorite:action.c,date:action.due})),
+    ['priorite','op'],['urgence','date','nom'],{prefix:'prior-',ids:{priorite:'priority-filter'}});
+  const visible=list.visible.map(r=>r.record);
   const row = action => `<a class="priority-row priority-${action.c}" href="${esc(action.h)}">
     <span><strong>${esc(action.t)}</strong><small>${esc(action.d)}</small></span>
     <span class="priority-operation">${esc(action.o.nom)}</span><span aria-hidden="true">→</span></a>`;
   return `<section class="priority-panel" aria-labelledby="priority-title">
     <div class="card-heading"><h2 id="priority-title">Actions prioritaires</h2>
-    <label>Afficher <select id="priority-filter">${priorityGroups.map(([key,label])=>{
-      const count=key==='all'?todo.length:todo.filter(action=>action.c===key).length;
-      return `<option value="${key}"${priorityFilter===key?' selected':''}>${label} (${count})</option>`;
-    }).join('')}</select></label></div>
+    </div>${list.toolbar}${list.count}
     ${visible.slice(0,3).map(row).join('') || vide('Aucune action dans cette sélection.')}
     ${visible.length>3?`<details><summary>Afficher les ${visible.length-3} autres actions</summary>${visible.slice(3).map(row).join('')}</details>`:''}</section>`;
 }
@@ -309,12 +307,28 @@ function fileName(value){
   if(!value)return '';
   try{const url=new URL(value);const name=url.pathname.split('/').filter(Boolean).pop();return name?decodeURIComponent(name):url.hostname}catch{return value}
 }
+const contentFilters={
+  operations:['reseau','phase','periode'],produits:['op','rayon','marque','mecanique','qualite'],
+  supports:['op','famille','type','zone','magasin','etat'],assets:['op','type','magasin','etat','version','fichier']
+};
+const contentSorts={operations:['nom','nomDesc','debutDesc','debut'],produits:['nom','nomDesc','prix','prixDesc'],supports:['nom','nomDesc','date','dateDesc'],assets:['nom','nomDesc','revDesc','date']};
+function commercialPeriod(o){return !o.debut||!o.fin?'Non renseignée':o.debut>today()?'À venir':o.fin<today()?'Terminée':'En cours'}
+function opFacets(o){return {op:o.id,reseau:resOp(o),debut:o.debut,periode:commercialPeriod(o)}}
+function productFacets(p){
+  const c=controles(p);
+  return {rayon:p.rayon||'Non renseigné',marque:p.marque||'Non renseignée',mecanique:MECA[p.mecaType]||p.mecanique||(p.barre!=null?MECA.remise:MECA.simple),
+    prix:p.prix??null,qualite:c.b.length?'Anomalie bloquante':c.a.length?'Avertissement':'Sans anomalie'};
+}
+function supportFacets(s,o,stores){
+  return {op:o.id,type:s.type,famille:FAMILLES[typ(s).f],zone:s.groupe?'Locale':'Nationale',magasin:stores.map(m=>m.id),
+    date:s.remise||o.debut&&echeance(s,o),etat:enProd(s)?libStat(s.statut):'En préparation'};
+}
 function contentItems(kind,operation){
   const ops=sorted().filter(o=>suivi(o)&&(!operation||operation===o.id));
   const byId=new Map(ops.map(o=>[o.id,o]));
-  if(kind==='operations')return ops.map(o=>({o,name:o.nom,meta:[resOp(o),periode(o),o.cloture?'Clôturée':''],href:lien('preparation',o.id,'cadrage')}));
+  if(kind==='operations')return ops.map(o=>({o,...opFacets(o),phase:phase(o),name:o.nom,meta:[resOp(o),periode(o),o.cloture?'Clôturée':''],href:lien('preparation',o.id,'cadrage')}));
   if(kind==='produits')return S.produits.filter(p=>byId.has(p.op)).map(p=>({
-    o:byId.get(p.op),name:p.libelle||'Produit sans libellé',meta:[p.ref,p.marque,p.rayon],badge:p.prix!=null?prixTxt(p.prix):'Prix à renseigner',
+    o:byId.get(p.op),op:p.op,record:p,...productFacets(p),name:p.libelle||'Produit sans libellé',meta:[p.ref,p.marque,p.rayon],badge:p.prix!=null?prixTxt(p.prix):'Prix à renseigner',
     terms:[p.description,p.unite,p.origine],href:innerLink(p.op,'offres',p.id)
   }));
   const rows=[];
@@ -322,25 +336,24 @@ function contentItems(kind,operation){
     const o=byId.get(s.op);
     if(!o||kind==='assets'&&!enProd(s))continue;
     const name=titre(s),format=s.format||baseDe(s).format,family=FAMILLES[typ(s).f];
-    const stores=magsSup(s,o).map(m=>m.nom);
+    const engaged=magsSup(s,o),stores=engaged.map(m=>m.nom),facets=supportFacets(s,o,engaged);
     if(kind==='supports'){
-      rows.push({o,name,meta:[format,family,enProd(s)?'En production':'En préparation'],terms:stores,href:innerLink(o.id,'dispositif',s.id)});
+      rows.push({o,record:s,...facets,name,meta:[format,family,enProd(s)?'En production':'En préparation'],terms:stores,href:innerLink(o.id,'dispositif',s.id)});
       continue;
     }
     const asset=(v,archived)=>({
-      o,name:fileName(v.fichier)||name,meta:[v.fichier?name:'Fichier à renseigner',v.format||format,archived?'Archivée':libStat(s.statut)],badge:'Rév. '+(v.rev||1),
+      o,record:s,...facets,magasin:archived?[]:facets.magasin,date:archived?null:facets.date,
+      version:archived?'Archivée':'Actuelle',rev:Number(v.rev)||1,etat:archived?(STATUTS.find(([,label])=>normalized(label)===normalized(v.etat))?.[1]||v.etat||'Non renseigné'):facets.etat,
+      fichier:v.fichier?'Renseigné':'À renseigner',name:fileName(v.fichier)||name,meta:[v.fichier?name:'Fichier à renseigner',v.format||format,archived?'Archivée':libStat(s.statut)],badge:'Rév. '+(v.rev||1),
       terms:[name,family,v.fichier,...(archived?[]:[s.bat?'BAT '+s.bat:'',...stores])],href:supportLink(s)+(archived?'--rev-'+v.rev:'')
     });
     rows.push(asset(s,false),...(s.archives||[]).map(v=>asset(v,true)));
   }
   return rows;
 }
-function findItems(kind,query,operation){
-  const words=normalized(query.trim()).split(/\s+/).filter(Boolean);
-  return contentItems(kind,operation).filter(r=>{
-    const fields=normalized([r.name,r.badge,...r.meta,...(r.terms||[]),operationTerms(r.o)].join(' '));
-    return words.every(w=>fields.includes(w));
-  }).sort((a,b)=>Number(!!a.o.cloture)-Number(!!b.o.cloture)||a.name.localeCompare(b.name,'fr',{numeric:true}));
+function matchesContent(r,query){
+  const fields=normalized([r.name,r.badge,...r.meta,...(r.terms||[]),operationTerms(r.o)].join(' '));
+  return normalized(query.trim()).split(/\s+/).every(w=>fields.includes(w));
 }
 function contentRow(r,kind,icon=kind){
   const meta=[...(kind==='operations'?[]:[r.o.nom]),...r.meta,r.badge].filter(Boolean);
@@ -359,46 +372,41 @@ function rowsBlock(rows,kind,limit=24,cards=false){
   const rest=rows.slice(limit);
   return renderRows(rows.slice(0,limit))+(rest.length?`<details class="more-results"><summary>Afficher les ${rest.length} autres résultats</summary>${renderRows(rest)}</details>`:'');
 }
-function operationResults(ops){
-  if(!operationQuery.trim())return `<div class="result-heading">${iconBadge('operations')}<h2>Opérations ouvertes</h2><span class="count">${ops.length}</span></div>${rowsBlock(ops.map(o=>({o,name:o.nom,meta:[resOp(o),periode(o)],href:lien('preparation',o.id,'cadrage')})),'operations',5)||vide('Aucun dossier ouvert.')}`;
-  const groups=Object.keys(directories).map(k=>[k,findItems(k,operationQuery)]);
-  const count=groups.reduce((n,[,rows])=>n+rows.length,0);
-  return `<p class="result-count" role="status">${count?count+' résultat'+(count>1?'s':''):'Aucun résultat. Essayez un autre nom ou une référence.'}</p>`+
-    groups.filter(([,rows])=>rows.length).map(([k,rows])=>`<section class="result-group"><div class="result-heading">${iconBadge(k)}<h2>${directories[k].item}</h2><span class="count">${rows.length}</span></div>${rowsBlock(rows,k,5)}</section>`).join('');
+function operationResults(){
+  const kind=filterParams().get('contenu'),query=operationQuery.trim();
+  const allKinds=Object.keys(directories),categories=kind?allKinds.filter(k=>k===kind):query?allKinds:['operations'];
+  const rows=categories.flatMap(k=>contentItems(k).filter(r=>query||kind||!r.o.cloture).map(r=>({...r,...opFacets(r.o),contenu:k})));
+  const list=filterList(rows,['contenu','reseau','periode'],['debut','debutDesc','nom','nomDesc'],{searchKey:'q',query,matches:matchesContent,options:{contenu:allKinds}});
+  if(!query&&!kind)return list.toolbar+`<div class="result-heading">${iconBadge('operations')}<h2>Opérations ouvertes</h2><span class="count">${list.visible.length}</span></div>`+
+    (rowsBlock(list.visible,'operations',5)||vide(list.changed?'Aucune opération avec ces filtres.':'Aucun dossier ouvert.'));
+  const count=list.visible.length;
+  return list.toolbar+`<p class="result-count" role="status">${count?count+' résultat'+(count>1?'s':''):'Aucun résultat avec ces critères.'}</p>`+
+    categories.map(k=>{const group=list.visible.filter(r=>r.contenu===k);
+      return group.length?`<section class="result-group"><div class="result-heading">${iconBadge(k)}<h2>${directories[k].item}</h2><span class="count">${group.length}</span></div>${rowsBlock(group,k,5)}</section>`:''}).join('');
 }
-function directoryResults(kind,query,operation){
-  const rows=findItems(kind,query,operation),o=opById(operation);
+function directoryResults(kind,query,operation,list){
+  const rows=list.visible,o=opById(operation);
   const opLink=o&&suivi(o)?`<a class="directory-operation" href="${esc(kind==='assets'?lien('production',o.id):lien('preparation',o.id,kind==='produits'?'offres':'dispositif'))}">${kind==='assets'?'Production de l’opération':kind==='produits'?'Gérer les produits de l’opération':'Gérer les supports de l’opération'} →</a>`:'';
   if(rows.length)return opLink+ `<p class="result-count" role="status">${rows.length} résultat${rows.length>1?'s':''}</p>${rowsBlock(rows,kind,24,kind==='produits'||kind==='assets')}`;
-  if(query||operation)return opLink+'<p role="status">Aucun résultat avec ces filtres.</p><button class="btn sm" type="button" data-clear-search>Effacer les filtres</button>';
+  if(list.changed)return opLink+'<p role="status">Aucun résultat avec ces filtres.</p>';
   const texts={operations:'Aucune opération suivie.',supports:'Aucun support préparé.',produits:'Aucun produit dans les opérations suivies.',assets:'Aucun support ouvert en production.'};
   return vide(texts[kind])+(kind==='operations'?'<button class="btn pri" data-act="new-op">Créer une opération</button>':`<a href="${directoryLink(kind==='assets'?'supports':'operations')}">${kind==='assets'?'Ouvrir les supports en préparation':'Ouvrir les opérations'}</a>`);
 }
 function directoryState(){
-  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  const params=filterParams();
   return {q:params.get('q')||'',op:params.get('op')||''};
 }
 function vDirectory(kind){
   const d=directories[kind],{q,op}=directoryState(),ops=sorted().filter(suivi);
+  const list=filterList(contentItems(kind),contentFilters[kind],contentSorts[kind],{query:q,searchKey:'q',matches:matchesContent,ids:{op:'catalog-op'},options:{op:ops.map(o=>o.id)}});
   const prep=d.nav==='preparation';
   const heading=`<div class="hd"><div class="icon-heading">${iconBadge(kind)}<h1>${d.label}</h1></div>${prep?'<button class="btn pri" data-act="new-op">Créer une opération</button>':''}</div>${banner()}`;
   const navigation=`<aside class="catalog-sidebar">
     ${prep?`<nav class="workspace-menu" aria-label="Contenus de préparation"><p>Préparation</p>${['operations','supports'].map(k=>`<a href="${directoryLink(k)}"${k===kind?' aria-current="page"':''}>${uiIcon(k)}${directories[k].item}</a>`).join('')}</nav>`:''}
-    ${kind==='operations'?'':`<div class="catalog-tools"><h2>${uiIcon('filter')} Filtres</h2><label>Opération<select id="catalog-op"><option value="">Toutes les opérations</option>${ops.map(o=>`<option value="${esc(o.id)}"${o.id===op?' selected':''}>${esc(o.nom)}${o.cloture?' · clôturée':''}</option>`).join('')}</select></label></div>`}</aside>`;
+    ${list.toolbar}</aside>`;
   const placeholders={operations:'Rechercher une opération, une enseigne ou un pilote…',supports:'Rechercher un support, un format ou un magasin…',produits:'Rechercher un libellé, une référence ou un rayon…',assets:'Rechercher un fichier, un support, un BAT ou un magasin…'};
   const search=`<label class="home-search" for="catalog-query">${uiIcon('search')}<span class="visually-hidden">Rechercher</span><input type="search" id="catalog-query" value="${esc(q)}" placeholder="${placeholders[kind]}"></label>`;
-  return workspace(navigation,search+`<section class="result-panel" id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,q,op):''}</section>`,heading);
-}
-function updateDirectory(clear=false){
-  const list=$('#catalog-results'),input=$('#catalog-query'),select=$('#catalog-op');
-  const r=route();
-  if(!list||!input||r.v!=='contenus'||r.tab!==list.dataset.kind)return;
-  if(clear){input.value='';if(select)select.value='';input.focus()}
-  const params=new URLSearchParams(),q=input.value,op=select?.value||'';
-  if(q)params.set('q',q);
-  if(op)params.set('op',op);
-  window.history.replaceState(null,'',directoryLink(list.dataset.kind)+(params.size?'?'+params:''));
-  list.innerHTML=directoryResults(list.dataset.kind,q,op);
+  return workspace(navigation,search+`<section class="result-panel" id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,q,op,list):''}</section>`,heading);
 }
 function suiviContent(ops){
  const rank={crit:0,warn:1,ok:2};
@@ -413,10 +421,17 @@ function suiviContent(ops){
      [ret,'Jalons en retard'],[S.operations.filter(enCours).length,'Périodes commerciales en cours']].map(([n,label])=>`<div><span>${label}</span><b>${n}</b></div>`).join('')}
    </section></div>`;
 }
+function journalContent(entries,global){
+  const rows=entries.map(j=>({record:j,name:texteJournal(j),date:j.date,op:j.op,nature:j.type==='modif'?'Modification':'Autre activité'}));
+  const list=filterList(rows,global?['op','nature']:['nature'],['recent','ancien'],{prefix:'journal-'});
+  const entry=({record:j})=>`<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(texteJournal(j))}<br><span class="muted small">${esc(global?opById(j.op)?.nom||'':j.par||'')} · ${fdh(j.date)}</span></span></div>`;
+  const visible=list.visible,limit=global?6:30;
+  return (rows.length||list.changed?list.toolbar+list.count:'')+`<div class="list">${visible.slice(0,limit).map(entry).join('')||vide(list.changed?'Aucune activité avec ces filtres.':'Aucune activité enregistrée.')}</div>`+
+    (visible.length>limit?`<details class="more-results"><summary>Afficher les ${visible.length-limit} autres entrées</summary><div class="list">${visible.slice(limit).map(entry).join('')}</div></details>`:'');
+}
 function vAccueil(){
  operationQuery=directoryState().q;
  const ops=sorted().filter(o=>suivi(o)&&!o.cloture);
- const jr=[...S.journal].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
  const header=`<div class="hd" id="home-top" tabindex="-1"><div><h1>Plan d’action commerciale</h1></div>
  <button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div>${banner()}`;
  const covers={operations:'preparation',produits:'produits',assets:'production'};
@@ -424,22 +439,26 @@ function vAccueil(){
  if(status!=='ok'&&!S.operations.length)return header+nav;
  const search=`<label class="home-search" for="operation-query">${uiIcon('search')}<span class="visually-hidden">Rechercher dans Studio</span><input id="operation-query" type="search" placeholder="Rechercher une opération, un produit, un fichier…" value="${esc(operationQuery)}"></label>`;
  return workspace(homeMenu(),`${header}${search}${nav}
- <section class="result-panel" id="operation-results" aria-label="Opérations et résultats de recherche">${operationResults(ops)}</section>
+ <section class="result-panel" id="operation-results" aria-label="Opérations et résultats de recherche">${operationResults()}</section>
  <details class="quiet-panel" id="pac-suivi"${suiviOpen?' open':''}><summary>${uiIcon('priorities')}Actions prioritaires et indicateurs</summary><div id="pac-chiffres">${suiviOpen?suiviContent(ops):''}</div></details>
  <details id="planning" class="planning-block"${planningOpen?' open':''}><summary><span class="planning-label">${uiIcon('calendar')}<span class="planning-title">Planning des opérations</span></span><span class="planning-toggle"><span class="when-closed">Afficher le planning</span><span class="when-open">Masquer le planning</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary><div class="planning-content">${planningOpen?planningContent():''}</div></details>
- <details class="quiet-panel" id="pac-activity"><summary>${uiIcon('activity')}Activité récente</summary><div class="list">${jr.map(j=>{const o=opById(j.op);return `<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(texteJournal(j))}<br><span class="muted small">${esc(o?o.nom:'')} · ${fdh(j.date)}</span></span></div>`}).join('')||vide('Aucune activité enregistrée.')}</div></details>`)}
+ <details class="quiet-panel" id="pac-activity"><summary>${uiIcon('activity')}Activité récente</summary><div>${journalContent(S.journal,true)}</div></details>`)}
 
 
 /* ---------- Planning repliable dans l’accueil ---------- */
-function timeline(){const ops=sorted();if(!ops.length)return vide('Aucune opération.');
-  const a=pd(ops[0].debut),b=pd(ops.reduce((m,o)=>o.fin>m?o.fin:m,ops[0].fin));a.setDate(1);b.setMonth(b.getMonth()+1,0);
+function timeline(operations=sorted()){
+  const ops=operations.filter(o=>o.debut&&o.fin);
+  if(!ops.length)return vide(operations.length?'Dates à renseigner pour afficher ces opérations sur le planning.':'Aucune opération dans cette sélection.');
+  const a=pd(ops.reduce((m,o)=>o.debut<m?o.debut:m,ops[0].debut)),b=pd(ops.reduce((m,o)=>o.fin>m?o.fin:m,ops[0].fin));a.setDate(1);b.setMonth(b.getMonth()+1,0);
   const tot=(b-a)/864e5+1,x=s=>((pd(s)-a)/864e5)/tot*100;let ax='';
   for(const m=new Date(a);m<=b;m.setMonth(m.getMonth()+1))ax+=`<div class="ax" style="left:${x(iso(m))}%">${m.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})}</div>`;
   const t=today(),now=t>=iso(a)&&t<=iso(b)?`<div class="now" style="left:${x(t)}%" title="Aujourd'hui"></div>`:'';
   return `<div class="scroll"><div class="tl">${ax}${now}${ops.map(o=>`<div class="r"><${suivi(o)?'a href="'+lien('preparation',o.id)+'"':'span'} class="bar ${suivi(o)?'fab':''}" style="left:${x(o.debut)}%;width:${Math.max(2,x(o.fin)-x(o.debut)+100/tot)}%" title="${esc(o.nom)} · ${periode(o)}">${esc(o.nom)}</${suivi(o)?'a':'span'}></div>`).join('')}</div></div><p class="muted small" style="margin:0">Barres pleines : dossiers suivis dans Studio. Barres claires : opérations relevées sur les sites publics, pour le contexte.</p>`}
-function planningContent(){const ops=sorted(),su=ops.filter(suivi),pu=ops.filter(o=>!suivi(o));
-  return `<section class="section-plain"><h2>Plan de commerce</h2>${timeline()}</section>
-  <section class="card"><h2>Dossiers suivis</h2><div class="list">${su.map(o=>`<div style="display:block"><div class="row" style="justify-content:space-between"><span><b>${esc(o.nom)}</b> ${src(o.source)} ${phasePill(o)}</span><a class="btn sm" href="${lien('preparation',o.id)}">Ouvrir le dossier</a></div><span class="muted small">${periode(o)} · ${esc(resOp(o))} · ${esc(o.portee||'')}</span><div class="row" style="margin:6px 0">${alertPills(o)}</div>${jalStrip(o)}</div>`).join('')||vide('Aucun dossier. Créez une opération pour commencer.')}</div></section>
+function planningContent(){
+  const list=filterList(sorted().map(o=>({o,name:o.nom,...opFacets(o),phase:phase(o)})),contentFilters.operations,['debut','debutDesc','nom','nomDesc'],{prefix:'plan-'});
+  const ops=list.visible.map(r=>r.o),su=ops.filter(suivi),pu=ops.filter(o=>!suivi(o));
+  return `<section class="section-plain"><h2>Plan de commerce</h2>${list.toolbar}${list.count}${timeline(ops)}</section>
+  <section class="card"><h2>Dossiers suivis</h2><div class="list">${su.map(o=>`<div style="display:block"><div class="row" style="justify-content:space-between"><span><b>${esc(o.nom)}</b> ${src(o.source)} ${phasePill(o)}</span><a class="btn sm" href="${lien('preparation',o.id)}">Ouvrir le dossier</a></div><span class="muted small">${periode(o)} · ${esc(resOp(o))} · ${esc(o.portee||'')}</span><div class="row" style="margin:6px 0">${alertPills(o)}</div>${jalStrip(o)}</div>`).join('')||vide(list.changed?'Aucun dossier suivi avec ces filtres.':'Aucun dossier. Créez une opération pour commencer.')}</div></section>
   ${pu.length?`<section class="card"><h2>Opérations relevées, hors Studio</h2><div class="scroll"><table><thead><tr><th>Opération</th><th>Période</th><th>Enseignes</th><th>Portée</th><th>Magasins</th></tr></thead><tbody>${pu.map(o=>`<tr><td><b>${esc(o.nom)}</b> ${src(o.source)}</td><td class="num">${periode(o)}${enCours(o)?'<br><span class="pill warn">Période en cours</span>':''}</td><td>${esc((o.enseignes||[]).join(', '))}</td><td>${esc(o.portee||'')}</td><td class="num">${o.magasins??'—'}</td></tr>`).join('')}</tbody></table></div></section>`:''}`}
 
 /* ---------- Préparation : le dossier de l'opération ---------- */
@@ -464,17 +483,24 @@ function productDetail(o,context){
 function tOffres(o,context){
   if(context)return productDetail(o,context);
   const ps=prodsOf(o.id),bs=basesOf(o.id),nu=nbBloq(utilisees(o)),nb=nbBloq(ps),na=ps.reduce((n,p)=>n+controles(p).a.length,0);
-  const rows=ps.map(p=>{const c=controles(p),us=bs.filter(s=>!s.institutionnel&&utilise(s,p)).map(s=>s.type+(typ(s).pagine?' p. '+place(p,s):'')),ex=S.supports.filter(v=>v.op===o.id&&v.groupe&&v.prixVar&&v.prixVar[p.id]!=null).map(v=>'exception '+v.variante+' : '+prixTxt(v.prixVar[p.id])),CT=c.b.map(x=>`<span class="pill crit">${esc(x)}</span>`).join(' ')+' '+c.a.map(x=>`<span class="pill warn">${esc(x)}</span>`).join(' ');
+  const list=filterList(contentItems('produits',o.id),contentFilters.produits.filter(k=>k!=='op'),contentSorts.produits);
+  const rows=list.visible.map(({record:p})=>{const c=controles(p),us=bs.filter(s=>!s.institutionnel&&utilise(s,p)).map(s=>s.type+(typ(s).pagine?' p. '+place(p,s):'')),ex=S.supports.filter(v=>v.op===o.id&&v.groupe&&v.prixVar&&v.prixVar[p.id]!=null).map(v=>'exception '+v.variante+' : '+prixTxt(v.prixVar[p.id])),CT=c.b.map(x=>`<span class="pill crit">${esc(x)}</span>`).join(' ')+' '+c.a.map(x=>`<span class="pill warn">${esc(x)}</span>`).join(' ');
     return `<tr><td style="min-width:170px"><a href="${esc(innerLink(o.id,'offres',p.id))}"><strong>${esc(p.libelle||'Produit sans libellé')}</strong></a><br><span class="muted small">${esc([p.ref&&'réf. '+p.ref,p.marque,p.unite].filter(Boolean).join(' · '))}</span> ${src(p.source)}${p.description?'<br><span class="muted small">'+esc(p.description)+'</span>':''}<br>${CT}</td><td>${esc(p.rayon||'')}</td><td class="num">${p.prix!=null?prixTxt(p.prix):'—'}${p.barre!=null?'<br><s class="muted small">'+prixTxt(p.barre)+'</s>':''}${ex.length?'<br><span class="small">'+esc(ex.join(' ; '))+'</span>':''}</td><td>${esc(mecaTxt(p))}${p.validDu||p.validAu?'<br><span class="muted small">du '+fd(p.validDu||o.debut)+' au '+fd(p.validAu||o.fin)+'</span>':''}</td><td class="small">${us.length?esc(us.join(', ')):'<span class="muted">Hors dispositif</span>'}</td><td><button class="btn sm" data-prod="${esc(p.id)}">Modifier</button></td></tr>`}).join('');
   return `${nb||na?`<div class="row">${nu?`<span class="pill crit">${nu} anomalie(s) sur des offres utilisées</span>`:''}${nb>nu?`<span class="pill">${nb-nu} anomalie(s) hors dispositif</span>`:''}${na?`<span class="pill warn">${na} avertissement(s)</span>`:''}</div>`:''}
-  <section class="card"><div class="row" style="justify-content:space-between"><h2>Produits et offres</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${ps.length?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide('Aucune offre. Les prix peuvent arriver plus tard : ajoutez-les quand ils sont connus.')}</section>`}
+  <section class="card"><div class="row" style="justify-content:space-between"><h2>Produits et offres</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier toutes les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${list.toolbar}${list.count}${rows?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide(list.changed?'Aucune offre avec ces filtres.':'Aucune offre dans cette opération.')}</section>`}
 const varPour=(b,m)=>varsDe(b).find(v=>(v.magasinsVar||[]).includes(m.id));
 function tMagasins(o,context){const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m=>eng(o,m).statut==='engage'),choisi=(e,b)=>!e.supports||e.supports.includes(b.id);
+  const list=filterList(ms.map(m=>{
+    const e=eng(o,m);
+    return {record:m,name:m.nom,code:m.code,engagement:ENG.find(([id])=>id===e.statut)?.[1]||'Non renseigné',
+      support:e.statut==='engage'?bs.filter(b=>choisi(e,b)).map(b=>b.id):[]};
+  }),['engagement','support'],['nom','nomDesc','code']);
+  const visibles=list.visible.map(r=>r.record);
   const support=context&&basesOf(o.id).find(b=>encodeURIComponent(b.id)===context);
   const back=support?`<div class="context-return"><span>Engagements pour ${esc(titre(support))}</span><a class="btn sm" href="${lien('preparation',o.id,'dispositif')}--${esc(context)}">Revenir à ce support →</a></div>`:'';
   return `${back}<section class="card"><div class="row" style="justify-content:space-between"><h2>Magasins du réseau ${esc(resOp(o))}</h2><button class="btn sm" data-act="new-mag">Ajouter un magasin</button></div><p class="muted small" style="margin:0">${ne.length} engagé(s) sur ${ms.length} magasin(s) éligible(s)</p>
-  <div class="list">${ms.map(m=>{const e=eng(o,m),ch=bs.filter(b=>choisi(e,b)),nv=e.supports?bs.filter(b=>!e.supports.includes(b.id)).length:0;return `<div><span>${esc(m.nom)}${m.code?' <span class="muted small">['+esc(m.code)+']</span>':''}${e.statut==='engage'?'<br><span class="muted small">'+(ch.map(b=>{const v=varPour(b,m);return esc(b.type)+(v?', variante '+esc(v.variante):varsDe(b).length?', nationale':'')+(e.qte&&e.qte[b.id]?' ('+e.qte[b.id]+' ex.)':'')}).join(' · ')||'aucun support retenu')+(e.maj?' · confirmé le '+fd(e.maj):'')+'</span>'+(nv?' <span class="pill warn">'+nv+' support(s) à proposer</span>':'')+(!e.supports&&bs.length?' <span class="pill">Liste héritée, à confirmer</span>':''):''}</span><span class="row" style="justify-content:flex-end"><select data-eng="${esc(m.id)}" aria-label="Engagement ${esc(m.nom)}">${ENG.map(([k,l])=>`<option value="${k}"${e.statut===k?' selected':''}>${l}</option>`).join('')}</select>${e.statut==='engage'&&bs.length?`<button class="btn sm" data-engsup="${esc(m.id)}">Supports et quantités</button>`:''}<button class="btn sm" data-mag="${esc(m.id)}">Fiche</button></span></div>`}).join('')||vide('Aucun magasin dans ce réseau. Ajoutez les magasins éligibles.')}</div></section>
-  ${bs.length?`<section class="card"><h2>Engagements par support</h2><div class="list">${bs.map(b=>{const l=ne.filter(m=>choisi(eng(o,m),b)),q=l.reduce((n,m)=>n+((eng(o,m).qte||{})[b.id]||0),0),vs=varsDe(b);return `<div><span>${esc(b.type)}${vs.length?'<br><span class="muted small">'+esc(['Nationale : '+(magsSup(b,o).map(m=>m.nom).join(', ')||'aucun'),...vs.map(v=>v.variante+' : '+(magsSup(v,o).map(m=>m.nom).join(', ')||'aucun'))].join(' · '))+'</span>':''}</span><span class="row"><span class="pill">${l.length} magasin(s)</span>${typ(b).f==='imprime'?`<span class="pill">${q} exemplaire(s)</span>`:''}</span></div>`}).join('')}</div></section>`:''}`}
+  ${list.toolbar}${list.count}<div class="list">${visibles.map(m=>{const e=eng(o,m),ch=bs.filter(b=>choisi(e,b)),nv=e.supports?bs.filter(b=>!e.supports.includes(b.id)).length:0;return `<div><span>${esc(m.nom)}${m.code?' <span class="muted small">['+esc(m.code)+']</span>':''}${e.statut==='engage'?'<br><span class="muted small">'+(ch.map(b=>{const v=varPour(b,m);return esc(b.type)+(v?', variante '+esc(v.variante):varsDe(b).length?', nationale':'')+(e.qte&&e.qte[b.id]?' ('+e.qte[b.id]+' ex.)':'')}).join(' · ')||'aucun support retenu')+(e.maj?' · confirmé le '+fd(e.maj):'')+'</span>'+(nv?' <span class="pill warn">'+nv+' support(s) à proposer</span>':'')+(!e.supports&&bs.length?' <span class="pill">Liste héritée, à confirmer</span>':''):''}</span><span class="row" style="justify-content:flex-end"><select data-eng="${esc(m.id)}" aria-label="Engagement ${esc(m.nom)}">${ENG.map(([k,l])=>`<option value="${k}"${e.statut===k?' selected':''}>${l}</option>`).join('')}</select>${e.statut==='engage'&&bs.length?`<button class="btn sm" data-engsup="${esc(m.id)}">Supports et quantités</button>`:''}<button class="btn sm" data-mag="${esc(m.id)}">Fiche</button></span></div>`}).join('')||vide(list.changed?'Aucun magasin avec ces filtres.':'Aucun magasin dans ce réseau. Ajoutez les magasins éligibles.')}</div></section>
+  ${bs.length&&visibles.length?`<section class="card"><h2>Engagements par support</h2><div class="list">${bs.filter(b=>!filterParams().get('support')||filterParams().get('support')===b.id).map(b=>{const l=visibles.filter(m=>eng(o,m).statut==='engage'&&choisi(eng(o,m),b)),q=l.reduce((n,m)=>n+((eng(o,m).qte||{})[b.id]||0),0),vs=varsDe(b);return `<div><span>${esc(b.type)}${vs.length?'<br><span class="muted small">'+esc(['Nationale : '+(magsSup(b,o).filter(m=>visibles.includes(m)).map(m=>m.nom).join(', ')||'aucun'),...vs.map(v=>v.variante+' : '+(magsSup(v,o).filter(m=>visibles.includes(m)).map(m=>m.nom).join(', ')||'aucun'))].join(' · '))+'</span>':''}</span><span class="row"><span class="pill">${l.length} magasin(s)</span>${typ(b).f==='imprime'?`<span class="pill">${q} exemplaire(s)</span>`:''}</span></div>`}).join('')}</div></section>`:''}`}
 function compoHtml(s,o){const ps=prodsOf(o.id);
   if(!typ(s).pagine){const us=offresDe(s);return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Offres utilisées par ce support</h3><button class="btn sm" data-choix="${esc(s.id)}">Choisir les offres</button></div>${us.length?'<div class="row">'+us.map(p=>`<a class="chip" href="${esc(innerLink(o.id,'offres',p.id))}">${esc(p.libelle||'Produit sans libellé')}</a>`).join('')+'</div>':vide(s.institutionnel?'Création institutionnelle : aucune offre attendue.':'Aucune offre sélectionnée.')}</div>`}
   const pg=pagesDe(s),libres=ps.filter(p=>place(p,s)==null);
@@ -492,11 +518,22 @@ function tDispositif(o,context){
     const back=`<a class="support-back" href="${esc(lien('preparation',o.id,'dispositif'))}">← Tous les supports de l’opération</a>`;
     return back+(s?carteSup(s,o):vide('Ce support est indisponible dans cette opération.'));
   }
-  const docs=contentItems('supports',o.id);
-  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports et variantes</h2><span class="row"><button class="btn sm" data-act="csv-dispo">Copier le dispositif (CSV)</button><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></span></div>
-  ${docs.length?docs.map(r=>contentRow(r,'operations','supports')).join(''):vide('Aucun support dans cette opération.')}</section>`}
-function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><span><input type="checkbox" data-task="${esc(x.id)}"${x.fait?' checked':''}> ${esc(x.libelle)}</span><span class="pill ${tardif(x)?'warn':x.fait?'ok':enRetard(x)?'crit':''}">${tardif(x)?'Terminé en retard · échéance '+fd(x.echeance):x.fait?'Fait':nonAppl(x)?'Non applicable, approbation interne':enRetard(x)?'Retard · '+fd(x.echeance):fd(x.echeance)}</span></label>`,anc=ts.filter(t=>!t.support||!ss.some(s=>s.id===t.support));
-  return ss.map(s=>{const l=ts.filter(t=>t.support===s.id);return `<section class="card"><div class="row" style="justify-content:space-between"><h2>${esc(titre(s))}</h2><button class="btn sm" data-retro="${esc(s.id)}">${l.length?'Recalculer':'Générer les jalons'}</button></div><p class="muted small" style="margin:0">Échéance ${fd(echeance(s,o))} · modèle ${FAMILLES[typ(s).f].toLowerCase()}</p><div class="list">${l.map(ligne).join('')||vide('Aucun jalon pour ce support.')}</div></section>`}).join('')+(anc.length?`<section class="card"><h2>Jalons généraux</h2><p class="muted small" style="margin:0">Créés avant le calendrier par support.</p><div class="list">${anc.map(ligne).join('')}</div></section>`:'')||`<section class="card">${vide('Le calendrier se construit à partir des supports du dispositif. Ajoutez un support.')}</section>`}
+  const list=filterList(contentItems('supports',o.id),contentFilters.supports.filter(k=>k!=='op'),contentSorts.supports),docs=list.visible;
+  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports et variantes</h2><span class="row"><button class="btn sm" data-act="csv-dispo">Copier tout le dispositif (CSV)</button><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></span></div>
+  ${list.toolbar}${list.count}${docs.length?docs.map(r=>contentRow(r,'operations','supports')).join(''):vide(list.changed?'Aucun support avec ces filtres.':'Aucun support dans cette opération.')}</section>`}
+function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><span><input type="checkbox" data-task="${esc(x.id)}"${x.fait?' checked':''}> ${esc(x.libelle)}</span><span class="pill ${tardif(x)?'warn':x.fait?'ok':enRetard(x)?'crit':''}">${tardif(x)?'Terminé en retard · échéance '+fd(x.echeance):x.fait?'Fait':nonAppl(x)?'Non applicable, approbation interne':enRetard(x)?'Retard · '+fd(x.echeance):fd(x.echeance)}</span></label>`;
+  const list=filterList(ts.map(t=>({record:t,name:t.libelle,support:ss.some(s=>s.id===t.support)?t.support:'Jalons généraux',
+    etat:t.fait?'Terminé':nonAppl(t)?'Non applicable':enRetard(t)?'En retard':'À faire',date:t.echeance})),['support','etat'],['groupe','date','dateDesc','nom']);
+  if(list.sort!=='groupe')return list.toolbar+list.count+`<section class="card"><h2>Jalons</h2><div class="list filtered-tasks">${list.visible.map(r=>`<div><span class="small muted">${esc(facetLabel('support',r.support))}${r.date?' · '+fd(r.date):''}</span>${ligne(r.record)}</div>`).join('')||vide('Aucun jalon avec ces filtres.')}</div></section>`;
+  const groups=ss.map(s=>{
+    const l=list.visible.filter(r=>r.support===s.id);
+    if(list.changed&&!l.length)return '';
+    return `<section class="card"><div class="row" style="justify-content:space-between"><h2>${esc(titre(s))}</h2><button class="btn sm" data-retro="${esc(s.id)}">${ts.some(t=>t.support===s.id)?'Recalculer':'Générer les jalons'}</button></div><p class="muted small">Échéance ${fd(echeance(s,o))} · modèle ${FAMILLES[typ(s).f].toLowerCase()}</p><div class="list">${l.map(r=>ligne(r.record)).join('')||vide('Aucun jalon pour ce support.')}</div></section>`;
+  }).join('');
+  const general=list.visible.filter(r=>r.support==='Jalons généraux');
+  return list.toolbar+list.count+(groups||general.length?'':vide(list.changed?'Aucun jalon avec ces filtres.':'Ajoutez un support pour construire le calendrier.'))+
+    groups+(general.length?`<section class="card"><h2>Jalons généraux</h2><div class="list">${general.map(r=>ligne(r.record)).join('')}</div></section>`:'');
+}
 function vPreparation(tab,context){const o=curOp();if(!o)return `<div class="hd"><div><p class="eyebrow">Préparation en amont</p><h1>Préparer une opération</h1><p class="sub">Définissez vos offres, supports et engagements magasins.</p></div><button class="btn pri" data-act="new-op">Créer une opération</button></div>${banner()}<section class="card">${vide('Aucun dossier pour le moment.')}</section>`;
  const T={cadrage:tCadrage,offres:tOffres,magasins:tMagasins,dispositif:tDispositif,calendrier:tCalendrier};
  const content=T[tab](o,context);
@@ -504,7 +541,7 @@ function vPreparation(tab,context){const o=curOp();if(!o)return `<div class="hd"
 
 
 /* ---------- Production : les supports ouverts, leurs révisions et leurs preuves ---------- */
-let vueProd='liste',filtreProd='tous',qProd='';try{vueProd=localStorage.getItem('bos-vue')||'liste'}catch(e){}
+let vueProd='liste';try{vueProd=localStorage.getItem('bos-vue')||'liste'}catch(e){}
 const prochaine=s=>revisionRequise(s)?'Créer une nouvelle révision avec les données corrigées':({amonter:'Monter la création',maquette:manquants(s,'bat').length?'Terminer les contrôles du BAT':'Présenter le BAT en revue',bat:'Obtenir la décision de '+(s.destinataire||'du destinataire'),corrections:'Corriger, puis créer la révision à renvoyer',valide:'Déclarer la remise',livre:'Aucune'})[s.statut];
 function probleme(s){const r=[],n=nbBloqS(s),t=S.taches.filter(x=>x.support===s.id&&enRetard(x)).length;if(revisionRequise(s))r.push(s.perimeMotif||'Données modifiées');if(n)r.push(n+' anomalie(s) sur ses offres');if(t)r.push(t+' jalon(s) en retard');if(s.prod===undefined)r.push('Hérité, non requalifié');return r}
 const boutons=s=>`<button class="btn sm" data-chk="${esc(s.id)}">Contrôles et fiche</button><button class="btn sm" data-brief="${esc(s.id)}">Copier le brief</button>${typ(s).f!=='imprime'?`<button class="btn sm" data-paquet="${esc(s.id)}">Préparer le paquet Media</button>`:''}${gele(s)?`<button class="btn sm" data-rev="${esc(s.id)}">Nouvelle révision</button>`:''}`;
@@ -513,8 +550,7 @@ function vProduction(supportKey,revisionKey){const o=curOp();if(!o)return '<div 
   return workspace(enTete(o,'production'),productionContent(o,supportKey,revisionKey),operationHeading(o,'production')+banner());
 }
 function productionContent(o,supportKey,revisionKey){
-  const tous=supsOf(o.id),att=tous.filter(s=>!enProd(s)),jr=S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date)),q=qProd.trim().toLowerCase();
-  const ss=tous.filter(enProd).filter(s=>(filtreProd==='tous'||(filtreProd==='traiter'&&(revisionRequise(s)||s.statut!=='livre'&&s.statut!=='valide'))||(filtreProd==='retard'&&S.taches.some(x=>x.support===s.id&&enRetard(x))))&&(!q||(titre(s)+' '+(s.fichier||'')).toLowerCase().includes(q)));
+  const tous=supsOf(o.id),att=tous.filter(s=>!enProd(s)),jr=S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date));
   const pills=s=>{const checks=controlesRequis(s,s.statut==='valide'||s.statut==='livre'?'livre':'bat'),n=checks.filter(([k])=>s.checks?.[k]).length;return `${revisionRequise(s)?`<span class="pill crit" title="${esc(s.perimeMotif||'')}">Nouvelle révision requise</span>`:''}<span class="pill">Rév. ${s.rev||1}</span><span class="pill">${s.bat?'BAT '+s.bat:'Pas de BAT'}</span>${s.statut==='valide'||s.statut==='livre'?`<span class="pill warn">Déclaré${(s.mode||'client')==='interne'?', interne':''}${s.approuvePar?' par '+esc(s.approuvePar):''}</span>`:''}<span class="pill ${n===checks.length?'ok':''}">Contrôles ${n}/${checks.length}</span>`};
   const openSupport=s=>`<a class="btn sm" href="${esc(supportLink(s))}">Ouvrir le support<span aria-hidden="true"> →</span></a>`;
   const card=s=>`<div class="sup"><b>${esc(titre(s))}</b><span class="muted">${esc(s.format||'')} · échéance ${fd(echeance(s,o))}</span>
@@ -549,6 +585,15 @@ function productionContent(o,supportKey,revisionKey){
       ${typ(s).f!=='imprime'?'<p class="muted small">Ce paquet prépare les éléments pour BigOne Media. L’activation se programme ensuite dans Media.</p>':''}
       <a href="${esc(innerLink(o.id,'dispositif',s.id))}">Ouvrir ce support en préparation</a></section>`;
   }
+  const q=filterParams().get('q')||'';
+  const assets=contentItems('assets',o.id).filter(r=>r.version==='Actuelle').map(r=>{
+    const s=r.record,actions=[];
+    if(revisionRequise(s)||!['livre','valide'].includes(s.statut))actions.push('À traiter');
+    if(S.taches.some(t=>t.support===s.id&&enRetard(t)))actions.push('Avec un jalon en retard');
+    return {...r,suivi:actions,name:titre(s)};
+  });
+  const list=filterList(assets,['etat','type','magasin','suivi','fichier'],['date','dateDesc','nom','nomDesc','revDesc'],{query:q,searchKey:'q',matches:matchesContent});
+  const ss=list.visible.map(r=>r.record);
   const liste=()=>`<div class="scroll"><table class="lp"><thead><tr><th>Support et variante</th><th>État</th><th>Échéance</th><th>Prochaine action</th><th></th></tr></thead><tbody>
     ${ss.map(s=>`<tr><td><b>${esc(titre(s))}</b><div class="muted small">${esc(fileName(s.fichier)||'Fichier à renseigner')} · Rév. ${s.rev||1}</div></td>
       <td data-l="État"><span class="pill">${esc(libStat(s.statut))}</span></td><td class="num" data-l="Échéance">${fd(echeance(s,o))}</td>
@@ -556,7 +601,8 @@ function productionContent(o,supportKey,revisionKey){
       <td>${openSupport(s)}</td></tr>`).join('')}</tbody></table></div>`;
   return `
   <h2>Assets et BAT</h2>
-  <div class="row"><span class="row" role="group" aria-label="Affichage"><button class="btn sm ${vueProd==='liste'?'pri':''}" aria-pressed="${vueProd==='liste'}" data-vue="liste">Liste</button><button class="btn sm ${vueProd==='kanban'?'pri':''}" aria-pressed="${vueProd==='kanban'}" data-vue="kanban">Colonnes</button></span><select id="filtre-prod" aria-label="Filtrer les supports">${[['tous','Tous les supports'],['traiter','À traiter'],['retard','Avec un jalon en retard']].map(([k,l])=>`<option value="${k}"${filtreProd===k?' selected':''}>${l}</option>`).join('')}</select><input id="q-prod" type="search" placeholder="Rechercher un support ou un fichier" value="${esc(qProd)}" aria-label="Rechercher"></div>
+  <div class="row"><span class="row" role="group" aria-label="Affichage"><button class="btn sm ${vueProd==='liste'?'pri':''}" aria-pressed="${vueProd==='liste'}" data-vue="liste">Liste</button><button class="btn sm ${vueProd==='kanban'?'pri':''}" aria-pressed="${vueProd==='kanban'}" data-vue="kanban">Colonnes</button></span><input id="q-prod" type="search" placeholder="Rechercher un support ou un fichier" value="${esc(q)}" aria-label="Rechercher"></div>
+  ${list.toolbar}${list.count}
   ${ss.length?(vueProd==='liste'?`<section class="card">${liste()}</section>`:`<div class="kan">${STATUTS.map(([k,l])=>{const c=ss.filter(s=>s.statut===k);return `<div class="col"><h3>${l}<span class="muted">${c.length}</span></h3>${c.map(card).join('')}</div>`}).join('')}</div>`):`<section class="card">${vide(tous.some(enProd)?'Aucun support ne correspond à ce filtre.':'Aucun support en production.')}</section>`}
   ${att.length?`<section class="card"><h2>Encore en préparation</h2><div class="list">${att.map(s=>`<div><span>${esc(titre(s))}</span><a class="btn sm" href="${esc(innerLink(o.id,'dispositif',s.id))}">Voir les prérequis</a></div>`).join('')}</div></section>`:''}
   ${(()=>{const fige=o.cloture&&o.bilan,B=fige?o.bilan:calcBilan(o),ref=refusCloture(o),prec=o.bilansPrecedents||[];
@@ -566,14 +612,18 @@ function productionContent(o,supportKey,revisionKey){
   ${fige?'<div class="list">'+B.supports.map(x=>`<div><span>${esc(x.type)} · rév. ${x.rev} « ${esc(x.fichier||'sans fichier')} »</span><span class="muted small">remis à ${esc(x.remiseA||'—')}</span></div>`).join('')+'</div>'+(B.note?'<p style="margin:0"><b>Enseignements :</b> '+esc(B.note)+'</p>':''):''}
   ${!o.cloture&&ref.length?'<div class="list">'+ref.map(x=>`<div><span class="small">${esc(x)}</span><span class="pill crit">Bloque la clôture</span></div>`).join('')+'</div>':''}
   ${prec.length?'<p class="muted small" style="margin:0">Bilans précédents conservés : '+prec.map(b=>'clôture du '+fd(b.date)+' ('+b.remis+'/'+b.total+' remis, rouvert : '+esc(b.motifReouverture||'')+')').join(' ; ')+'.</p>':''}</div></details>`})()}
-  <details class="quiet-panel"><summary>Journal de l’opération</summary><div class="row"><button class="btn sm" data-act="note">Ajouter une note</button></div><div class="list">${jr.map(j=>`<div><span>${j.type==='modif'?'<span class="pill warn">Modification</span> ':''}${esc(texteJournal(j))}${j.par?'<br><span class="muted small">par '+esc(j.par)+'</span>':''}</span><span class="muted small" style="white-space:nowrap">${fdh(j.date)}</span></div>`).join('')||vide('Aucune note.')}</div></details>`}
+  <details class="quiet-panel" id="journal-production"><summary>Journal de l’opération</summary><div><button class="btn sm" data-act="note">Ajouter une note</button>${journalContent(jr,false)}</div></details>`}
 
 /* Administration : lecture des référentiels existants, sans simuler des connecteurs ou des droits. */
 const ADMIN_TABS=[['magasins','Magasins','Réseaux et identifiants magasins'],['modeles','Supports et modèles','Familles et jalons réutilisés'],['droits','Utilisateurs et droits','Accès et responsabilités'],['connexions','Connexions','Services et passage vers Media']];
-let adminRes='';
-function vAdministration(tab){const networks=[...new Set(S.magasins.map(m=>m.reseau||'Magasins U'))].sort((a,b)=>a.localeCompare(b)),ms=S.magasins.filter(m=>!adminRes||(m.reseau||'Magasins U')===adminRes);let content='';
- if(tab==='magasins')content=`<section class="card"><div class="card-heading"><div><span class="section-label">Référentiel permanent</span><h2>Magasins</h2></div><label class="small">Réseau <select id="admin-reseau"><option value="">Tous les réseaux</option>${networks.map(n=>`<option${n===adminRes?' selected':''}>${esc(n)}</option>`).join('')}</select></label></div><p class="muted small">${ms.length} magasin(s). Les engagements, supports retenus et quantités se gèrent dans la préparation de chaque opération.</p>${ms.length?`<div class="scroll"><table><thead><tr><th>Magasin</th><th>Code point de vente</th><th>Réseau</th></tr></thead><tbody>${ms.map(m=>`<tr><td><b>${esc(m.nom)}</b></td><td>${esc(m.code||'—')}</td><td>${esc(m.reseau||'Magasins U')}</td></tr>`).join('')}</tbody></table></div>`:vide('Aucun magasin pour ce réseau.')}<p class="small muted">La fiche d’un magasin reste modifiable depuis l’onglet Magasins de son opération. Cet écran rassemble les référentiels en consultation.</p></section>`;
- if(tab==='modeles')content=`<section class="card"><span class="section-label">Référentiel des supports</span><h2>Familles et calendriers</h2><p class="small muted">Modèles utilisés par Studio pour proposer les jalons. Les paramètres et dates s’ajustent dans le dispositif de chaque opération.</p><div class="scroll"><table><thead><tr><th>Support</th><th>Famille</th><th>Composition</th></tr></thead><tbody>${Object.entries(TYPES).map(([n,t])=>`<tr><td><b>${esc(n)}</b></td><td>${FAMILLES[t.f]}</td><td>${t.pagine?'Chemin de fer paginé':'Sélection d’offres ou création institutionnelle'}</td></tr>`).join('')}</tbody></table></div><div class="grid">${Object.entries(MODELES).map(([k,rows])=>`<details><summary>Jalons ${FAMILLES[k].toLowerCase()}</summary><div class="list">${rows.map(([,n,d])=>`<div><span>${esc(n)}</span><span class="small muted">${d===0?'À l’échéance':Math.abs(d)+' jours ouvrés avant'}</span></div>`).join('')}</div></details>`).join('')}</div></section>`;
+function vAdministration(tab){let content='';
+ const stores=tab==='magasins'?filterList(S.magasins.map(m=>({record:m,name:m.nom,code:m.code,reseau:m.reseau||'Magasins U',identifiant:m.code?'Renseigné':'À renseigner'})),['reseau','identifiant'],['nom','nomDesc','code'],{ids:{reseau:'admin-reseau'}}):null;
+ const ms=stores?stores.visible.map(r=>r.record):[];
+ if(tab==='magasins')content=`<section class="card"><div class="card-heading"><div><span class="section-label">Référentiel permanent</span><h2>Magasins</h2></div></div>${stores.toolbar}<p class="muted small">${ms.length} magasin(s). Les engagements, supports retenus et quantités se gèrent dans la préparation de chaque opération.</p>${ms.length?`<div class="scroll"><table><thead><tr><th>Magasin</th><th>Code point de vente</th><th>Réseau</th></tr></thead><tbody>${ms.map(m=>`<tr><td><b>${esc(m.nom)}</b></td><td>${esc(m.code||'—')}</td><td>${esc(m.reseau||'Magasins U')}</td></tr>`).join('')}</tbody></table></div>`:vide('Aucun magasin avec ces critères.')}<p class="small muted">La fiche d’un magasin reste modifiable depuis l’onglet Magasins de son opération. Cet écran rassemble les référentiels en consultation.</p></section>`;
+ if(tab==='modeles'){
+ const list=filterList(Object.entries(TYPES).map(([name,t])=>({name,t,famille:FAMILLES[t.f],composition:t.pagine?'Paginé':'Non paginé'})),['famille','composition'],['nom','nomDesc']);
+ content=`<section class="card"><span class="section-label">Référentiel des supports</span><h2>Familles et calendriers</h2>${list.toolbar}${list.count}<p class="small muted">Modèles utilisés par Studio pour proposer les jalons. Les paramètres et dates s’ajustent dans le dispositif de chaque opération.</p><div class="scroll"><table><thead><tr><th>Support</th><th>Famille</th><th>Composition</th></tr></thead><tbody>${list.visible.map(({name:n,t})=>`<tr><td><b>${esc(n)}</b></td><td>${FAMILLES[t.f]}</td><td>${t.pagine?'Chemin de fer paginé':'Sélection d’offres ou création institutionnelle'}</td></tr>`).join('')}</tbody></table></div><div class="grid">${Object.entries(MODELES).filter(([k])=>list.visible.some(r=>r.t.f===k)).map(([k,rows])=>`<details><summary>Jalons ${FAMILLES[k].toLowerCase()}</summary><div class="list">${rows.map(([,n,d])=>`<div><span>${esc(n)}</span><span class="small muted">${d===0?'À l’échéance':Math.abs(d)+' jours ouvrés avant'}</span></div>`).join('')}</div></details>`).join('')}</div></section>`;
+ }
  if(tab==='droits')content=`<section class="card"><span class="section-label">Profils d’accès</span><h2>Utilisateurs et droits</h2><p>Accès actuel : <b>${CODE?profilAcces():'Lecture seule'}</b>.</p><div class="scroll"><table><thead><tr><th>Profil</th><th>Possibilités</th></tr></thead><tbody><tr><td>Consultation</td><td>Parcourir les dossiers et les créations.</td></tr><tr><td>Éditeur</td><td>Préparer et modifier les dossiers ; sans droit d’approbation ni de clôture.</td></tr><tr><td>Responsable</td><td>Approuver, déclarer une remise, clôturer et rouvrir la production.</td></tr></tbody></table></div></section>`;
  if(tab==='connexions')content=`<section class="card"><span class="section-label">Écosystème BigOne</span><h2>Connexions</h2><div class="list"><div><span><b>Données Studio</b><br><span class="small muted">Opérations, offres, magasins, supports et journal partagés.</span></span><span class="pill ${status==='ok'?'ok':'warn'}">${status==='ok'?'Données chargées':'Chargement à vérifier'}</span></div><div><span><b>BigOne Media</b><br><span class="small muted">Paquet de préparation accessible sur les supports numériques en Production. La programmation et la diffusion se font dans BigOne Media.</span></span><span class="pill">Préparation du paquet</span></div><div><span><b>BigOne Stores / BOSS</b><br><span class="small muted">Les magasins affichés sont ceux de Studio ; aucune synchronisation BOSS n’est implémentée.</span></span><span class="pill">Non connecté</span></div></div><div><a class="btn" href="${lien('production',cur)}">Ouvrir les supports de production</a></div></section>`;
  return `<div class="hd"><div><p class="eyebrow">Configuration du réseau</p><h1>Administration</h1><p class="sub">Référentiels et réglages permanents, partagés entre les opérations.</p></div></div>${banner()}<nav class="grid admin-cards" aria-label="Rubriques de l’administration">${ADMIN_TABS.map(([k,n,d])=>`<a class="admin-card" href="#administration--${k}"${tab===k?' aria-current="page"':''}><span><strong>${n}</strong><small>${d}</small></span></a>`).join('')}</nav>${content}`}
@@ -696,7 +746,7 @@ const refusEch=(s,o,d)=>typ(s).f==='imprime'?(d>=o.debut?'L\'échéance d\'un su
 function fOp(o){
   const res=[...new Set([...S.operations.map(resOp),...S.magasins.map(m=>m.reseau)].filter(n=>n&&n!=='Réseau à préciser'))].sort();
   const source=opById(contexteOperation), selected=source?resOp(source):'';
-  const network=route().v==='administration'?adminRes:selected;
+  const network=route().v==='administration'?(filterParams().get('reseau')||''):selected;
   const defaultNetwork=res.includes(network)?network:res.length===1?res[0]:'';
   form(o?'Nom, réseau et dates':'Nouvelle opération',[{k:'nom',l:'Nom',v:o&&o.nom,req:1},{k:'reseau',l:'Réseau',choices:res,v:o?resOp(o):defaultNetwork,req:1},{k:'enseignes',l:'Enseignes (séparées par des virgules)',v:o?(o.enseignes||[]).join(', '):''},{k:'portee',l:'Portée',t:'select',o:['Nationale','Régionale','Locale'].map(x=>[x,x]),v:o&&o.portee},{k:'debut',l:'Début de la période commerciale',t:'date',v:o&&o.debut,req:1},{k:'fin',l:'Fin de la période commerciale',t:'date',v:o&&o.fin,req:1}],async r=>{
     if(r.fin<r.debut)return 'La date de fin précède la date de début.';
@@ -956,7 +1006,9 @@ document.addEventListener('click',async e=>{
     target.scrollIntoView({block:'start'});
     return;
   }
-  if(e.target.closest('[data-clear-search]'))return updateDirectory(true);const t=e.target.closest('[data-act],[data-correction],[data-prod],[data-chk],[data-rev],[data-brief],[data-rub],[data-sup-edit],[data-ouvrir],[data-retro],[data-addpage],[data-chip],[data-choix],[data-engsup],[data-var-new],[data-var-edit],[data-apercu],[data-paquet],[data-vue],[data-mag]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act,sup=id=>S.supports.find(s=>s.id===id);
+  const reset=e.target.closest('[data-reset-filters]');
+  if(reset)return refreshFilteredView(reset,reset.dataset.resetFilters);
+  const t=e.target.closest('[data-act],[data-correction],[data-prod],[data-chk],[data-rev],[data-brief],[data-rub],[data-sup-edit],[data-ouvrir],[data-retro],[data-addpage],[data-chip],[data-choix],[data-engsup],[data-var-new],[data-var-edit],[data-apercu],[data-paquet],[data-vue],[data-mag]');if(!t)return;const o=curOp(),d=t.dataset,a=d.act,sup=id=>S.supports.find(s=>s.id===id);
   if(a==='code')return askCode();
 
   if(d.brief)return copier(brief(sup(d.brief)),'Brief copié. Collez-le dans votre message ou votre carte de suivi.');
@@ -1028,25 +1080,10 @@ document.addEventListener('toggle',e=>{
   }
 },true);
 document.addEventListener('input',e=>{
-  if(e.target.id==='catalog-query')return updateDirectory();
-  if(e.target.id==='operation-query'){
-    operationQuery=e.target.value;
-    window.history.replaceState(null,'','#accueil'+(operationQuery?'?'+new URLSearchParams({q:operationQuery}):''));
-    $('#operation-results').innerHTML=operationResults(sorted().filter(o=>suivi(o)&&!o.cloture));
-    return;
-  }
-  if(e.target.id!=='q-prod')return;qProd=e.target.value;render();const q=$('#q-prod');if(q){q.focus();q.setSelectionRange(qProd.length,qProd.length)}});
+  if(['catalog-query','operation-query','q-prod'].includes(e.target.id))return refreshFilteredView(e.target);
+});
 document.addEventListener('change',async e=>{const t=e.target,d=t.dataset,o=curOp();
-  if(t.id==='catalog-op')return updateDirectory();
-  if(t.id==='priority-filter'){
-    suiviOpen=true;
-    priorityFilter=t.value;
-    render();
-    $('#priority-filter').focus();
-    return;
-  }
-  if(t.id==='admin-reseau'){adminRes=t.value;return render()}
-  if(t.id==='filtre-prod'){filtreProd=t.value;return render()}
+  if(d.facet)return refreshFilteredView(t);
   if(t.id==='opsel')return aller(d.v,t.value,d.tab);
   if(!(d.task||d.eng||d.stat))return;
   if(!peutEcrire())return render();
