@@ -19,15 +19,15 @@ Références du relevé : [introduction](https://zeroheight.com/843cb8e73/p/118b
 
 | Élément | Application |
 | --- | --- |
-| Titres | Diagramm original ; H1 32/40 desktop, 24/36 tablette, 22/32 mobile ; intermédiaire 28 px à 1100 px |
-| Interface | Gilmer regular et bold originaux ; texte 14 px / 1,7 ; contrôles 13 px ; informations secondaires 11–12 px |
+| Titres | Diagramm gras. H1 24/36 px, H3 16/24 px |
+| Interface | Gilmer regular et bold originaux. Texte 14/24 px, boutons 14/21 px, petites légendes 11–12 px |
 | Encre | `#111721` |
 | Surfaces | Blanc `#FFFFFF`, Lin `#F5F5FB` |
 | Séparateurs | `#E6E6EC` du HTML ; le brief arrondit à `#E6E6E6` |
 | Texte secondaire | `#626571` |
 | Cobalt | `#033FE2` : liens, focus, information |
 | Violet | Accent `#8552F6`, petits textes `#7440DD` comme dans la maquette HTML, fond `#F4F0FF` |
-| Boutons principaux | Encre et texte blanc, sans magenta |
+| Boutons principaux | Fond noir, texte blanc, hauteur 40 px, rayon 4 px, marge intérieure horizontale 12 px. Cible tactile 44 px sur mobile |
 | Statuts | Vert `#236842` / `#EAF5ED`, orange `#994D0C` / `#FFF4E6`, rouge `#B42336` / `#FFF0F2`, avec libellés |
 | Composants | Bordures fines, arrondis 6–8 px ; ombre limitée aux modales et notifications |
 | Icônes | SVG simples cohérents avec les repères des maquettes, sans framework ajouté |
@@ -47,3 +47,8 @@ Cette correction reprend la précision explicite d’Arnaud du 16 novembre 2026.
 Les offres occupent toute la largeur pour les tableaux. Les autres onglets de préparation utilisent le panneau latéral. Sur mobile, le panneau passe après le contenu, les tableaux larges défilent dans leur conteneur et la liste de production devient verticale.
 
 Les traitements d'écriture, authentification, validation, import, versionnage, snapshots et paquet Media ne sont pas remplacés. Les anomalies fonctionnelles de l'audit du 15 novembre ne sont pas annoncées comme corrigées. Les cinq pistes exploratoires renseignent le langage visuel ; elles ne constituent pas cinq nouveaux modes métier. Aucune modification de base ni connexion externe n'a été réalisée.
+
+
+## Référence DSP du 25 novembre 2026
+
+Le Dashboard et l’écran Opérations de BigOne Media servent de référence aux titres, boutons, filtres et états de navigation. Studio utilise les fichiers Diagramm et Gilmer embarqués. Les composants nécessaires à la production du PAC conservent leur comportement métier.
