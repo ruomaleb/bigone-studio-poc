@@ -52,3 +52,7 @@ Les traitements d'écriture, authentification, validation, import, versionnage, 
 ## Référence DSP du 25 novembre 2026
 
 Le Dashboard et l’écran Opérations de BigOne Media servent de référence aux titres, boutons, filtres et états de navigation. Studio utilise les fichiers Diagramm et Gilmer embarqués. Les composants nécessaires à la production du PAC conservent leur comportement métier.
+
+## Panneaux de travail du 26 novembre 2026
+
+La barre horizontale donne accès aux espaces Studio. Le menu de gauche reprend le principe observé dans le Dashboard et la liste Opérations de BigOne Media. Il contient les raccourcis de pilotage ou les rubriques du dossier. Sur petit écran, les rubriques du dossier passent sous son titre. Les panneaux blancs se détachent du fond gris bleuté. La sélection est violette, les pictogrammes de section associent violet et cobalt et les actions principales restent sombres. Les trois illustrations de l’accueil représentent des familles de contenus. Les fichiers des opérations sont identifiés par leur nom et leur révision.
