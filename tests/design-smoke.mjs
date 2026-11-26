@@ -15,7 +15,9 @@ const document={querySelector(){return node},querySelectorAll(){return []},addEv
 const location={hash:'#accueil'};
 const context=vm.createContext({document,location,window:{addEventListener(){},history:{replaceState(_state,_title,hash){location.hash=hash}}},localStorage:{getItem(){return null}},console,setTimeout,clearTimeout,URL,URLSearchParams,Date});
 vm.runInContext(fs.readFileSync(path.join(root,'assets/list-filters.js'),'utf8'),context);
+vm.runInContext(fs.readFileSync(path.join(root,'assets/visuels.js'),'utf8'),context);
 vm.runInContext(js,context);
+vm.runInContext("imagesDepart.set('atelier','data:image/png;base64,AA=='); imagesDepart.set('fleurs','data:image/png;base64,AA==')",context);
 const run=s=>vm.runInContext(s,context);
 run(`S.operations.push({id:'qa-design',nom:'Opération <test> & prix',reseau:'Réseau QA',debut:'2027-01-05',fin:'2027-01-17',brief:{objectif:'Trafic',responsable:'QA'}});cur='qa-design';status='ok';`);
 assert.equal(run("banner()"),'');
@@ -182,3 +184,7 @@ assert.match(run("supportProducts({...national,produits:[]},opById('op'))"),/Auc
 assert.match(run("supportProducts({...national,institutionnel:true},opById('op'))"),/aucune offre attendue/);
 assert.match(run("tDispositif(opById('op'),'affiche')"),/<h1 id="support-name">/);
 console.log(JSON.stringify({result:'PASS',checks:'5 onglets préparation, continuité production, 4 rubriques administration, routes inconnues, états vides, données échappées, assets locaux',contrast:ratios},null,2));
+
+assert.equal(run("refVisuelle('atelier').pages.length"),1);
+assert.equal(run("sourceVisuelle({ref:'inconnu',image:'javascript:alert(1)'})"),'');
+assert.throws(()=>run("lireSelection('{}')"));

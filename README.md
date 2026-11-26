@@ -3,7 +3,7 @@
 Prototype Nanotera : Pilotage, Préparation, Production et Administration.
 
 - Application : https://ruomaleb.github.io/bigone-studio-poc/
-- Version : **2026-11-26.7** — fiche de préparation du support, avec synthèse, liste de produits filtrable et consultation des fiches en modale.
+- Version : **2026-11-26.8** — atelier de consultation et de personnalisation des supports. Deux modèles Studio, sélections privées multipages, import d’images, personnalisation par bandeau et export PNG. Les visuels et les maquettes associés à une révision sont conservés en IndexedDB sur l’appareil. Le fichier de production et les BAT suivent leur circuit habituel.
 - Identité et références : [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
 - Recette et limites : [docs/QA_REFONTE_20261116.md](docs/QA_REFONTE_20261116.md).
 
@@ -29,6 +29,6 @@ Version publiée avant cette évolution : **2026-11-16.2**, commit `bfdbaf6e768b
 1. Relire et intégrer la branche de refonte dans `main`.
 2. Reporter la version validée sur `gh-pages` par avance rapide ou fusion normale, sans forcer l'historique.
 3. Attendre la réussite du déploiement Pages.
-4. Vérifier l'URL publique, la version `2026-11-26.7` en pied de page, les polices, le logo et les routes profondes.
+4. Vérifier l'URL publique, la version `2026-11-26.8` en pied de page, les polices, le logo et les routes profondes.
 
 Retour arrière : revert explicite. Aucun changement de base, de droits serveur ou d'hébergement n'est nécessaire pour cette refonte.
