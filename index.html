@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.7">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.8">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -33,6 +33,7 @@
   </header>
   <div class="product-dialog-body"></div>
 </dialog>
+<dialog id="atelier-dialog" aria-labelledby="art-titre"></dialog>
 <dialog id="dlg"></dialog>
 <dialog id="acces-dialog" aria-labelledby="acces-titre">
   <form id="acces-form">
@@ -46,12 +47,13 @@
 </dialog>
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="assets/list-filters.js?v=2026-11-26.7"></script>
+<script src="assets/visuels.js?v=2026-11-26.8"></script>
+<script src="assets/list-filters.js?v=2026-11-26.8"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-26.7';
+const VERSION='2026-11-26.8';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -196,7 +198,7 @@ async function charger(){const e0=ecrits;try{const r=await fetch(SB+'/rest/v1/do
     if(e0!==ecrits)return false;/* une écriture a eu lieu pendant la lecture : ce résultat est peut-être déjà dépassé */
     if(sig===charger.sig&&status==='ok')return true;charger.sig=sig;Object.keys(S).forEach(k=>N[k]=[]);
     rows.forEach(x=>{if(N[x.col])N[x.col].push(Object.assign({id:x.id},x.data,{_v:x.version}))});Object.assign(S,N);status='ok';schedule();return true}catch(e){if(status!=='ok')status='err';schedule();return false}}
-async function init(){render();
+async function init(){lireVisuels().then(schedule).catch(()=>{});render();
   if(PUBLIC){await charger();if(CODE&&!ROLE)rpc({p_code:CODE,p_op:'check'}).then(r=>{if(r&&r.ok===true)retenirCode(CODE,r);else oublierCode();render()}).catch(()=>{});setInterval(()=>{if(!document.hidden&&!$('#dlg').open&&!$('#acces-dialog').open&&!$('#product-dialog').open)charger()},20000);return}
   let n=0;while(!(window.claude&&window.claude.use)&&n++<30)await new Promise(r=>setTimeout(r,100));
   if(!(window.claude&&window.claude.use)){status='nodb';return render()}
@@ -367,7 +369,7 @@ function matchesContent(r,query){
 }
 function contentRow(r,kind,icon=kind){
   const meta=[...(kind==='operations'?[]:[r.o.nom]),...r.meta,r.badge].filter(Boolean);
-  return `<a class="content-row" href="${esc(r.href)}"><span class="row-icon">${uiIcon(icon)}</span><span class="row-copy"><strong>${esc(r.name)}</strong>${meta.length?`<small>${esc(meta.join(' · '))}</small>`:''}</span><span class="row-open" aria-hidden="true">${uiIcon('chevron')}</span></a>`;
+  return `<a class="content-row" href="${esc(r.href)}">${(icon==='supports'&&miniatureVisuelle(visuelDe(r.record)))||`<span class="row-icon">${uiIcon(icon)}</span>`}<span class="row-copy"><strong>${esc(r.name)}</strong>${meta.length?`<small>${esc(meta.join(' · '))}</small>`:''}</span><span class="row-open" aria-hidden="true">${uiIcon('chevron')}</span></a>`;
 }
 function productDialogAttrs(r){
   return `data-product-id="${esc(r.record.id)}" data-operation-id="${esc(r.o.id)}" aria-haspopup="dialog" aria-controls="product-dialog"`;
@@ -375,7 +377,7 @@ function productDialogAttrs(r){
 function contentCard(r,kind){
   const meta=r.meta.filter(Boolean).join(' · ');
   return `<a class="content-row object-card" href="${esc(r.href)}"${kind==='produits'?' '+productDialogAttrs(r):''}>
-    <span class="object-head"><span class="row-icon">${uiIcon(kind)}</span><span class="object-badge">${esc(r.badge)}</span></span>
+    ${kind==='assets'&&r.version==='Actuelle'?miniatureVisuelle(visuelDe(r.record)):''}<span class="object-head"><span class="row-icon">${uiIcon(kind)}</span><span class="object-badge">${esc(r.badge)}</span></span>
     <span class="row-copy"><strong>${esc(r.name)}</strong>${meta?`<small>${esc(meta)}</small>`:''}</span>
     <span class="object-foot"><span>${uiIcon('operations')}${esc(r.o.nom)}</span><span class="row-open" aria-hidden="true">${uiIcon('chevron')}</span></span>
   </a>`;
@@ -442,7 +444,7 @@ function vDirectory(kind){
     ${list.toolbar}</aside>`;
   const placeholders={operations:'Rechercher une opération, une enseigne ou un pilote…',supports:'Rechercher un support, un format ou un magasin…',produits:'Rechercher un libellé, une référence ou un rayon…',assets:'Rechercher un fichier, un support, un BAT ou un magasin…'};
   const search=`<label class="home-search" for="catalog-query">${uiIcon('search')}<span class="visually-hidden">Rechercher</span><input type="search" id="catalog-query" value="${esc(q)}" placeholder="${placeholders[kind]}"></label>`;
-  return workspace(navigation,search+`<section class="result-panel" id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,op,list,mode):''}</section>`,heading);
+  return workspace(navigation,(kind==='supports'||kind==='assets'?galerieVisuelle(null):'')+search+`<section class="result-panel" id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,op,list,mode):''}</section>`,heading);
 }
 function suiviContent(ops){
  const rank={crit:0,warn:1,ok:2};
@@ -622,7 +624,7 @@ function carteSup(s,o){
     ${enProd(s)?'':`<details class="readiness"><summary>${missing.length?missing.length+' prérequis à compléter':'Prêt pour la production'}</summary><div class="list">${readiness.map(([ok,label])=>`<div><span>${esc(label)}</span><span class="pill ${ok?'ok':'crit'}">${ok?'Satisfait':'Manquant'}</span></div>`).join('')}</div></details>`}
     ${o.cloture?'':`<div class="support-settings">${edit}${addVariant}</div>`}</section>`;
   const composition=s.groupe||!typ(s).pagine?supportProducts(s,o):`<section class="card support-pagination">${compoHtml(s,o)}</section>`;
-  return resume+composition+
+  return resume+galerieVisuelle(s)+composition+
     (variants.length?`<section class="card"><h2>Variantes locales</h2>${variants.map(v=>contentRow({o,name:titre(v),meta:[],href:innerLink(o.id,'dispositif',v.id)},'operations','supports')).join('')}</section>`:'');
 }
 function tDispositif(o,context){
@@ -632,7 +634,7 @@ function tDispositif(o,context){
     return s?carteSup(s,o):back+vide('Ce support est indisponible dans cette opération.');
   }
   const list=filterList(contentItems('supports',o.id),contentFilters.supports.filter(k=>k!=='op'),contentSorts.supports),docs=list.visible;
-  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports et variantes</h2><span class="row"><button class="btn sm" data-act="csv-dispo">Copier tout le dispositif (CSV)</button><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></span></div>
+  return galerieVisuelle(null)+`<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports et variantes</h2><span class="row"><button class="btn sm" data-act="csv-dispo">Copier tout le dispositif (CSV)</button><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></span></div>
   ${list.toolbar}${list.count}${docs.length?docs.map(r=>contentRow(r,'operations','supports')).join(''):vide(list.changed?'Aucun support avec ces filtres.':'Aucun support dans cette opération.')}</section>`}
 function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><span><input type="checkbox" data-task="${esc(x.id)}"${x.fait?' checked':''}> ${esc(x.libelle)}</span><span class="pill ${tardif(x)?'warn':x.fait?'ok':enRetard(x)?'crit':''}">${tardif(x)?'Terminé en retard · échéance '+fd(x.echeance):x.fait?'Fait':nonAppl(x)?'Non applicable, approbation interne':enRetard(x)?'Retard · '+fd(x.echeance):fd(x.echeance)}</span></label>`;
   const list=filterList(ts.map(t=>({record:t,name:t.libelle,support:ss.some(s=>s.id===t.support)?t.support:'Jalons généraux',
@@ -698,7 +700,7 @@ function productionContent(o,supportKey,revisionKey){
       <div><dt>Magasins engagés</dt><dd>${stores.length}</dd></div></dl>
       </div></details><div class="row">${boutons(s)}</div>
       ${typ(s).f!=='imprime'?'<p class="muted small">Ce paquet prépare les éléments pour BigOne Media. L’activation se programme ensuite dans Media.</p>':''}
-      <a href="${esc(innerLink(o.id,'dispositif',s.id))}">Ouvrir ce support en préparation</a></section>`;
+      <a href="${esc(innerLink(o.id,'dispositif',s.id))}">Ouvrir ce support en préparation</a></section>`+galerieVisuelle(s);
   }
   const q=filterParams().get('q')||'';
   const assets=contentItems('assets',o.id).filter(r=>r.version==='Actuelle').map(r=>{
@@ -1266,7 +1268,7 @@ document.addEventListener('dragover',e=>{const p=e.target.closest&&e.target.clos
 document.addEventListener('dragleave',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p)p.classList.remove('over')});
 document.addEventListener('drop',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();if(peutEcrire()&&!curOp().cloture)placer(S.supports.find(s=>s.id===p.dataset.sup),e.dataTransfer.getData('text/plain'),+p.dataset.page)}});
 document.querySelector('.skip-link').addEventListener('click',e=>{e.preventDefault();$('#view').focus();$('#view').scrollIntoView({block:'start'})});
-window.addEventListener('hashchange',()=>{if(productDialog.open)productDialog.close();render();$('#view').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'})});
+window.addEventListener('hashchange',()=>{if(productDialog.open)productDialog.close();if($('#atelier-dialog').open)$('#atelier-dialog').close();render();$('#view').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'})});
 init();
 </script>
 </body>
