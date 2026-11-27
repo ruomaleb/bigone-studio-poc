@@ -1,9 +1,12 @@
 import {
   pageFor,
+  localVariantPrices,
+  variantCurrent,
+  reviewChanges,
   totals,
   eligible,
   anomalies
-} from '../server/model.mjs?v=2';
+} from '../server/model.mjs?v=3';
 export const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({
   '&': '&amp;',
   '<': '&lt;',
@@ -150,6 +153,26 @@ export function pim(s, q) {
   }), n, 'chip ' + (v === key ? 'active' : ''))).join('') + '</div>' + table(['Produit', 'Conditionnement', 'Versions éligibles', 'Prix / anomalie', 'Fiche'],
     rows) + none(ps.length + ' référence(s) dans cette sélection.'), btn('new-product', 'Ajouter une référence'));
 }
+
+function variantPanel(s, support) {
+  const rows = [];
+  for (const store of s.stores) {
+    const saved = (support.variants || []).find(z => z.store === store.id);
+    const prices = localVariantPrices(s, support, store.id);
+    const current = saved && variantCurrent(s, support, saved);
+    if (!saved && !Object.keys(prices).length) continue;
+    const amounts = Object.keys(prices).length ? prices : saved.prices;
+    const detail = Object.entries(amounts).map(([id, price]) => {
+      const product = s.products.find(p => p.id === id);
+      return (product?.name || id) + (product ? ' · page ' + pageFor(support, product) : '') + ' · ' + euros(price) + ' TTC';
+    }).join(', ');
+    const key = support.id + '|' + store.id;
+    const actions = current ? tag('Validée', 'good') : (saved ? tag('À revoir', 'warn') : '') + (Object.keys(prices).length ? btn('variant', 'Valider la variante',
+      key) : '') + (saved ? btn('removeVariant', 'Retirer du support', key) : '');
+    rows.push(row(store.name, detail, actions));
+  }
+  return card('Variantes locales', rows.join('') || none('Aucun prix local distinct et confirmé pour ce support.'));
+}
 export function supports(s, q, prodMode = false) {
   const page = prodMode ? 'production' : 'supports',
     x = s.supports.find(x => x.id === q.get('id'));
@@ -162,7 +185,8 @@ export function supports(s, q, prodMode = false) {
   if (!x) return listing;
   const ps = s.products.filter(p => x.products.includes(p.id)),
     pg = Math.max(1, Math.min(x.pages, Number(q.get('page')) || 1));
-  if (!prodMode) return listing + card(x.name, '<form id="support" data-id="' + esc(x.id) + '"><div class="fields">' + field('format', 'Format attendu', x.format) +
+  if (!prodMode) return listing + card(x.name, '<form id="support" data-id="' + esc(x.id) + '"><div class="fields">' + (x.participantItemId === 'a1' ?
+        '<p>Quantité d’affiches à saisir par point de vente dans Ma participation.</p>' : '') + field('format', 'Format attendu', x.format) +
       sel('scope', 'Version commerciale', [
         ['Toutes', 'Toutes les versions'], ...s.config.versions.map(v => [v.id, v.id + ' · ' + v.name])
       ], x.scope || 'Toutes') + field('note', 'Consignes et quantités attendues', x.note) + '</div><fieldset><legend>Offres utilisées</legend>' + checks(
@@ -170,12 +194,25 @@ export function supports(s, q, prodMode = false) {
       link(route('production', {
         id: x.id
       }), 'Voir les révisions') + '</div>') +
-    card('Variantes locales', (x.variants || []).map(z => row('Variante enregistrée · ' + (s.stores.find(t => t.id === z.store)?.name || z.store), Object.entries(
-      z.prices).map(([id, price]) => (s.products.find(p => p.id === id)?.name || id) + ' · ' + euros(price)).join(', '), tag('Validée', 'good'))).join('') + (s
-      .stores.filter(t => s.replies[t.id]?.confirmed && ps.some(p => s.replies[t.id].prices[p.id])).map(t => row(t.name, ps.filter(p => s.replies[t.id].prices[p
-        .id]).map(p => p.name + ' · ' + euros(s.replies[t.id].prices[p.id]) + ' · page ' + pageFor(x, p)).join(', '), btn('variant', 'Valider la variante',
-        x.id + '|' + t.id))).join('') || none('Aucun prix local confirmé pour les références de ce support.')));
-  return listing + card(x.name + ' · BAT R' + x.revision, tag(x.state) + (x.review ? ' ' + tag('Nouvelle revue requise', 'warn') : '') + '<p>Décision attendue · ' +
+    variantPanel(s, x);
+  const revision = q.get('revision');
+  if (prodMode && revision && revision !== String(x.revision)) {
+    const records = x.history.filter(h => String(h.revision) === revision);
+    const baseline = String(x.reviewBaseline?.revision) === revision ? x.reviewBaseline : null;
+    const archived = records.findLast(h => h.decision !== 'Nouvelle révision') || baseline || records.at(-1);
+    const details = archived ? row('Décision conservée', archived.decision, tag('Archive')) +
+      (archived.file ? row('Fichier de la révision', archived.file, '') : '') + (archived.attachment ? btn('get-file', archived.attachment.name, archived.attachment
+        .id) : '') +
+      (archived.products?.length ? table(['Référence', 'Page', 'Prix TTC'], archived.products.map(p => tr(esc(p.name || p.id), esc(p.page || '—'), esc(euros(p
+        .price))))) : none('Aucun relevé produit conservé pour cette décision.')) : none('Cette révision est indisponible dans ce dossier.');
+    return listing + card(x.name + ' · BAT R' + revision, details, link(route('production', {
+      id: x.id
+    }), 'Revenir au BAT actuel'));
+  }
+  const changes = reviewChanges(s, x);
+  return listing + card(x.name + ' · BAT R' + x.revision, tag(x.state) + (changes.length ? '<details><summary>Modifications depuis la dernière revue (' + changes
+      .length + ')</summary><ul>' + changes.map(text => '<li>' + esc(text) + '</li>').join('') + '</ul></details>' : '') + (x.review ? ' ' + tag(
+      'Nouvelle revue requise', 'warn') : '') + '<p>Décision attendue · ' +
     esc(x.decider) + '</p><div class="filters">' + sel('batpage', 'Page du BAT', Array.from({
       length: Math.min(x.pages, 200)
     }, (_, i) => [String(i + 1), 'Page ' + (i + 1)]), String(pg)) + '</div>' + table(['Offre sur cette page', 'Prix national', 'Fiche'], ps.filter(p => pageFor(x,
@@ -189,11 +226,19 @@ export function supports(s, q, prodMode = false) {
     }), 'Ouvrir le dispositif') + '</div><div class="actions">' + (['En préparation', 'En corrections'].includes(x.state) ? ['En revue'] : x.state ===
       'En revue' ? ['Validé', 'En corrections'] : x.state === 'Validé' ? ['Remis'] : []).concat('Nouvelle révision').map(a => btn('decision', a, x.id + '|' + a))
     .join('') + '</div>') + card('Historique des décisions', x.history.slice().reverse().map(h => row('R' + h.revision + ' · ' + h.decision, h.comment ||
-    'Décision enregistrée', esc(h.at.slice(0, 10)) + (h.attachment ? btn('get-file', h.attachment.name, h.attachment.id) : ''))).join('') || none(
-    'Aucune nouvelle décision enregistrée.'));
+      'Décision enregistrée', esc(h.at.slice(0, 10)) + (h.revision !== x.revision ? link(route('production', {
+        id: x.id,
+        revision: h.revision
+      }), 'Ouvrir R' + h.revision) : '') + (h.changes?.length ? '<details><summary>Changements consignés</summary><ul>' + h.changes.map(text =>
+        '<li>' + esc(text) + '</li>').join('') + '</ul></details>' : '') + (h.attachment ? btn('get-file', h.attachment.name, h.attachment.id) : ''))).join('') ||
+    none(
+      'Aucune nouvelle décision enregistrée.'));
 }
 export function flows(s, q) {
-  return card('Flux', none('Contrôler l’offre par version, générer un fichier et consigner sa remise.') + s.flows.map(f => {
+  const id = q.get('id');
+  const selected = id ? s.flows.filter(f => f.id === id) : s.flows;
+  return card('Flux', none('Contrôler l’offre par version, générer un fichier et consigner sa remise.') + (id ? link('#flux', 'Tous les flux') : '') + (id && !
+    selected.length ? none('Ce flux est indisponible dans le dossier.') : '') + selected.map(f => {
     const errors = anomalies(s, f.v);
     return '<section class="inset" style="margin:12px 0"><div class="hrow"><h3>' + esc(f.name) + '</h3>' + tag(f.stage, f.stage === 'À corriger' ? 'warn' :
         '') + '</div><div class="filters">' + sel('flow-' + f.id, 'Version commerciale', [

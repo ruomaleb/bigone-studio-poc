@@ -33,4 +33,19 @@ Publier depuis `main` vers `gh-pages`. Refaire le parcours sur l’URL publique 
 | Réponse détaillée | En navigateur à 1 850 et 390 px, saisie de deux affiches et d’un kit, de 1 500 tracts, d’un budget local de 400 € et d’un café à 6,75 € TTC. Relecture après confirmation. Le kit porte le total à quatre affiches et la PLV à 27 € HT. |
 | Import | Lecture du dossier historique S49 et conversion de ses 14 produits, 10 participants, 4 supports et 2 flux. Le test de non-régression porte sur le prix source, la page de placement, le nombre de pages et le numéro de BAT. |
 
-Dans les dossiers historiques, les produits dont la version commerciale reste à renseigner apparaissent dans le PIM. La création d’une référence V3 et d’une affiche A2 limitée à V3 a été vérifiée sur le site publié. La page d’accès au dossier partagé demande le code Responsable dans un navigateur neuf. La connexion avec un code réel reste à vérifier dans la session d’un responsable. Les liens vers des fichiers de l’ancien Studio dépendent de la disponibilité de leur URL d’origine.
+Dans les dossiers historiques, les produits dont la version commerciale reste à renseigner apparaissent dans le PIM. La création d’une référence V3 et d’une affiche A2 limitée à V3 a été vérifiée sur le site publié. La page d’accès au dossier partagé demande le code Responsable dans un navigateur neuf. Dans la session Responsable de Studio, « Utiliser mon accès Studio » a ouvert le dossier partagé S49. Le PIM a affiché ses 14 références. Le dossier partagé est resté ouvert après rechargement. Les liens vers des fichiers de l’ancien Studio dépendent de la disponibilité de leur URL d’origine.
+
+## Finalisation du 27 novembre · version 2026-11-27.3
+
+Le chef de projet peut demander « Prépare un prospectus commun et laisse chaque magasin choisir sa quantité d’affiches A1 ». Il relit les deux supports, le tarif unitaire et l’effet sur les réponses, puis applique le dispositif. Studio conserve les supports déjà présents. Une seconde application garde les mêmes identifiants. Les quantités sont recueillies dans Ma participation.
+
+Un prix local confirmé différent du prix national produit une variante sur les supports compatibles avec la version du magasin. Avant validation, la fenêtre indique le magasin, la version, le support, la page et les deux prix TTC. Si les conditions changent, la variante passe à revoir. La production peut la mettre à jour ou la retirer et relire les changements du BAT. Les décisions passées conservent leur propre copie des produits et variantes.
+
+| Contrôle de reprise | Résultat |
+| --- | --- |
+| Accès partagé | Connexion Responsable réelle et réouverture du PIM S49 après rechargement. |
+| Assistant | Les trois suggestions conservent leur libellé. Une question sur le prix de l’emmental donne accès à sa fiche et à la page 6 du prospectus. |
+| Offre locale | Le même produit en V1 et V2 peut avoir un prix local en V1. Ce prix ne crée aucune variante sur un support limité à V2. |
+| BAT | La correction d’un prix fait apparaître la page touchée et les montants avant et après. La nouvelle décision conserve ces changements dans l’historique. |
+
+Les tests métier s’exécutent avec `node tests/operation.mjs`. La recette d’interface s’exécute avec `node tests/operation-interface.cjs` dans un environnement équipé de Playwright et Chromium. La variable facultative `CHROMIUM_PATH` désigne un navigateur déjà installé. Ces suites utilisent des données et une base locales.

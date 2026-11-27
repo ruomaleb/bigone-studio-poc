@@ -271,7 +271,8 @@ export function importRows(rows, opId) {
   s.products = sourceProducts.map(x => {
     const witness = demo?.products.find(p => p.id === x.id);
     return {
-      ...prod(x.id, x.libelle || x.id, x.conditionnement || witness?.pack || '', (Array.isArray(x.versions) ? x.versions.filter(v => codes.includes(v)) : witness
+      ...prod(x.id, x.libelle || x.id, x.conditionnement || witness?.pack || '', (Array.isArray(x.versions) ? x.versions.filter(v => codes.includes(v)) :
+        witness
         ?.versions) || [], x.prix ?? null, x.page ?? null, x.rayon || ''),
       brand: x.marque || '',
       note: x.mentions || ''
@@ -319,6 +320,7 @@ export function importRows(rows, opId) {
         at: h.date || '',
         revision: h.rev || 1,
         decision: h.etat || 'Archivée',
+        original: true,
         comment: 'Révision du dossier d’origine',
         file: h.fichier || '',
         products: []
@@ -465,18 +467,157 @@ function archiveFlow(f) {
   for (const key of ['rows', 'generated', 'delivered', 'receipt', 'validated', 'checked', 'review']) delete f[key];
 }
 
+export const inScope = (support, v) => !support.scope || support.scope === 'Toutes' || support.scope === v;
+
+export function localVariantPrices(s, support, storeId) {
+  const reply = s.replies[storeId];
+  if (!reply?.confirmed || reply.yn !== 'yes' || !inScope(support, reply.v)) return {};
+  const prices = {};
+  for (const p of eligible(s, reply.v)) {
+    const price = reply.prices?.[p.id];
+    if (support.products.includes(p.id) && money(price, false) && price !== p.price) prices[p.id] = price;
+  }
+  return prices;
+}
+
+export function variantCurrent(s, support, saved) {
+  const actual = localVariantPrices(s, support, saved.store);
+  return (!saved.version || saved.version === s.replies[saved.store]?.v) && Object.keys(actual).length > 0 &&
+    Object.keys(actual).length === Object.keys(saved.prices).length && Object.entries(actual).every(([id, v]) => saved.prices[id] === v);
+}
+
+function reviewSnapshot(s, support) {
+  return {
+    products: s.products.filter(p => support.products.includes(p.id)).map(p => ({
+      id: p.id,
+      name: p.name,
+      page: pageFor(support, p),
+      price: p.price,
+      versions: [...p.versions]
+    })),
+    variants: structuredClone((support.variants || []).filter(z => variantCurrent(s, support, z)))
+  };
+}
+const reviewDecisions = ['En revue', 'Validé', 'En corrections', 'Remis'];
+
+function previousReview(support) {
+  return (support.history || []).findLast(h => reviewDecisions.includes(h.decision) && Array.isArray(h.products) && !h.original && h.comment !==
+    'Révision du dossier d’origine') || support.reviewBaseline;
+}
+export function reviewChanges(s, support) {
+  const last = previousReview(support);
+  if (!last) return [];
+  const current = s.products.filter(p => support.products.includes(p.id));
+  const changes = [];
+  for (const p of current) {
+    const prev = last.products.find(x => x.id === p.id);
+    const page = pageFor(support, p);
+    const place = p.name + ' · page ' + page;
+    if (!prev) changes.push(place + ' · offre ajoutée');
+    else {
+      const price = value => value == null ? 'à renseigner' : value.toLocaleString('fr-FR', {
+        style: 'currency',
+        currency: 'EUR'
+      });
+      if (prev.price !== p.price) changes.push(place + ' · prix TTC de ' + price(prev.price) + ' à ' + price(p.price));
+      if (prev.page && prev.page !== page) changes.push(place + ' · déplacée depuis la page ' + prev.page);
+      if (Array.isArray(prev.versions) && eligibilityChange(prev.versions, p.versions).length) changes.push(place + ' · versions ' + (p.versions.join(', ') ||
+        'à affecter'));
+    }
+  }
+  for (const prev of last.products)
+    if (!current.some(p => p.id === prev.id)) changes.push((prev.name || prev.id) + ' · offre retirée' + (prev.page ? ' de la page ' + prev.page : ''));
+  if (last.variants) {
+    const currentVariants = (support.variants || []).filter(z => variantCurrent(s, support, z));
+    const allStores = new Set([...last.variants, ...currentVariants].map(z => z.store));
+    for (const id of allStores) {
+      const a = last.variants.find(z => z.store === id),
+        b = currentVariants.find(z => z.store === id);
+      if (JSON.stringify(a?.prices) !== JSON.stringify(b?.prices) || a?.version !== b?.version) changes.push('Variante locale · ' + (s.stores.find(t => t.id === id)
+        ?.name || id) + (b ? ' · prix modifiés' : ' · retirée ou à revoir'));
+    }
+  }
+  return changes;
+}
+
+export function commonPlan(s) {
+  const common = s.supports.filter(x => !x.scope || x.scope === 'Toutes');
+  return {
+    brochure: common.find(x => /prospectus/i.test(x.name)),
+    poster: common.find(x => x.participantItemId === 'a1' || /affiche.*\bA1\b/i.test(x.name)),
+    item: s.config.items.find(x => x.id === 'a1')
+  };
+}
+
+function applyCommonPlan(s, p) {
+  let {
+    brochure,
+    poster,
+    item
+  } = commonPlan(s);
+  const needed = Number(!brochure) + Number(!poster);
+  required(s.supports.length + s.flows.length + needed <= 100, 'Limite de supports atteinte.');
+  if (!item) {
+    required(!s.config.kits.some(k => k.id === 'a1') && s.config.items.length + s.config.kits.length < 50 && money(p.price),
+      'Précisez un prix unitaire HT valide pour l’affiche A1.');
+    item = {
+      id: 'a1',
+      name: 'Affiche A1',
+      unit: 'affiche',
+      price: p.price,
+      on: false
+    };
+    s.config.items.push(item);
+  }
+  if (!needed && item.on && poster.participantItemId === 'a1') return false;
+  if (!brochure) {
+    brochure = piece(crypto.randomUUID(), 'Prospectus commun', 'A4', 'En préparation', Math.min(s.config.pages || 12, 200),
+      s.products.filter(x => x.versions.length).map(x => x.id));
+    brochure.family = 'imprime';
+    s.supports.push(brochure);
+  }
+  if (!poster) {
+    poster = piece(crypto.randomUUID(), 'Affiche A1', '594 × 841 mm', 'En préparation', 1, []);
+    poster.family = 'imprime';
+    s.supports.push(poster);
+  }
+  poster.participantItemId = 'a1';
+  if (!item.on) {
+    item.on = true;
+    for (const reply of Object.values(s.replies)) {
+      if (reply.confirmed && reply.yn === 'yes') {
+        reply.confirmed = false;
+        reply.review = true;
+      }
+    }
+  }
+  return true;
+}
+
 function affect(s, ids, versions) {
-  for (const p of s.supports)
-    if (p.products.some(id => ids.includes(id))) p.review = true;
+  for (const support of s.supports) {
+    if (!versions.some(v => inScope(support, v)) || !support.products.some(id => ids.includes(id))) continue;
+    if (support.scope && support.scope !== 'Toutes') support.products = support.products.filter(id =>
+      !ids.includes(id) || s.products.some(p => p.id === id && p.versions.includes(support.scope)));
+    if (support.state !== 'En préparation' && support.state !== 'En corrections') support.review = true;
+  }
   for (const f of s.flows) {
-    if (versions && !versions.includes(f.v)) continue;
+    if (!versions.includes(f.v)) continue;
     if (f.stage === 'Remis') {
       f.review = true;
-      continue
+      continue;
     }
     archiveFlow(f);
-    f.stage = 'À contrôler'
+    f.stage = 'À contrôler';
   }
+}
+export function impactedVersions(prior, next) {
+  const contentChanged = ['name', 'price', 'pack', 'note', 'brand', 'rayon'].some(k => prior[k] !== next[k]);
+  return contentChanged ? [...new Set([...prior.versions, ...next.versions])] : eligibilityChange(prior.versions, next.versions);
+}
+
+function eligibilityChange(a, b) {
+  return codes.filter(v => a.includes(v) !== b.includes(v));
 }
 
 function offerImpact(s, t, r) {
@@ -490,6 +631,15 @@ export function mutate(s, action, p, scope) {
   required(!s.op.closed, 'Ce dossier est clôturé.', 409);
   const t = s.stores.find(x => x.id === (scope || p.store));
   if (scope) required(action === 'reply', 'Cet accès est réservé au participant.', 403);
+  for (const support of s.supports) {
+    if (reviewDecisions.includes(support.state) && !previousReview(support)) support.reviewBaseline = {
+      revision: support.revision,
+      decision: support.state,
+      file: support.file,
+      attachment: support.attachment || null,
+      ...reviewSnapshot(s, support)
+    };
+  }
   if (action === 'reply') {
     required(t, 'Participant inconnu.', 404);
     const r = normalize(s, t, p.reply || {}, p.confirm === true);
@@ -501,13 +651,14 @@ export function mutate(s, action, p, scope) {
     required(s.stores.every(x => ['free', 'must'].includes(p.rules[x.id]) && (codes.includes(p.assign[x.id]) || p.assign[x.id] === '')),
       'Affectation incorrecte.');
     s.config = p.config;
-    const changed = [];
+
     for (const x of s.products) {
       const vs = codes.filter(v => p.eligibility[x.id]?.includes(v));
-      if (vs.join() !== x.versions.join()) changed.push(x.id);
-      x.versions = vs
+      const changed = eligibilityChange(x.versions, vs);
+      x.versions = vs;
+      if (changed.length) affect(s, [x.id], changed);
     }
-    if (changed.length) affect(s, changed);
+
     for (const x of s.stores) {
       const old = x.assigned;
       x.rule = p.rules[x.id];
@@ -529,26 +680,36 @@ export function mutate(s, action, p, scope) {
     required(x, 'Produit absent.', 404);
     required(p.price === null || money(p.price, false), 'Prix invalide.');
     required(codes.some(v => p.versions?.includes(v)), 'Sélectionnez au moins une version.');
-    const priorVersions = x.versions.slice();
-    x.name = clean(p.name, 100);
-    required(x.name, 'Libellé obligatoire.');
-    Object.assign(x, {
+    const prior = {
+      ...x
+    };
+    const name = clean(p.name, 100);
+    required(name, 'Libellé obligatoire.');
+    const values = {
+      name,
       price: p.price,
-      versions: codes.filter(v => p.versions.includes(v)),
       pack: clean(p.pack),
       note: clean(p.note, 500),
       brand: clean(p.brand),
       rayon: clean(p.rayon)
+    };
+    const nextVersions = codes.filter(v => p.versions.includes(v));
+    const changedVersions = eligibilityChange(prior.versions, nextVersions);
+    const affected = impactedVersions(prior, {
+      ...values,
+      versions: nextVersions
     });
-    affect(s, [x.id], [...priorVersions, ...x.versions]);
-    for (const a of s.stores) {
-      const r = s.replies[a.id];
-      if (r && !x.versions.includes(r.v) && (r.picks[x.id] || r.prices[x.id])) {
-        delete r.picks[x.id];
-        delete r.prices[x.id];
-        r.review = !!r.confirmed || r.review;
-        r.confirmed = false
-      }
+    if (!affected.length) return false;
+    Object.assign(x, values, {
+      versions: nextVersions
+    });
+    affect(s, [x.id], affected);
+    for (const store of s.stores) {
+      const r = s.replies[store.id];
+      if (!r || r.yn !== 'yes' || !s.config.offer || !changedVersions.includes(r.v)) continue;
+      const next = normalize(s, store, r, false);
+      if (r.confirmed || r.review) next.review = true;
+      s.replies[store.id] = next;
     }
   } else if (action === 'addProduct') {
     required(s.products.length < 500, 'Limite de 500 références par dossier.');
@@ -559,6 +720,16 @@ export function mutate(s, action, p, scope) {
     required(p.price === null || money(p.price, false), 'Prix invalide.');
     s.products.push(prod(id, clean(p.name), clean(p.pack), vs, p.price, 1, clean(p.rayon)));
     affect(s, [id], vs);
+    for (const store of s.stores) {
+      const r = s.replies[store.id];
+      if (s.config.offer && r?.yn === 'yes' && vs.includes(r.v)) {
+        const next = normalize(s, store, r, false);
+        if (r.confirmed || r.review) next.review = true;
+        s.replies[store.id] = next;
+      }
+    }
+  } else if (action === 'commonPlan') {
+    if (!applyCommonPlan(s, p)) return false;
   } else if (action === 'device') {
     required(['prospectus', 'affiche', 'numerique', 'flux'].includes(p.kind), 'Famille inconnue.');
     const name = clean(p.name, 80);
@@ -575,16 +746,14 @@ export function mutate(s, action, p, scope) {
       })
     } else {
       const normalized = name.trim().toLocaleLowerCase('fr');
-      let x = s.supports.find(y => y.name.toLocaleLowerCase('fr') === normalized);
-      if (!x) {
-        x = piece(crypto.randomUUID(), name, clean(p.format), 'En préparation', Math.max(1, Math.min(200, Number(p.pages) || 1)), []);
-        s.supports.push(x)
-      }
+      required(!s.supports.some(y => y.name.toLocaleLowerCase('fr') === normalized && (y.scope || 'Toutes') === target),
+        'Un support de ce nom existe déjà pour cette version. Ouvrez son dispositif pour le modifier.');
+      const x = piece(crypto.randomUUID(), name, clean(p.format), 'En préparation', Math.max(1, Math.min(200, Number(p.pages) || 1)), []);
+      s.supports.push(x);
       x.scope = target;
       x.family = p.kind === 'numerique' ? 'numerique' : 'imprime';
       x.note = clean(p.note, 500);
       x.products = s.products.filter(y => (target === 'Toutes' || y.versions.includes(target)) && p.products?.includes(y.id)).map(y => y.id);
-      x.review = true
     }
   } else if (action === 'info') {
     for (const k of ['title', 'network', 'owner', 'contact', 'scope', 'objective', 'start', 'end']) s.op[k] = clean(p[k], k === 'objective' ? 1400 : 160);
@@ -615,22 +784,33 @@ export function mutate(s, action, p, scope) {
     const x = s.supports.find(x => x.id === p.id);
     required(x, 'Support absent.');
     if (p.step === 'setup') {
-      x.scope = codes.includes(p.scope) ? p.scope : 'Toutes';
-      x.format = clean(p.format);
-      x.note = clean(p.note, 500);
-      x.products = s.products.filter(y => p.products?.includes(y.id) && (x.scope === 'Toutes' || y.versions.includes(x.scope))).map(y => y.id);
-      x.review = true
+      const scope = codes.includes(p.scope) ? p.scope : 'Toutes';
+      const next = {
+        scope,
+        format: clean(p.format),
+        note: clean(p.note, 500),
+        products: s.products.filter(y =>
+          p.products?.includes(y.id) && (scope === 'Toutes' || y.versions.includes(scope))).map(y => y.id)
+      };
+      if (Object.entries(next).every(([k, v]) => JSON.stringify(x[k]) === JSON.stringify(v))) return false;
+      Object.assign(x, next);
+      if (!['En préparation', 'En corrections'].includes(x.state)) x.review = true;
     } else if (p.step === 'variant') {
-      const r = s.replies[p.store];
-      required(r?.confirmed && Object.keys(r.prices || {}).some(id => x.products.includes(id)), 'Aucun prix local confirmé pour ce support.');
-      const local = Object.fromEntries(Object.entries(r.prices).filter(([id]) => x.products.includes(id)));
-      x.variants = x.variants.filter(z => z.store !== p.store);
+      const local = localVariantPrices(s, x, p.store);
+      required(Object.keys(local).length, 'Aucun prix local distinct et confirmé pour cette version du support.');
+      const last = (x.variants || []).find(z => z.store === p.store);
+      if (last && JSON.stringify(last.prices) === JSON.stringify(local) && (!last.version || last.version === s.replies[p.store].v)) return false;
+      x.variants = (x.variants || []).filter(z => z.store !== p.store);
       x.variants.push({
         store: p.store,
+        version: s.replies[p.store].v,
         prices: local,
         at: date()
       });
-      x.review = true
+      if (!['En préparation', 'En corrections'].includes(x.state)) x.review = true;
+    } else if (p.step === 'removeVariant') {
+      x.variants = (x.variants || []).filter(z => z.store !== p.store);
+      if (!['En préparation', 'En corrections'].includes(x.state)) x.review = true;
     } else if (p.step === 'file') {
       required(!['Validé', 'En revue', 'Remis'].includes(x.state), 'Ouvrez une nouvelle révision.');
       required(!p.file || /^https:\/\//i.test(p.file), 'Utilisez une adresse HTTPS.');
@@ -643,9 +823,12 @@ export function mutate(s, action, p, scope) {
         'En corrections': ['En revue'],
         'Remis': ['Validé']
       };
+      if (p.step === 'Validé' || p.step === 'Remis') required((x.variants || []).every(z => variantCurrent(s, x, z)),
+        'Revoyez les variantes locales avant de valider le BAT.');
       if (p.step !== 'Nouvelle révision') required(allowed[p.step].includes(x.state), 'Transition indisponible.');
       if (['Validé', 'Remis'].includes(p.step)) required(!x.review && x.products.every(id => s.products.find(y => y.id === id)?.price > 0),
         'Traitez les anomalies et ouvrez une nouvelle révision si nécessaire.');
+      if (p.step === 'En revue') x.review = false;
       x.history.push({
         at: date(),
         revision: x.revision,
@@ -653,11 +836,8 @@ export function mutate(s, action, p, scope) {
         comment: clean(p.note, 500),
         file: x.file,
         attachment: x.attachment || null,
-        products: s.products.filter(y => x.products.includes(y.id)).map(y => ({
-          id: y.id,
-          price: y.price,
-          versions: [...y.versions]
-        }))
+        changes: reviewChanges(s, x),
+        ...reviewSnapshot(s, x)
       });
       if (p.step === 'Nouvelle révision') {
         x.revision++;
