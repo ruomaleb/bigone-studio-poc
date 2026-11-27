@@ -1,0 +1,13 @@
+name = "bigone-studio-operations"
+main = "worker.mjs"
+compatibility_date = "2026-11-01"
+workers_dev = true
+[ai]
+binding = "AI"
+[[d1_databases]]
+binding = "DB"
+database_name = "bigone-studio-operations-poc"
+database_id = "b9d99ecf-fcd2-4843-867c-b6d2fd7030f5"
+[vars]
+CATALOG = "https://etmuhdohnalwxlqhsfnf.supabase.co"
+PUBLIC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0bXVoZG9obmFsd3hscWhzZm5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NDUxMzUsImV4cCI6MjExMDIyMTEzNX0.Jiy4H8jHLm3ykZF-673Lu_RGyhEc9YDre9LitZ6w5tg"
