@@ -10,6 +10,9 @@ import {
   example,
   importRows,
   pageFor,
+  reviewChanges,
+  localVariantPrices,
+  variantCurrent,
   eligible,
   mutate,
   blank,
@@ -337,3 +340,185 @@ assert.equal((await call('/file', inv.key, {
   id: asset.id
 }))[0], 403);
 console.log('PASS · import BAT · archivage du CSV · modifications isolées · offre et dispositif versionnés · rétroplanning · pièces jointes réservées');
+
+const pilot = example();
+const initialOffer = structuredClone(pilot.products[0]);
+const baseSupport = pilot.supports[0];
+const poster = pilot.supports[1];
+const change = (action, payload) => mutate(pilot, action, payload);
+const decision = (step, id = baseSupport.id) => change('support', {
+  step,
+  id
+});
+const registerPrice = (store, v, price) => mutate(pilot, 'reply', {
+  confirm: true,
+  reply: {
+    ...blank(v),
+    yn: 'yes',
+    v,
+    picks: {
+      [initialOffer.id]: true
+    },
+    prices: {
+      [initialOffer.id]: price
+    }
+  }
+}, store);
+change('commonPlan', {});
+assert.equal(pilot.supports.length, 2);
+assert.equal(poster.participantItemId, 'a1');
+assert.equal(change('commonPlan', {}), false);
+const noDevices = example();
+noDevices.supports = [];
+noDevices.config.items[0].on = false;
+mutate(noDevices, 'commonPlan', {});
+assert.equal(noDevices.supports.length, 2);
+assert(noDevices.config.items[0].on);
+assert.equal(mutate(noDevices, 'commonPlan', {}), false);
+const sharedPrice = {
+  ...initialOffer,
+  price: 4.99
+};
+change('product', sharedPrice);
+assert.equal(change('product', sharedPrice), false);
+assert(reviewChanges(pilot, baseSupport).some(x => x.includes('page 6') && x.includes('4,99')));
+for (const step of ['Nouvelle révision', 'En revue', 'Validé']) decision(step);
+const noted = baseSupport.history.find(x => x.decision === 'Nouvelle révision');
+assert(noted.changes.some(x => x.includes('4,99')));
+assert.equal(noted.products.find(x => x.id === initialOffer.id).page, 6);
+change('device', {
+  kind: 'affiche',
+  name: 'Affiche festive',
+  format: 'A2',
+  v: 'V2',
+  products: [initialOffer.id]
+});
+const festive = pilot.supports.at(-1);
+assert.throws(() => change('device', {
+  kind: 'affiche',
+  name: 'Affiche festive',
+  format: 'A3',
+  v: 'V2',
+  products: []
+}));
+assert.equal(festive.format, 'A2');
+assert.equal(festive.review, false);
+registerPrice('m01', 'V1', 3.79);
+assert.deepEqual(localVariantPrices(pilot, festive, 'm01'), {});
+assert.throws(() => change('support', {
+  id: festive.id,
+  step: 'variant',
+  store: 'm01'
+}));
+registerPrice('m02', 'V2', 4.99);
+assert.deepEqual(localVariantPrices(pilot, festive, 'm02'), {});
+registerPrice('m02', 'V2', 4.29);
+change('support', {
+  id: festive.id,
+  step: 'variant',
+  store: 'm02'
+});
+assert.equal(change('support', {
+  id: festive.id,
+  step: 'variant',
+  store: 'm02'
+}), false);
+decision('En revue', festive.id);
+decision('Validé', festive.id);
+assert.equal(festive.history.at(-1).variants[0].prices[initialOffer.id], 4.29);
+const v2history = structuredClone(festive.history);
+change('product', {
+  ...pilot.products[0],
+  versions: ['V1']
+});
+assert(!festive.products.includes(initialOffer.id));
+assert(festive.review);
+assert(!variantCurrent(pilot, festive, festive.variants[0]));
+assert.deepEqual(festive.history, v2history);
+assert.equal(pilot.replies.m02.review, true);
+assert.equal(pilot.replies.m01.confirmed, true);
+assert.equal(pilot.replies.m01.prices[initialOffer.id], 3.79);
+assert.equal(pilot.products[0].price, 4.99);
+assert.throws(() => decision('Remis', festive.id));
+console.log('PASS · proposition prospectus + affiche A1 · portée V1/V2 et prix locaux · BAT R1 et historique des changements');
+
+const constrained = example();
+constrained.config.localVersion = false;
+constrained.config.localPrice = false;
+constrained.config.owned[0] = false;
+constrained.config.items[0].on = false;
+const beforeChoice = {
+  ...blank('V3'),
+  yn: 'no',
+  v: 'V3',
+  owned: {
+    0: true
+  },
+  counts: {
+    a1: 5
+  },
+  picks: {
+    's49-08': true
+  },
+  prices: {
+    's49-08': 3
+  }
+};
+mutate(constrained, 'reply', {
+  reply: beforeChoice,
+  confirm: true
+}, 'm01');
+assert.equal(constrained.replies.m01.yn, 'no');
+mutate(constrained, 'reply', {
+  reply: beforeChoice,
+  confirm: true
+}, 'm02');
+assert.equal(constrained.replies.m02.yn, 'yes');
+assert.equal(constrained.replies.m02.v, 'V2');
+assert.deepEqual(constrained.replies.m02.prices, {});
+assert.deepEqual(constrained.replies.m02.owned, {});
+assert.deepEqual(constrained.replies.m02.counts, {});
+assert(forRole(constrained, 'm02').config.items.every(x => x.on));
+assert.deepEqual(forRole(constrained, 'm02').config.versions.map(v => v.id), ['V2']);
+assert.throws(() => mutate(constrained, 'product', {
+  ...constrained.products[0],
+  versions: []
+}));
+console.log('PASS · participation obligatoire et refus facultatif · version fixée · options fermées · dernière version requise');
+
+const participantTwo = (await call('/invite', manager, {
+  store: 'm02'
+}))[1];
+const ownView = (await call('/read', participantTwo.key))[1];
+assert.equal(ownView.state.stores.length, 1);
+assert.equal(ownView.state.replies.m02.v, 'V2');
+assert.equal(ownView.state.replies.m01, undefined);
+const draft = await call('/change', participantTwo.key, {
+  revision: ownView.revision,
+  action: 'reply',
+  payload: {
+    confirm: false,
+    reply: {
+      ...blank('V2'),
+      yn: 'yes',
+      counts: {
+        a1: 20
+      }
+    }
+  }
+});
+assert.equal(draft[0], 200);
+assert.equal((await call('/read', participantTwo.key))[1].state.replies.m02.confirmed, false);
+const confirmation = {
+  revision: draft[1].revision,
+  action: 'reply',
+  payload: {
+    confirm: true,
+    reply: draft[1].state.replies.m02
+  }
+};
+const done = (await call('/change', participantTwo.key, confirmation))[1];
+assert.equal(done.state.replies.m02.copies, 0);
+assert.equal(done.state.replies.m02.counts.a1, 20);
+assert.equal((await call('/change', participantTwo.key, confirmation))[1].revision, done.revision);
+assert.equal(totals((await call('/read', manager))[1].state).quantity, 24);

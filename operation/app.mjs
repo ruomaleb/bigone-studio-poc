@@ -1,8 +1,12 @@
 import {
   blank,
   eligible,
-  pageFor
-} from '../server/model.mjs?v=2';
+  pageFor,
+  inScope,
+  impactedVersions,
+  commonPlan,
+  localVariantPrices
+} from '../server/model.mjs?v=3';
 import {
   esc,
   info,
@@ -20,10 +24,10 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=2';
+} from './views.mjs?v=3';
 import {
   setupChat
-} from './chat.mjs?v=2';
+} from './chat.mjs?v=3';
 const apiRoot = 'https://bigone-studio-operations.github-46e.workers.dev';
 const $ = s => document.querySelector(s),
   params = new URLSearchParams(location.search);
@@ -116,7 +120,8 @@ function sectionMenu(pg) {
   return '<nav class="sidenav" aria-label="Dossier de l’opération"><small>Dans cette opération</small>' + sections.map(([g, items], i) =>
     '<button class="group" data-group="' + i + '" aria-controls="group-' + i + '" aria-expanded="' + groupState[i] + '"><span aria-hidden="true">' + ['▤', '◇',
       '▧'
-    ][i] + '</span>' + g + '<span aria-hidden="true">' + (groupState[i] ? '⌄' : '›') + '</span></button><div id="group-' + i + '" ' + (groupState[i] ? '' :
+    ][i] + '</span>' + g + '<span aria-hidden="true">' + (groupState[i] ? '⌄' : '›') + '</span></button><div role="group" aria-label="' + esc(g) +
+    '" id="group-' + i + '" ' + (groupState[i] ? '' :
       'hidden') + '>' + items.map(([p, l]) => '<a href="#' + p + '" class="navpage" ' + ((p === pg || (p === 'participants' && ['configurer', 'participation']
       .includes(pg))) ? 'aria-current="page"' : '') + '>' + l + '</a>').join('') + '</div>').join('') + '</nav>'
 }
@@ -264,27 +269,49 @@ async function perform(a, id) {
       })
     }, 'Créer la référence');
   }
-  if (a === 'new-device' || a === 'propose-device') {
-    const suggested = a === 'propose-device';
+  if (a === 'propose-device') {
+    const {
+      brochure,
+      poster,
+      item
+    } = commonPlan(s);
+    const line = (label, x, details) => '<p><strong>' + esc(label) + '</strong><br>' + esc(x ? 'Réutiliser « ' + x.name + ' » · ' + x.products.length +
+      ' offres associées' : details) + '</p>';
+    const prices = item ? '<p>Affiche A1 · ' + esc(euros(item.price)) + ' HT par affiche. ' + (item.on ? 'Le choix de quantité est déjà ouvert.' :
+        'Son activation rouvrira les participations confirmées.') + '</p>' :
+      field('price', 'Prix unitaire HT de l’affiche (€)', '', 'number', 'required min="0" step=".01"');
+    return modal('Relire la proposition de dispositif', line('Prospectus commun', brochure,
+        'Créer un prospectus A4 commun aux versions avec les produits affectés.') +
+      line('Affiche A1', poster, 'Créer une affiche au format 594 × 841 mm. Les offres pourront être choisies dans son dispositif.') + prices +
+      '<p>Chaque point de vente pourra saisir sa quantité d’affiches dans Ma participation.</p>', async d => {
+        await save('commonPlan', {
+          price: item ? item.price : Number(d.get('price'))
+        });
+        location.hash = route('supports', {
+          id: commonPlan(ctx.state).poster.id
+        });
+        notify('Dispositif appliqué. Les quantités sont ouvertes aux participants.');
+      }, 'Appliquer le dispositif');
+  }
+  if (a === 'new-device') {
     const versions = [
       ['Toutes', 'Toutes les versions'], ...s.config.versions.map(v => [v.id, v.id + ' · ' + v.name])
     ];
-    return modal(suggested ? 'Relire la proposition de dispositif' : 'Ajouter un support', (suggested ?
-        '<p>Vérifiez le format, les produits et le périmètre du prospectus avant application.</p>' : '') + sel('kind', 'Famille', [
+    return modal('Ajouter un support', sel('kind', 'Famille', [
         ['prospectus', 'Prospectus'],
         ['affiche', 'Affiche / PLV'],
         ['numerique', 'Support numérique'],
         ['flux', 'Flux']
-      ], 'prospectus') + field('name', 'Nom du support', suggested ? 'Prospectus commun' : '', 'text', 'required') + field('format', 'Format', suggested ?
-        'A4' : '') + field('pages', 'Nombre de pages', suggested ? 12 : 1, 'number', 'min="1" max="200"') + sel('v', 'Version commerciale', versions,
-      'Toutes') + field('note', 'Consignes', suggested ? 'Confirmer les quantités avec les participants.' : '') +
-      '<fieldset><legend>Produits retenus</legend>' + checks('products', s.products.map(p => [p.id, p.name]), suggested ? s.products.map(p => p.id) : []) +
-      '</fieldset>', async d => {
+      ], 'prospectus') +
+      field('name', 'Nom du support', '', 'text', 'required') + field('format', 'Format', '') + field('pages', 'Nombre de pages', 1, 'number',
+        'min="1" max="200"') +
+      sel('v', 'Version commerciale', versions, 'Toutes') + field('note', 'Consignes', '') + '<fieldset><legend>Produits retenus</legend>' + checks('products',
+        s.products.map(p => [p.id, p.name]), []) + '</fieldset>', async d => {
         await save('device', {
           ...Object.fromEntries(d),
           products: d.getAll('products')
         });
-        location.hash = d.get('kind') === 'flux' ? 'flux' : 'supports'
+        location.hash = d.get('kind') === 'flux' ? 'flux' : 'supports';
       }, 'Enregistrer le dispositif');
   }
   if (a === 'historic-flow') {
@@ -332,10 +359,22 @@ async function perform(a, id) {
         text: d.get('text')
       }), 'Enregistrer le brouillon')
   }
+  if (a === 'removeVariant') {
+    const [sid, store] = id.split('|');
+    return modal('Retirer la variante du support', '<p>La décision reste dans l’historique des BAT déjà relus.</p>', () => save('support', {
+      id: sid,
+      store,
+      step: 'removeVariant'
+    }), 'Retirer du dispositif');
+  }
   if (a === 'variant') {
     const [sid, store] = id.split('|');
-    return modal('Valider la variante locale', '<p>Appliquer les prix locaux confirmés de ' + esc(s.stores.find(t => t.id === store).name) +
-      ' à cette variante du support.</p>', () => save('support', {
+    const support = s.supports.find(x => x.id === sid),
+      prices = localVariantPrices(s, support, store);
+    const details = s.products.filter(p => Object.hasOwn(prices, p.id)).map(p => '<li>' + esc(p.name) + ' · page ' + pageFor(support, p) + ' · ' + esc(euros(p
+      .price)) + ' national → ' + esc(euros(prices[p.id])) + ' local TTC</li>').join('');
+    return modal('Valider la variante locale', '<p>' + esc(s.stores.find(t => t.id === store).name) + ' · ' + esc(support.name) + ' · ' + esc(s.replies[store]
+      .v) + '</p><ul>' + details + '</ul>', () => save('support', {
         id: sid,
         store,
         step: 'variant'
@@ -498,7 +537,8 @@ document.addEventListener('submit', async e => {
   };
   if (removed.length) return modal('Impact sur les versions', '<p>Versions retirées · ' + esc(removed.join(', ')) + '</p><p>Participants concernés · ' + esc(s
       .stores.filter(t => removed.includes(s.replies[t.id]?.v || t.assigned)).map(t => t.name).join(', ') || 'aucun') + '</p><p>Supports à revoir · ' +
-    esc(s.supports.filter(y => y.products.includes(id)).map(y => y.name + ' · page ' + pageFor(y, p)).join(', ') || 'aucun') + '</p>', apply,
+    esc(s.supports.filter(y => y.products.includes(id) && impactedVersions(p, data).some(v => inScope(y, v))).map(y => y.name + ' · page ' + pageFor(y,
+      p)).join(', ') || 'aucun') + '</p>', apply,
     'Confirmer la modification');
   try {
     await apply()
@@ -635,7 +675,7 @@ function login() {
   }
 }
 async function start(code) {
-  key = readStore(storageKey) || newKey();
+  key = key || newKey();
   writeStore(storageKey, key);
   await api('/session', {
     operation: opId,
@@ -668,7 +708,8 @@ async function init() {
         ready();
         return
       } catch (e) {
-        if (e.status !== 401) throw e
+        if (e.status !== 401) throw e;
+        key = '';
       }
     }
     if (slot) throw Error('Ce lien magasin a expiré. Demandez un nouvel accès depuis Participants.');

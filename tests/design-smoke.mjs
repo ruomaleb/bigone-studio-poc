@@ -56,6 +56,14 @@ assert.ok(run('vProduction(route().tab)').includes('Ce support est indisponible'
 assert.ok(run(`matchesOperation(curOp(),'reseau qa')`));
 run(`S.supports[0].perime=true;`);
 assert.ok(!run(`actions(curOp()).some(action=>action.t==='Examiner le BAT 2')`));
+const target=(tab,id,revision)=>new URL(run(`dossierUrl(curOp(),${JSON.stringify(tab)},${JSON.stringify(id)},${JSON.stringify(revision)})`),'https://studio.test/');
+assert.equal(target('cadrage').hash,'#informations');
+assert.equal(target('calendrier').hash,'#informations?jalons=1');
+assert.equal(target('magasins','m01').hash,'#participants?id=m01');
+assert.equal(target('offres','p02').hash,'#produits?id=p02');
+assert.equal(target('production','meta-id','rev-1').hash,'#production?id=meta-id&revision=1');
+run("S.supports.push({id:'export-fixture',op:'qa-design',type:'Flux Bonial'})");
+assert.equal(target('production','export-fixture').hash,'#flux?id=export-fixture');
 run('S.supports.length=0');
 location.hash='#administration--inconnue';
 assert.equal(run('route().tab'),'magasins');

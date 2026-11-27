@@ -53,7 +53,7 @@
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-27.2';
+const VERSION='2026-11-27.3';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -649,13 +649,15 @@ function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><s
   return list.toolbar+list.count+(groups||general.length?'':vide(list.changed?'Aucun jalon avec ces filtres.':'Ajoutez un support pour construire le calendrier.'))+
     groups+(general.length?`<section class="card"><h2>Jalons généraux</h2><div class="list">${general.map(r=>ligne(r.record)).join('')}</div></section>`:'');
 }
-function dossierUrl(o,tab,context){
+function dossierUrl(o,tab,context,revision){
  const pages={cadrage:'informations',offres:'produits',magasins:'participants',dispositif:'supports',calendrier:'informations',production:'production'};
  const q=new URLSearchParams();if(context)q.set('id',context);if(tab==='calendrier')q.set('jalons','1');
+ if(tab==='production' && context && supsOf(o.id).some(x=>x.id===context && /flux/i.test(x.type)))pages.production='flux';
+ if(tab==='production' && /^rev-[0-9]+$/.test(revision||''))q.set('revision',revision.slice(4));
  const url='operation/?'+(o.id!=='u-2649-pbs'||ROLE==='responsable'?'mode=partage&':'')+'op='+encodeURIComponent(o.id)+'#'+(pages[tab]||'informations')+(q.size?'?'+q:'');
  return url;
 }
-function dossierStudio(o,tab,context){const url=dossierUrl(o,tab,context);
+function dossierStudio(o,tab,context,revision){const url=dossierUrl(o,tab,context,revision);
  return '<div class="row" style="margin:0 0 14px"><a class="btn pri" href="'+esc(url)+'">Ouvrir le dossier avec Assistant</a>'+(o.id==='u-2649-pbs'?'<a class="btn" href="operation/?assistant=1">Essayer sur une copie de S49</a>':'')+'</div>';
 }
 function vPreparation(tab,context){const o=curOp();if(!o)return `<div class="hd"><div><p class="eyebrow">Préparation en amont</p><h1>Préparer une opération</h1><p class="sub">Définissez vos offres, supports et engagements magasins.</p></div><button class="btn pri" data-act="new-op">Créer une opération</button></div>${banner()}<section class="card">${vide('Aucun dossier pour le moment.')}</section>`;
@@ -673,7 +675,7 @@ function probleme(s){const r=[],n=nbBloqS(s),t=S.taches.filter(x=>x.support===s.
 const boutons=s=>`<button class="btn sm" data-chk="${esc(s.id)}">Contrôles et fiche</button><button class="btn sm" data-brief="${esc(s.id)}">Copier le brief</button>${typ(s).f!=='imprime'?`<button class="btn sm" data-paquet="${esc(s.id)}">Préparer le paquet Media</button>`:''}${gele(s)?`<button class="btn sm" data-rev="${esc(s.id)}">Nouvelle révision</button>`:''}`;
 const selStat=s=>`<select data-stat="${esc(s.id)}" aria-label="Statut ${esc(titre(s))}">${STATUTS.map(([k,l])=>`<option value="${k}"${s.statut===k?' selected':''}>${l}</option>`).join('')}</select>`;
 function vProduction(supportKey,revisionKey){const o=curOp();if(!o)return '<div class="hd"><div><p class="eyebrow">Production des supports</p><h1>Production</h1></div><a class="btn" href="#preparation">Ouvrir la préparation</a></div>'+banner()+vide('Les supports apparaîtront ici une fois préparés dans le dispositif.');
-  return workspace(enTete(o,'production'),dossierStudio(o,'production',supportKey)+productionContent(o,supportKey,revisionKey),operationHeading(o,'production')+banner());
+  return workspace(enTete(o,'production'),dossierStudio(o,'production',supportKey,revisionKey)+productionContent(o,supportKey,revisionKey),operationHeading(o,'production')+banner());
 }
 function productionContent(o,supportKey,revisionKey){
   const tous=supsOf(o.id),att=tous.filter(s=>!enProd(s)),jr=S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date));
@@ -761,7 +763,7 @@ function render(){
  catalogNeedsRender=false;
  const r=route(),o=curOp(),inOp=r.v==='preparation'||r.v==='production';
  if(PUBLIC&&status==='ok'&&o&&inOp&&!o.cloture&&!new URLSearchParams(location.search).has('classique')&&(ROLE==='responsable'||o.id==='u-2649-pbs')&&!(r.v==='production'&&r.context)){
-   location.replace(dossierUrl(o,r.v==='production'?'production':r.tab,r.v==='production'?r.tab:r.context));return
+   location.replace(dossierUrl(o,r.v==='production'?'production':r.tab,r.v==='production'?r.tab:r.context,r.v==='production'?r.context:null));return
  }
  const dir=r.v==='contenus'?r.tab:r.v==='production'?'assets':r.v==='preparation'?(r.tab==='offres'?'produits':r.tab==='dispositif'?'supports':'operations'):null;
  const active=dir?directories[dir].nav:r.v==='accueil'?'pilotage':r.v;
