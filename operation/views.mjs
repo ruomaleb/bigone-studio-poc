@@ -6,7 +6,7 @@ import {
   totals,
   eligible,
   anomalies
-} from '../server/model.mjs?v=3';
+} from '../server/model.mjs?v=4';
 export const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({
   '&': '&amp;',
   '<': '&lt;',

@@ -448,6 +448,20 @@ function update(el) {
     if (p === 'reply.media.1' && v && R().budget === null) R().budget = dk().budget
   } else {
     const atBefore = at(data, p);
+    if (p.startsWith('eligibility.') && atBefore && !v) {
+      const [,product,version] = p.split('.');
+      const keep = data.versions.some(other => other.id !== version && data.eligibility[product][other.id]);
+      if (!keep) {
+        el.checked = true;
+        toast('Cochez une autre version avant de retirer la dernière.');
+        return;
+      }
+    }
+    if (p.startsWith('assigned.') && atBefore && !v) {
+      el.value = atBefore;
+      toast('Sélectionnez une version pour ce participant.');
+      return;
+    }
     if (p.startsWith('assigned.') && v !== atBefore && !window.confirm('Changer la version de ce magasin ? ' + core.impact(atBefore, v))) {
       render();
       return

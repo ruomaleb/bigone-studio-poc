@@ -35,7 +35,7 @@ Publier depuis `main` vers `gh-pages`. Refaire le parcours sur l’URL publique 
 
 Dans les dossiers historiques, les produits dont la version commerciale reste à renseigner apparaissent dans le PIM. La création d’une référence V3 et d’une affiche A2 limitée à V3 a été vérifiée sur le site publié. La page d’accès au dossier partagé demande le code Responsable dans un navigateur neuf. Dans la session Responsable de Studio, « Utiliser mon accès Studio » a ouvert le dossier partagé S49. Le PIM a affiché ses 14 références. Le dossier partagé est resté ouvert après rechargement. Les liens vers des fichiers de l’ancien Studio dépendent de la disponibilité de leur URL d’origine.
 
-## Finalisation du 27 novembre · version 2026-11-27.3
+## Finalisation du 27 novembre · version 2026-11-27.4
 
 Le chef de projet peut demander « Prépare un prospectus commun et laisse chaque magasin choisir sa quantité d’affiches A1 ». Il relit les deux supports, le tarif unitaire et l’effet sur les réponses, puis applique le dispositif. Studio conserve les supports déjà présents. Une seconde application garde les mêmes identifiants. Les quantités sont recueillies dans Ma participation.
 
@@ -49,3 +49,5 @@ Un prix local confirmé différent du prix national produit une variante sur les
 | BAT | La correction d’un prix fait apparaître la page touchée et les montants avant et après. La nouvelle décision conserve ces changements dans l’historique. |
 
 Les tests métier s’exécutent avec `node tests/operation.mjs`. La recette d’interface s’exécute avec `node tests/operation-interface.cjs` dans un environnement équipé de Playwright et Chromium. La variable facultative `CHROMIUM_PATH` désigne un navigateur déjà installé. Ces suites utilisent des données et une base locales.
+
+Sur l’URL publique, la question sur l’emmental a ouvert directement la page 6 du BAT. Dans un essai individuel, la variante de Super U Démo 01 en V1 a affiché le café page 7 à 8,40 € TTC au niveau national et 6,75 € TTC pour le magasin. Après correction de l’emmental à 4,99 € et ouverture de R2, le lien vers R1 a retrouvé le prix d’origine à renseigner, y compris après rechargement. Les anciens liens vers un flux ou une révision ouvrent maintenant la pièce demandée.
