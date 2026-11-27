@@ -581,3 +581,12 @@ assert.equal(migrated.stores.length,900);assert.equal(migrated.op.network,'Nanot
 const demoData=projectCatalog({operations:[{id:'u-2649-pbs',nom:'Carte U',enseignes:['Super U']}],magasins:[],supports:[],produits:[],engagements:[{id:'u-2649-pbs'}]},false);
 assert.equal(demoData.magasins.length,900);assert(!/Super U|Carte U/.test(JSON.stringify(demoData)));
 console.log('PASS · réseau Nanotera de 900 · exemple multi-critères '+matching.length+' magasins · priorités, persistance, accès et migration');
+
+const photo={kind:'image',label:'Photo de face',url:'https://studio.example/face.webp'};
+const fresh=(await call('/read',manager))[1];
+const attached=(await call('/change',manager,{revision:fresh.revision,action:'productMedia',payload:{id:'s49-05',media:[photo]}}))[1];
+assert.deepEqual(attached.state.products.find(p=>p.id==='s49-05').media[0],photo);
+assert.deepEqual((await call('/read',participantTwo.key))[1].state.products[0].media,[photo]);
+assert.equal((await call('/change',participantTwo.key,{revision:attached.revision,action:'productMedia',payload:{id:'s49-05',media:[]}}))[0],403);
+assert.equal((await call('/change',manager,{revision:attached.revision,action:'productMedia',payload:{id:'s49-05',media:[{...photo,url:'javascript:alert(1)'}]}}))[0],422);
+console.log('PASS · médias PIM persistants, accès magasin et validation du lien');

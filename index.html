@@ -8,6 +8,7 @@
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
 <link rel="stylesheet" href="assets/studio.css?v=2026-11-26.8">
+<link rel="stylesheet" href="assets/product-sheet.css?v=6">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -24,15 +25,7 @@
   </header>
   <main id="view" tabindex="-1"></main>
 </div>
-<dialog id="product-dialog" aria-labelledby="product-dialog-title">
-  <header class="product-dialog-header">
-    <div><h2 id="product-dialog-title"></h2><p id="product-dialog-operation" class="muted"></p></div>
-    <button type="button" class="btn product-dialog-close" aria-label="Fermer la fiche produit" autofocus>
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
-    </button>
-  </header>
-  <div class="product-dialog-body"></div>
-</dialog>
+<dialog id="product-dialog" class="ps-dialog" aria-labelledby="product-dialog-title"></dialog>
 <dialog id="atelier-dialog" aria-labelledby="art-titre"></dialog>
 <dialog id="dlg"></dialog>
 <dialog id="acces-dialog" aria-labelledby="acces-titre">
@@ -48,12 +41,13 @@
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="assets/visuels.js?v=2026-11-26.8"></script>
+<script src="assets/product-sheet.js?v=6"></script>
 <script src="assets/list-filters.js?v=2026-11-26.8"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-27.5';
+const VERSION='2026-11-27.6';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -504,60 +498,55 @@ function tCadrage(o){const b=o.brief||{},l=(k,v,requis=false)=>`<div><span class
   return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Brief</h2><span class="row"><button class="btn sm" data-act="edit-op">Nom, réseau et dates</button><button class="btn sm pri" data-act="brief">Modifier le brief</button></span></div>
   <div class="list">${l('Objectif commercial',b.objectif,true)}${l('Pilote côté enseigne',b.client,!b.responsable)}${l('Contact agence',b.responsable)}<div><span class="muted">Réseau</span><span>${esc(resOp(o))}</span></div><div><span class="muted">Portée</span><span>${esc(o.portee||'—')}</span></div><div><span class="muted">Période commerciale</span><span>${periode(o)}</span></div><div><span class="muted">Contraintes et décisions</span><span style="text-align:right">${esc(b.notes||'—')}</span></div></div></section>`}
 function productDetail(o,context){
-  const back=`<a class="support-back" href="${esc(lien('preparation',o.id,'offres'))}">← Tous les produits de l’opération</a>`;
-  const p=prodsOf(o.id).find(p=>encodeURIComponent(p.id)===context);
-  if(!p)return back+vide('Ce produit est indisponible dans cette opération.');
-  return back+`<section class="card product-card"><div class="card-heading"><div class="icon-heading">${iconBadge('produits')}<h2>${esc(p.libelle||'Produit sans libellé')}</h2></div>${productEditButton(o,p)}</div>${productFacts(o,p)}</section>`;
-}
-function productEditButton(o,p){
-  return o.cloture?'':`<button class="btn sm" data-prod="${esc(p.id)}">Modifier le produit</button>`;
-}
-function productFacts(o,p){
-  const fields=[['Référence',p.ref],['Marque',p.marque],['Rayon',p.rayon],['Conditionnement',p.unite],
-    ['Prix de vente',p.prix==null?'À renseigner':prixTxt(p.prix)],['Prix barré',p.barre!=null?prixTxt(p.barre):''],
-    ['Offre',mecaTxt(p)],['Validité',p.validDu||p.validAu?fd(p.validDu||o.debut)+' → '+fd(p.validAu||o.fin):''],
-    ['Origine',p.origine],['Mention légale',p.mention]];
-  const supports=supsOf(o.id).filter(s=>!baseDe(s).institutionnel&&utilise(s,p));
-  return `${p.description?`<p>${esc(p.description)}</p>`:''}
-    <dl class="product-facts">${fields.filter(([,v])=>v).map(([label,value])=>`<div${label==='Prix de vente'?' class="product-price"':''}><dt>${label}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>
-    <h3>Supports utilisant ce produit</h3><div>${supports.map(s=>contentRow({o,name:titre(s),meta:[typ(s).pagine?'Page '+place(p,s):'',s.prixVar?.[p.id]!=null?'Prix local '+prixTxt(s.prixVar[p.id]):''],href:innerLink(o.id,'dispositif',s.id)},'operations','supports')).join('')||vide('Aucun support associé.')}</div>`;
+  const p=prodsOf(o.id).find(x=>encodeURIComponent(x.id)===context);
+  if(!p)return vide('Ce produit est indisponible dans cette opération.');
+  return '<a class="support-back" href="'+esc(lien('preparation',o.id,'offres'))+'">← Tous les produits de l’opération</a><section class="card"><a '+productDialogAttrs({record:p,o})+' href="'+esc(innerLink(o.id,'offres',p.id))+'">'+esc(p.libelle)+'</a><p>'+esc(p.prix==null?'À renseigner':prixTxt(p.prix))+'</p></section>';
 }
 const productDialog=$('#product-dialog');
-let catalogNeedsRender=false;
+let catalogNeedsRender=false, productOrigin=null, catalogueSheet;
+function currentProduct(){
+  const o=opById(productDialog.dataset.operationId),p=o && prodsOf(o.id).find(x=>x.id===productDialog.dataset.productId);
+  return {o,p};
+}
+function catalogRecord(){
+  const {o,p}=currentProduct();
+  if(!p)return null;
+  const origin=supsOf(o.id).find(s=>s.id===productDialog.dataset.originSupport);
+  const fields=[['Référence',p.ref || p.id],['Marque',p.marque || 'À renseigner'],['Rayon',p.rayon || 'À renseigner'],['Conditionnement',p.unite || 'À renseigner'],
+    ['Prix de vente',p.prix==null?'À renseigner':prixTxt(p.prix)],['Prix barré',p.barre!=null?prixTxt(p.barre):''],['Offre',mecaTxt(p)],['Versions commerciales',(p.versions || []).join(' · ')],
+    ['Validité',p.validDu||p.validAu?fd(p.validDu||o.debut)+' → '+fd(p.validAu||o.fin):''],['Origine',p.origine],['Mention légale',p.mention],
+    ['Prix local',origin?.prixVar?.[p.id]!=null?prixTxt(prixDe(origin,p))+' · '+titre(origin):'']];
+  return {key:o.id+'/'+p.id,operation:o.nom,name:p.libelle||'Produit sans libellé',closed:!!o.cloture,description:p.description,facts:fields,
+    media:window.StudioProductSheet.mediaFor(p,o.id),supports:supsOf(o.id).filter(s=>!baseDe(s).institutionnel&&utilise(s,p)).map(s=>({
+      name:titre(s),detail:[typ(s).pagine?'Page '+place(p,s):'',s.prixVar?.[p.id]!=null?'Prix local '+prixTxt(s.prixVar[p.id]):''].filter(Boolean).join(' · '),
+      href:innerLink(o.id,'dispositif',s.id)}))};
+}
 function refreshProductDialog(){
-  const o=opById(productDialog.dataset.operationId);
-  const p=o&&suivi(o)&&prodsOf(o.id).find(item=>item.id===productDialog.dataset.productId);
-  $('#product-dialog-title').textContent=p?.libelle||(p?'Produit sans libellé':'Produit indisponible');
-  $('#product-dialog-operation').textContent=o?.nom||'';
-  const origin=productDialog.dataset.originSupport&&supsOf(o?.id).find(s=>s.id===productDialog.dataset.originSupport);
-  const local=p&&origin&&origin.prixVar?.[p.id]!=null?`<p class="support-local-price"><strong>Prix local · ${esc(prixTxt(prixDe(origin,p)))}</strong><br>${esc(titre(origin))}</p>`:'';
-  $('.product-dialog-body',productDialog).innerHTML=p?local+productFacts(o,p)+productEditButton(o,p):vide('Ce produit est indisponible dans cette opération.');
+  const next=catalogRecord();
+  if(!next){if(productDialog.open)productDialog.close();return;}
+  if(!catalogueSheet)catalogueSheet=window.StudioProductSheet.create(productDialog,{
+    reload:catalogRecord,authorize:peutEcrire,
+    edit:(host,finish)=>{const {o,p}=currentProduct();fProd(p,o,{host,finish});},
+    saveMedia:async media=>{const {o,p}=currentProduct();if(!p||o.cloture||!await w('produits/'+p.id,{media}))throw Error('Enregistrement des médias impossible. Vérifiez votre accès Studio.');},
+    close:()=>{
+      const r=route();
+      if(r.v==='preparation' && r.tab==='offres' && r.context){location.hash=lien('preparation',r.id || productDialog.dataset.operationId,'offres');return;}
+      if(catalogNeedsRender){catalogNeedsRender=false;render();const target=[...document.querySelectorAll('a[data-product-id]')].find(el=>el.dataset.productId===productDialog.dataset.productId && el.dataset.operationId===productDialog.dataset.operationId);target?.focus({preventScroll:true});}
+    }
+  });
+  catalogueSheet.open(next,productOrigin);
 }
 function openProductDialog(link){
-  const {productId,operationId}=link.dataset;
-  Object.assign(productDialog.dataset,{productId,operationId,originSupport:link.dataset.originSupport||''});
+  productOrigin=link;
+  Object.assign(productDialog.dataset,{productId:link.dataset.productId,operationId:link.dataset.operationId,originSupport:link.dataset.originSupport||''});
   refreshProductDialog();
-  const hash=location.hash;
-  productDialog.onclose=()=>{
-    if(location.hash!==hash)return;
-    if(catalogNeedsRender){
-      const expanded=!!link.closest('details')?.open;
-      catalogNeedsRender=false;
-      render();
-      const target=Array.from(document.querySelectorAll('a[data-product-id]')).find(el=>el.dataset.productId===productId&&el.dataset.operationId===operationId);
-      if(expanded&&target?.closest('details'))target.closest('details').open=true;
-      (target||$('#support-query')||$('#catalog-query')||$('#view')).focus({preventScroll:true});
-    }else if(link.isConnected)link.focus({preventScroll:true});
-  };
-  productDialog.showModal();
 }
-$('.product-dialog-close',productDialog).addEventListener('click',()=>productDialog.close());
 function tOffres(o,context){
   if(context)return productDetail(o,context);
   const ps=prodsOf(o.id),bs=basesOf(o.id),nu=nbBloq(utilisees(o)),nb=nbBloq(ps),na=ps.reduce((n,p)=>n+controles(p).a.length,0);
   const list=filterList(contentItems('produits',o.id),contentFilters.produits.filter(k=>k!=='op'),contentSorts.produits);
   const rows=list.visible.map(({record:p})=>{const c=controles(p),us=bs.filter(s=>!s.institutionnel&&utilise(s,p)).map(s=>s.type+(typ(s).pagine?' p. '+place(p,s):'')),ex=S.supports.filter(v=>v.op===o.id&&v.groupe&&v.prixVar&&v.prixVar[p.id]!=null).map(v=>'exception '+v.variante+' : '+prixTxt(v.prixVar[p.id])),CT=c.b.map(x=>`<span class="pill crit">${esc(x)}</span>`).join(' ')+' '+c.a.map(x=>`<span class="pill warn">${esc(x)}</span>`).join(' ');
-    return `<tr><td style="min-width:170px"><a href="${esc(innerLink(o.id,'offres',p.id))}"><strong>${esc(p.libelle||'Produit sans libellé')}</strong></a><br><span class="muted small">${esc([p.ref&&'réf. '+p.ref,p.marque,p.unite].filter(Boolean).join(' · '))}</span> ${src(p.source)}${p.description?'<br><span class="muted small">'+esc(p.description)+'</span>':''}<br>${CT}</td><td>${esc(p.rayon||'')}</td><td class="num">${p.prix!=null?prixTxt(p.prix):'—'}${p.barre!=null?'<br><s class="muted small">'+prixTxt(p.barre)+'</s>':''}${ex.length?'<br><span class="small">'+esc(ex.join(' ; '))+'</span>':''}</td><td>${esc(mecaTxt(p))}${p.validDu||p.validAu?'<br><span class="muted small">du '+fd(p.validDu||o.debut)+' au '+fd(p.validAu||o.fin)+'</span>':''}</td><td class="small">${us.length?esc(us.join(', ')):'<span class="muted">Hors dispositif</span>'}</td><td><button class="btn sm" data-prod="${esc(p.id)}">Modifier</button></td></tr>`}).join('');
+    return `<tr><td style="min-width:170px"><a ${productDialogAttrs({record:p,o})} href="${esc(innerLink(o.id,'offres',p.id))}"><strong>${esc(p.libelle||'Produit sans libellé')}</strong></a><br><span class="muted small">${esc([p.ref&&'réf. '+p.ref,p.marque,p.unite].filter(Boolean).join(' · '))}</span> ${src(p.source)}${p.description?'<br><span class="muted small">'+esc(p.description)+'</span>':''}<br>${CT}</td><td>${esc(p.rayon||'')}</td><td class="num">${p.prix!=null?prixTxt(p.prix):'—'}${p.barre!=null?'<br><s class="muted small">'+prixTxt(p.barre)+'</s>':''}${ex.length?'<br><span class="small">'+esc(ex.join(' ; '))+'</span>':''}</td><td>${esc(mecaTxt(p))}${p.validDu||p.validAu?'<br><span class="muted small">du '+fd(p.validDu||o.debut)+' au '+fd(p.validAu||o.fin)+'</span>':''}</td><td class="small">${us.length?esc(us.join(', ')):'<span class="muted">Hors dispositif</span>'}</td><td><a class="btn sm" ${productDialogAttrs({record:p,o})} href="${esc(innerLink(o.id,'offres',p.id))}">Ouvrir</a></td></tr>`}).join('');
   return `${nb||na?`<div class="row">${nu?`<span class="pill crit">${nu} anomalie(s) sur des offres utilisées</span>`:''}${nb>nu?`<span class="pill">${nb-nu} anomalie(s) hors dispositif</span>`:''}${na?`<span class="pill warn">${na} avertissement(s)</span>`:''}</div>`:''}
   <section class="card"><div class="row" style="justify-content:space-between"><h2>Produits et offres</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier toutes les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${list.toolbar}${list.count}${rows?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide(list.changed?'Aucune offre avec ces filtres.':'Aucune offre dans cette opération.')}</section>`}
 const varPour=(b,m)=>varsDe(b).find(v=>(v.magasinsVar||[]).includes(m.id));
@@ -778,6 +767,10 @@ function render(){
  access.title=CODE?'Changer de code d’accès · '+profilAcces():'Saisir un code d’accès';
  access.setAttribute('aria-label',access.title);
  document.title=(inOp&&o?o.nom+' — ':label+' — ')+'BigOne Studio';
+ if(r.v==='preparation'&&r.tab==='offres'&&r.context){
+   const target=$('#view a[data-product-id]');
+   if(target)openProductDialog(target);
+ }
 }
 
 
@@ -831,12 +824,13 @@ function montant(s,ent){s=String(s??'').replace(/[\s  ]/g,'').replace(/€$/,
   if(!(ent?/^\d+$/:/^\d+([.,]\d{1,2})?$/).test(s))return {e:ent?'Saisissez un nombre entier.':'Montant non reconnu. Formats acceptés : 12,5 ou 1 299,90 (deux décimales au plus).'};
   return {v:parseFloat(s.replace(',','.'))}}
 const fmtN=v=>v==null?'':String(v).replace('.',',');
-function form(titre,champs,ok,suppr,annule){const d=$('#dlg');let fini=false;
+function form(titre,champs,ok,suppr,annule,embedded){const d=embedded?.host || $('#dlg');let fini=false;
+  const closeForm=()=>embedded?embedded.finish():d.close();
   d.innerHTML='<form id="f" novalidate><h2>'+esc(titre)+'</h2><p id="f-err" class="note" role="alert" hidden></p>'+champs.map(c=>{const id='f-'+c.k,v=c.v??'',num=c.t==='number'||c.t==='int';
     if(c.t==='info')return '<p class="small muted" id="'+id+'" style="margin:0">'+c.l+'</p>';
     if(c.t==='check')return '<label class="ck"><input type="checkbox" id="'+id+'"'+(c.v?' checked':'')+'> '+esc(c.l)+'</label>';
     if(c.t==='select')return '<label>'+esc(c.l)+'<select id="'+id+'">'+c.o.map(([k,l])=>'<option value="'+esc(k)+'"'+(String(k)===String(v)?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select></label>';
-    if(c.t==='area')return '<label>'+esc(c.l)+'<textarea id="'+id+'" rows="3">'+esc(v)+'</textarea><span class="ferr" id="e-'+c.k+'"></span></label>';
+    if(c.t==='area')return '<label>'+esc(c.l)+'<textarea id="'+id+'" aria-label="'+esc(c.l)+'" rows="3">'+esc(v)+'</textarea><span class="ferr" id="e-'+c.k+'"></span></label>';
     const suggestions=c.choices?'<datalist id="'+id+'-choices">'+c.choices.map(x=>'<option value="'+esc(x)+'"></option>').join('')+'</datalist>':'';
     return '<label>'+esc(c.l)+'<input '+(c.choices?'list="'+id+'-choices" ':'')+'id="'+id+'" type="'+(num?'text':c.t||'text')+'"'+(num?' inputmode="decimal"':'')+' value="'+esc(num?fmtN(c.v):v)+'">'+suggestions+'<span class="ferr" id="e-'+c.k+'"></span></label>'}).join('')+
     '<div class="row" style="justify-content:space-between"><span>'+(suppr?'<button type="button" class="btn" id="f-del">Supprimer</button>':'')+'</span><span class="row"><button type="button" class="btn" id="f-no">Annuler</button><button class="btn pri" id="f-ok">Enregistrer</button></span></div></form>';
@@ -853,9 +847,9 @@ function form(titre,champs,ok,suppr,annule){const d=$('#dlg');let fini=false;
     sync();
   }
   const echec=m=>{const e=$('#f-err');e.textContent=m;e.hidden=false;$('#f-ok').disabled=false;$('#f-ok').textContent='Enregistrer'};
-  d.onclose=()=>{d.onclose=null;if(!fini&&annule)annule()};
-  $('#f-no').onclick=()=>d.close();
-  if(suppr)$('#f-del').onclick=async()=>{if(await suppr()!==false){fini=true;d.close()}else echec('Suppression non effectuée. Réessayez.')};
+  if(!embedded)d.onclose=()=>{d.onclose=null;if(!fini&&annule)annule()};
+  $('#f-no').onclick=()=>closeForm();
+  if(suppr)$('#f-del').onclick=async()=>{if(await suppr()!==false){fini=true;closeForm()}else echec('Suppression non effectuée. Réessayez.')};
   $('#f').onsubmit=async e=>{e.preventDefault();const r={};let prem=null;$('#f-err').hidden=true;
     champs.forEach(c=>{if(c.t==='info')return;const el=$('#f-'+c.k),sp=$('#e-'+c.k);let m='';
       if(el.disabled){r[c.k]=c.t==='number'||c.t==='int'?null:'';return}
@@ -866,8 +860,8 @@ function form(titre,champs,ok,suppr,annule){const d=$('#dlg');let fini=false;
     if(prem){prem.focus();return}
     const b=$('#f-ok');b.disabled=true;b.textContent='Enregistrement…';let res;try{res=await ok(r)}catch(x){res=false}
     if(res===false||typeof res==='string')return echec(res||'Enregistrement non effectué. Vos saisies sont conservées : réessayez.');
-    fini=true;d.close()};
-  if(!d.open)d.showModal()}
+    fini=true;closeForm()};
+  if(!embedded&&!d.open)d.showModal()}
 
 /* Registre des modifications : une donnée qui change après une revue périme les supports qui l'utilisent, et eux seuls. */
 async function perimer(o,motif,cible,toujours){const ss=supsOf(o.id).filter(s=>gele(s)&&!s.perime&&cible(s));
@@ -892,7 +886,7 @@ function fOp(o){
     const id=uid('op');if(!await w('operations/'+id,Object.assign(data,{suivi:true,brief:{},source:null}),'set'))return false;await log(id,'Dossier créé.');aller('preparation',id,'cadrage');return true})}
 function fBrief(o){const b=o.brief||{};form('Brief de l\'opération',[{k:'objectif',l:'Objectif commercial',t:'area',v:b.objectif,req:1},{k:'contacts',t:'info',l:'Renseignez au moins un contact pour le suivi du dossier.'},{k:'client',l:'Pilote côté enseigne',v:b.client},{k:'responsable',l:'Contact agence (Nanotera)',v:b.responsable},{k:'notes',l:'Contraintes et décisions à retenir',t:'area',v:b.notes}],async r=>{if(!briefComplet(r))return 'Indiquez le pilote côté enseigne ou le contact agence.';if(JSON.stringify([b.objectif||'',b.responsable||'',b.client||'',b.notes||''])===JSON.stringify([r.objectif,r.responsable,r.client,r.notes]))return true;if(!await w('operations/'+o.id,{brief:r}))return false;if(!b.objectif)await log(o.id,'Brief renseigné (responsable : '+(r.client||r.responsable)+').');else await log(o.id,'Brief modifié.',supsOf(o.id).some(enProd)?'modif':'');return true})}
 const usageAuto=s=>{const b=baseDe(s);return !typ(b).pagine&&!b.produits&&!b.institutionnel};
-function fProd(p,o=curOp()){
+function fProd(p,o=curOp(),embedded){
   form(p?'Modifier l\'offre':'Ajouter une offre',[{k:'libelle',l:'Libellé du produit',v:p&&p.libelle,req:1},{k:'ref',l:'Référence produit (SKU, EAN ou code interne)',v:p&&p.ref},{k:'marque',l:'Marque',v:p&&p.marque},{k:'unite',l:'Conditionnement (ex. 2 L, lot de 3, le kg)',v:p&&p.unite},{k:'description',l:'Description',t:'area',v:p&&p.description},{k:'rayon',l:'Rayon',t:'select',o:[['','—'],...[...new Set([...RAYONS,...(p&&p.rayon?[p.rayon]:[])])].map(x=>[x,x])],v:p&&p.rayon},
     {k:'mecaType',l:'Type d\'offre',t:'select',o:Object.entries(MECA),v:p&&p.mecaType||(p?.barre!=null?'remise':p?.lotQte?'lot':p?.condition?'cond':'simple')},{k:'prix',l:'Prix de l\'offre (€)',t:'number',v:p&&p.prix},{k:'barre',when:'remise',l:'Prix de référence barré (€)',t:'number',v:p&&p.barre},{k:'lotQte',when:'lot',l:'Nombre d’unités du lot',t:'int',v:p&&p.lotQte},{k:'condition',when:'cond',l:'Condition de l\'avantage (ex. avec la carte de fidélité)',v:p&&p.condition},{k:'mecanique',l:'Libellé affiché de la mécanique (facultatif)',v:p?p.mecanique:''},{k:'validDu',l:'Validité : du (si différente de l\'opération)',t:'date',v:p&&p.validDu},{k:'validAu',l:'Validité : au',t:'date',v:p&&p.validAu},{k:'origine',l:'Origine',v:p&&p.origine},{k:'mention',l:'Mention légale',v:p&&p.mention}],async r=>{
     if(r.validDu&&r.validAu&&r.validAu<r.validDu)return 'La fin de validité précède son début.';
@@ -900,7 +894,7 @@ function fProd(p,o=curOp()){
     const L={libelle:'libellé',ref:'référence',marque:'marque',unite:'conditionnement',description:'description',rayon:'rayon',mecaType:'type d\'offre',prix:'prix',barre:'prix barré',lotQte:'lot',condition:'condition',mecanique:'mécanique',validDu:'validité',validAu:'validité',origine:'origine',mention:'mention légale'},N=(x,k)=>k==='mecaType'?x[k]||'simple':x[k]??'',ch=Object.keys(L).filter(k=>N(p,k)!==N(r,k));if(!ch.length)return true;
     const av=supsOf(o.id).filter(s=>utilise(s,p)&&!baseDe(s).institutionnel).map(s=>s.id),solo=ch.every(k=>k==='prix');if(!await w('produits/'+p.id,r))return false;
     await perimer(o,ch.includes('prix')?'Prix national de « '+r.libelle+' » modifié ('+prixTxt(p.prix)+' → '+prixTxt(r.prix)+').':'Offre « '+r.libelle+' » modifiée ('+[...new Set(ch.map(k=>L[k]))].join(', ')+').',s=>av.includes(s.id)&&!(solo&&s.prixVar&&s.prixVar[p.id]!=null),ch.includes('prix'));return true},
-    p&&(async()=>{const av=supsOf(o.id).filter(s=>utilise(s,p)&&!baseDe(s).institutionnel).map(s=>s.id);if(!await w('produits/'+p.id,null,'delete'))return false;await perimer(o,'Offre « '+p.libelle+' » supprimée.',s=>av.includes(s.id),true)}))}
+    p&&(async()=>{const av=supsOf(o.id).filter(s=>utilise(s,p)&&!baseDe(s).institutionnel).map(s=>s.id);if(!await w('produits/'+p.id,null,'delete'))return false;await perimer(o,'Offre « '+p.libelle+' » supprimée.',s=>av.includes(s.id),true)}),null,embedded)}
 /* Une variante porte ses magasins, ses prix d'exception et sa propre création ; le reste est hérité du support. */
 function fVar(b,v){const o=curOp(),ms=[...magsSup(b,o),...(v?magsSup(v,o):[])],ps=offresDe(b);
   if(!ms.length)return toast('Engagez d\'abord des magasins sur ce support, dans l\'onglet Magasins.');
