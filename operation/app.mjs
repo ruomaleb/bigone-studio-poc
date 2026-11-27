@@ -7,7 +7,7 @@ import {
   impactedVersions,
   commonPlan,
   localVariantPrices
-} from '../server/model.mjs?v=6';
+} from '../server/model.mjs?v=7';
 import {
   esc,
   info,
@@ -26,17 +26,17 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=6';
+} from './views.mjs?v=7';
 import {
   setupChat
-} from './chat.mjs?v=6';
+} from './chat.mjs?v=7';
 const apiRoot = 'https://bigone-studio-operations.github-46e.workers.dev';
 const $ = s => document.querySelector(s),
   params = new URLSearchParams(location.search);
-const opId = params.get('op') || 'u-2649-pbs',
+const opId = params.get('op') || (/\bid=s49-/.test(location.hash) ? 'u-2649-pbs' : 'bd-2704-deco'),
   slot = params.get('participant'),
-  shared = params.get('mode') === 'partage' || opId !== 'u-2649-pbs';
-const storageKey = 'studio.operations.v1.' + (slot ? 'magasin.' + slot : shared ? 'partage.' + opId : 'essai');
+  shared = params.get('mode') === 'partage' || !['bd-2704-deco','u-2649-pbs'].includes(opId);
+const storageKey = 'studio.operations.v1.' + (slot ? 'magasin.' + slot + (opId === 'u-2649-pbs' ? '' : '.' + opId) : shared ? 'partage.' + opId : opId === 'u-2649-pbs' ? 'essai' : 'essai.' + opId);
 const sections = [
   ['Préparation', [
     ['informations', 'Informations'],
@@ -132,7 +132,7 @@ function summaryFrame(pg, q) {
   const t = ctx.state.stores.find(x => x.id === q.get('id')) || participantsOf(ctx.state)[0];
   if ((!t || t.targeted === false) && pg === 'participation') return '<section class="sheet">Aucun participant affecté.</section>';
   return '<div class="hrow sectionhead"><h2>' + esc(names[pg]) + '</h2>' + (ctx.role === 'enseigne' ? link('#participants', 'Revenir aux participants') : '') +
-    '</div><iframe src="participants/?v=6" class="wizard" title="Choix des participants"></iframe>'
+    '</div><iframe src="participants/?v=7" class="wizard" title="Choix des participants"></iframe>'
 }
 
 function selectedProduct() {
@@ -737,7 +737,7 @@ function login() {
   main.innerHTML =
     '<section class="sheet" style="max-width:520px;margin:50px auto"><h1>Ouvrir le dossier partagé</h1><p>Utilisez votre code Responsable Studio pour retrouver les données de cette opération.</p><form id="login">' +
     (readStore('bos-code') ? '' : field('code', 'Code Responsable', '', 'password', 'required autocomplete="off"')) + '<div class="actions">' + submit(readStore(
-      'bos-code') ? 'Utiliser mon accès Studio' : 'Ouvrir le dossier') + link('./', 'Essayer S49', 'quiet') +
+      'bos-code') ? 'Utiliser mon accès Studio' : 'Ouvrir le dossier') + link('./', 'Essayer Brico-déco', 'quiet') +
     '</div><p role="alert" class="issue"></p></form></section>';
   $('#login').onsubmit = async e => {
     e.preventDefault();

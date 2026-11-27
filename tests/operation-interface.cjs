@@ -46,7 +46,7 @@ const root = path.resolve(__dirname, '..'),
           '.js': 'text/javascript',
           '.css': 'text/css',
           '.html': 'text/html',
-          '.png': 'image/png',
+          '.png': 'image/png', '.webp':'image/webp', '.pdf':'application/pdf',
           '.otf': 'font/otf'
         })[path.extname(p)] || 'application/octet-stream'
       });
@@ -87,7 +87,26 @@ const root = path.resolve(__dirname, '..'),
     p.setDefaultTimeout(7000);
     const errors = [];
     p.on('pageerror', err => errors.push(err.message));
-    await p.goto(url + '?assistant=1');
+    await p.goto(url);
+    await p.getByRole('heading',{level:1,name:'Brico-déco'}).waitFor();
+    await p.getByRole('link',{name:'Feuilleter le catalogue',exact:true}).click();
+    await p.locator('.catalogue-page img').waitFor();
+    assert(await p.locator('.catalogue-page').getAttribute('href') === '../assets/brico-deco/catalogue.pdf#page=2');
+    await p.getByRole('link',{name:'SUSPENSION ZÉLIE',exact:true}).click();
+    const sheet=p.locator('#product-dialog');
+    await sheet.getByRole('tab',{name:'Caractéristiques'}).waitFor();
+    await sheet.locator('.ps-stage img').evaluate(im=>im.decode());
+    assert((await sheet.locator('.ps-stage img').getAttribute('src')).includes('bd-01.webp'));
+    await sheet.getByRole('tab',{name:'Supports associés'}).click();
+    await sheet.getByRole('link',{name:/E-catalogue Brico-déco.*Page 2/}).click();
+    await p.locator('.catalogue-page[href$="#page=2"]').waitFor();
+    await p.setViewportSize({width:390,height:844});
+    assert(await p.locator('.catalogue-page img').evaluate(el=>el.getBoundingClientRect().width<=390));
+    await p.reload();
+    await p.locator('.catalogue-page').waitFor();
+    await p.setViewportSize({width:1850,height:914});
+    console.log('PASS Brico-déco par défaut, catalogue, visuel produit, retour à la page et mobile');
+    await p.goto(url + '?op=u-2649-pbs&assistant=1');
     await p.getByRole('heading', {
       name: 'Comment puis-je vous aider ?'
     }).waitFor();
@@ -178,9 +197,9 @@ const root = path.resolve(__dirname, '..'),
     await p.getByRole('button', {
       name: 'Fermer l’assistant'
     }).click();
-    await p.goto(url + '#participants?filtre=heritage');
+    await p.goto(url + '?op=u-2649-pbs#participants?filtre=heritage');
     assert.equal(await p.locator('tbody tr').count(), 25);
-    await p.goto(url + '#produits?id=s49-08');
+    await p.goto(url + '?op=u-2649-pbs#produits?id=s49-08');
     await p.getByRole('button',{name:'Modifier le produit'}).click();
     await p.getByLabel('Prix national TTC (€)').fill('4.99');
     await p.getByRole('button', {
@@ -217,7 +236,7 @@ const root = path.resolve(__dirname, '..'),
     await p.getByRole('link', {
       name: 'Revenir au BAT actuel'
     }).click();
-    await p.goto(url + '#configurer');
+    await p.goto(url + '?op=u-2649-pbs#configurer');
     const form = p.frameLocator('iframe');
     await form.getByRole('button', {
       name: 'Offre produits',
@@ -256,7 +275,7 @@ const root = path.resolve(__dirname, '..'),
       name: 'Confirmer ma réponse'
     }).click();
     await form.getByText('Réponse confirmée et enregistrée.').waitFor();
-    await p.goto(url + '#supports?id=s49-prospectus');
+    await p.goto(url + '?op=u-2649-pbs#supports?id=s49-prospectus');
     await p.getByRole('button', {
       name: 'Valider la variante'
     }).click();
@@ -283,14 +302,14 @@ const root = path.resolve(__dirname, '..'),
     await p.getByRole('button', {
       name: 'Fermer l’assistant'
     }).click();
-    await p.goto(url + '#supports');
+    await p.goto(url + '?op=u-2649-pbs#supports');
     const head = p.getByRole('heading', {
       name: 'Supports à préparer'
     });
     await head.waitFor();
     assert.equal(await p.locator('tbody tr').count(), 2);
     console.log('PASS deux supports réutilisés sans doublon, affiches par point de vente et mobile');
-    await p.goto(url+'#configurer');
+    await p.goto(url+'?op=u-2649-pbs#configurer');
     const groups=p.frameLocator('iframe');
     await groups.getByLabel('Version proposée').selectOption('V3');
     await groups.getByLabel('Hypermarché',{exact:true}).check();
@@ -309,7 +328,7 @@ const root = path.resolve(__dirname, '..'),
     for(const label of ['Supermarchés','Hypermarchés','Supérettes']) await groups.getByRole('row').filter({hasText:label}).getByRole('button',{name:'Retirer'}).click();
     await groups.getByRole('button',{name:'Appliquer la proposition'}).click();
     await p.locator('#notice').getByText('Proposition appliquée aux groupes de magasins.').waitFor();
-    await p.goto(url+'#participants');
+    await p.goto(url+'?op=u-2649-pbs#participants');
     await p.getByText('6 points de vente ciblés sur 900 dans le réseau.').waitFor();
     assert.equal(await p.locator('tbody tr').count(),6);
     assert(!(await p.locator('main').innerText()).includes('Super U'));

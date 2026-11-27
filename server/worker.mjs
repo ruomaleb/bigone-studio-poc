@@ -1,5 +1,6 @@
 import {
   example,
+  bricoExample,
   importRows,
   upgradeDemo,
   forRole,
@@ -75,8 +76,8 @@ async function openSession(req, env, p) {
       s = importRows([...meta, ...related, ...(await Promise.all(groups)).flat()], p.operation);
     }
   } else {
-    required(!p.operation || p.operation === 'u-2649-pbs', 'Ouvrez cette opération avec votre accès enseigne.', 403);
-    s = example();
+    required(!p.operation || ['bd-2704-deco','u-2649-pbs'].includes(p.operation), 'Ouvrez cette opération avec votre accès enseigne.', 403);
+    s = p.operation === 'u-2649-pbs' ? example() : bricoExample();
     w = crypto.randomUUID()
   }
   const stmt = [];
@@ -91,7 +92,7 @@ async function dispatch(req, env) {
   const url = new URL(req.url),
     path = url.pathname;
   if (path === '/health') return {
-    version: '2026-11-27.6',
+    version: '2026-11-27.7',
     ok: true
   };
   required(req.method === 'POST', 'Méthode indisponible.', 405);
