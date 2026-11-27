@@ -54,7 +54,8 @@ export function dossierFacts(s, shop, question) {
   add('Le PIM compte ' + s.products.length + ' références distinctes.', 'produits', 'Toutes les références');
   const isNamed = name => normalize(name).split(/[^a-z0-9]+/).some(word => word.length > 3 && q.includes(word));
   const missingPriceQuestion = /prix.*manqu|manqu.*prix/.test(q);
-  const namedProducts = s.products.filter(p => isNamed(p.name));
+  const exact = s.products.filter(p => q.includes(normalize(p.name)));
+  const namedProducts = exact.length ? exact : s.products.filter(p => isNamed(p.name));
   const candidates = [...new Set([...namedProducts, ...s.products.filter(p => p.price === null)])].slice(0, 12);
   for (const p of candidates) {
     const focused = namedProducts.includes(p) || (missingPriceQuestion && p.price === null);
@@ -92,7 +93,7 @@ export function relevant(f, q) {
   let prefix = '';
   if (/groupe|ciblage|hypermarche|superette/.test(a)) prefix='configurer';
   else if (/flux|bonial|tiendeo|export/.test(a)) prefix = 'flux';
-  else if (/bat|revision|reli|prospectus|page|correction/.test(a)) prefix = 'production';
+  else if (/bat|revision|reli|prospectus|catalogue|page|correction/.test(a)) prefix = 'production';
   else if (/produit|offre|prix|version|reference|assortiment|pim/.test(a)) prefix = 'produits';
   else if (/magasin|particip|affiche|relanc|engag|quantit/.test(a)) prefix = 'participants';
   else if (/date|jalon|objectif|quand/.test(a)) prefix = 'informations';

@@ -2,15 +2,23 @@
 
 ## Accès
 
-Le [dossier S49 avec Assistant](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1) ouvre un espace d’essai individuel conservé sur le serveur. La clé d’accès reste dans le navigateur. Participants → Accès magasin génère un lien individuel. Ce lien donne accès à la réponse de ce seul magasin sur un autre appareil. L’URL de l’essai seule ouvre un espace indépendant dans un autre navigateur. La durée de validité des accès est de 60 jours.
+Le [dossier Brico-déco avec Assistant](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1) ouvre un espace d’essai individuel conservé sur le serveur. La clé d’accès reste dans le navigateur. Participants → Accès magasin génère un lien individuel. Ce lien donne accès à la réponse de ce seul magasin sur un autre appareil. L’URL de l’essai seule ouvre un espace indépendant dans un autre navigateur. La durée de validité des accès est de 60 jours.
 
 Les six rubriques sont Informations, Participants et Supports en Préparation, Produits dans le PIM, puis Supports et Flux en Production. Informations contient le rétroplanning. Le tiroir Assistant propose des questions, une saisie libre et des liens vers les fiches. L’historique de conversation est local à chaque navigateur et à chaque rôle.
+
+## Catalogue de démonstration
+
+Le [dossier Brico-déco](https://ruomaleb.github.io/bigone-studio-poc/operation/?op=bd-2704-deco&assistant=1) est le point d’entrée de la démonstration. Le [catalogue Nanotera Levallois](https://ruomaleb.github.io/bigone-studio-poc/assets/brico-deco/catalogue.pdf) présente l’offre du 19 au 26 novembre 2022. Le calendrier de simulation va du 19 janvier au 1er février 2027.
+
+Les 21 fiches PIM reprennent les références existantes. Les pages 2, 3, 4 et 5 en regroupent respectivement 5, 5, 4 et 7. Chaque fiche montre la photographie extraite du catalogue. Son onglet « Supports associés » ouvre la page correspondante en Production. Les prix des fiches sont modifiables dans la copie d’essai. Le PDF conserve les prix imprimés.
+
+Pour illustrer le ciblage du réseau fictif de 900 points de vente, les supermarchés reçoivent la version V1 « Luminaires et miroirs » (17 références), les hypermarchés la V2 « Catalogue intégral » (21) et les supérettes la V3 « Ampoules LED » (4). Ces assortiments et le flux d’export sont des choix de démonstration. Les groupes se modifient dans Participants.
 
 ## Données et exploitation du POC
 
 GitHub Pages sert l’interface. Le Worker `bigone-studio-operations` traite les demandes, valide les accès et enregistre les révisions dans la base dédiée `bigone-studio-operations-poc`. Le modèle Workers AI explique les données du dossier. Le service applique une limite de 35 demandes par dossier et 80 au total par jour, puis affiche une synthèse calculée. Une indisponibilité du modèle active le même mode de lecture.
 
-L’essai utilise les trois produits témoins, les deux supports, les deux flux et 900 points de vente fictifs Nanotera. Les responsables peuvent ouvrir un espace partagé par opération avec leur code Studio. Le serveur vérifie le rôle auprès du projet Supabase Studio existant à l’ouverture. Il importe l’opération lors du premier accès et conserve ensuite les évolutions du pilote dans D1. Les anciens écrans restent accessibles par l’option `?classique=1`. Les deux systèmes ne disposent pas d’une synchronisation bidirectionnelle.
+L’[essai S49](https://ruomaleb.github.io/bigone-studio-poc/operation/?op=u-2649-pbs) reste disponible avec ses trois produits témoins, ses deux supports et ses deux flux. Les responsables peuvent ouvrir un espace partagé par opération avec leur code Studio. Le serveur vérifie le rôle auprès du projet Supabase Studio existant à l’ouverture. Il importe l’opération lors du premier accès et conserve ensuite les évolutions du pilote dans D1. Les anciens écrans restent accessibles par l’option `?classique=1`. Les deux systèmes ne disposent pas d’une synchronisation bidirectionnelle.
 
 Les contrôles serveur vérifient la portée magasin, les versions éligibles, les quantités et les budgets. Chaque modification vérifie le numéro de révision. Une confirmation identique est idempotente. Les fichiers PDF, JPEG et PNG de 1 Mo maximum sont attachés aux révisions. Les décisions de BAT conservent les données relues. La remise d’un export repose sur la saisie d’un reçu externe. Les brouillons de relance restent dans le dossier.
 

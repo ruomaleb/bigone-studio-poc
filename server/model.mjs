@@ -1,3 +1,4 @@
+import {bricoId, catalogueId, catalogueUrl, bricoProducts, bricoVersions} from './brico.mjs';
 import {axes, demoNetwork, demoGroups, participantsOf, targetPlan, networkText, demoId, demoFields} from './targeting.mjs';
 const MODELES = {
   imprime: [
@@ -239,8 +240,55 @@ export function example() {
     audit: []
   };
 }
+function catalogue(products) {
+  return {
+    ...piece(catalogueId, 'E-catalogue Brico-déco', 'PDF · 6 pages', 'En revue', 6, products.map(p => p.id)),
+    family: 'numerique', file: catalogueUrl, useByPage: Object.fromEntries(products.map(p => [p.id, p.page]))
+  };
+}
+
+export function bricoExample() {
+  const products = bricoProducts();
+  return {
+    op: {id:bricoId, title:'Brico-déco', network:'Nanotera', start:'2027-01-19', end:'2027-02-01', scope:'Nationale',
+      owner:'Équipe Studio', contact:'Réseau Nanotera', objective:'Préparer l’offre de luminaires et de miroirs et recueillir les engagements des magasins.'},
+    config:{...config(), pages:6, versions:structuredClone(bricoVersions)}, products,
+    stores:demoNetwork(), targetGroups:demoGroups(), networkEdition:1, bricoEdition:1, replies:{},
+    supports:[catalogue(products)],
+    flows:[{id:'bd-flux-offre', name:'Flux offre Brico-déco', v:'V2', stage:'À contrôler'}],
+    tasks:[{id:'bd-relecture',name:'Relire les prix du catalogue',support:catalogueId,due:'2027-01-11',done:false}],
+    reminders:[], audit:[]
+  };
+}
+
+function enrichBrico(s) {
+  if (s.bricoEdition === 1) return s;
+  const demo = bricoExample();
+  const legacy = config().versions;
+  const defaultVersions = s.config.versions.every((v,i) => legacy[i]?.name === v.name);
+  if (defaultVersions) s.config.versions = demo.config.versions;
+  if (!s.stores.length && !s.targetGroups) {
+    s.stores = demo.stores;
+    s.targetGroups = demo.targetGroups;
+  }
+  const source = new Map(demo.products.map(p => [p.id,p]));
+  for (const p of s.products) {
+    const ref = source.get(p.id);
+    if (!ref) continue;
+    p.page ??= ref.page;
+    if (defaultVersions && !p.versions.length) p.versions = ref.versions;
+  }
+  if (!s.supports.some(x => x.id === catalogueId)) {
+    s.supports.push(catalogue(s.products.filter(p => source.has(p.id)).map(p => source.get(p.id))));
+  }
+  s.bricoEdition = 1;
+  s.op.network = 'Nanotera';
+  return s;
+}
+
 // Upgrade only the S49 demonstration. Existing store IDs, replies and custom assignments survive.
 export function upgradeDemo(s) {
+  if (s.op.id === bricoId) return enrichBrico(s);
   if (s.networkEdition === 1 || !demoId(s.op.id)) return s;
   if (s.op.id !== 'u-2649-pbs') {
     const branded = demoFields(s),
