@@ -519,7 +519,7 @@ export function reviewChanges(s, support) {
         style: 'currency',
         currency: 'EUR'
       });
-      if (prev.price !== p.price) changes.push(place + ' · prix TTC de ' + price(prev.price) + ' à ' + price(p.price));
+      if (prev.price !== p.price) changes.push(place + ' · prix TTC ' + price(prev.price) + ' → ' + price(p.price));
       if (prev.page && prev.page !== page) changes.push(place + ' · déplacée depuis la page ' + prev.page);
       if (Array.isArray(prev.versions) && eligibilityChange(prev.versions, p.versions).length) changes.push(place + ' · versions ' + (p.versions.join(', ') ||
         'à affecter'));
@@ -648,12 +648,13 @@ export function mutate(s, action, p, scope) {
   } else if (action === 'config') {
     const before = structuredClone(s);
     validateConfig(p.config);
-    required(s.stores.every(x => ['free', 'must'].includes(p.rules[x.id]) && (codes.includes(p.assign[x.id]) || p.assign[x.id] === '')),
+    required(s.stores.every(x => ['free', 'must'].includes(p.rules[x.id]) && (codes.includes(p.assign[x.id]) || (!x.assigned && p.assign[x.id] === ''))),
       'Affectation incorrecte.');
     s.config = p.config;
 
     for (const x of s.products) {
       const vs = codes.filter(v => p.eligibility[x.id]?.includes(v));
+      required(!x.versions.length || vs.length > 0, 'Conservez au moins une version pour '+x.name+'.');
       const changed = eligibilityChange(x.versions, vs);
       x.versions = vs;
       if (changed.length) affect(s, [x.id], changed);

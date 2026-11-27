@@ -6,7 +6,7 @@ import {
   impactedVersions,
   commonPlan,
   localVariantPrices
-} from '../server/model.mjs?v=3';
+} from '../server/model.mjs?v=4';
 import {
   esc,
   info,
@@ -24,10 +24,10 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=3';
+} from './views.mjs?v=4';
 import {
   setupChat
-} from './chat.mjs?v=3';
+} from './chat.mjs?v=4';
 const apiRoot = 'https://bigone-studio-operations.github-46e.workers.dev';
 const $ = s => document.querySelector(s),
   params = new URLSearchParams(location.search);
@@ -130,7 +130,7 @@ function summaryFrame(pg, q) {
   const t = ctx.state.stores.find(x => x.id === q.get('id')) || ctx.state.stores[0];
   if (!t && pg === 'participation') return '<section class="sheet">Aucun participant affecté.</section>';
   return '<div class="hrow sectionhead"><h2>' + esc(names[pg]) + '</h2>' + (ctx.role === 'enseigne' ? link('#participants', 'Revenir aux participants') : '') +
-    '</div><iframe src="participants/?v=2" class="wizard" title="Choix des participants"></iframe>'
+    '</div><iframe src="participants/?v=4" class="wizard" title="Choix des participants"></iframe>'
 }
 
 function render() {
