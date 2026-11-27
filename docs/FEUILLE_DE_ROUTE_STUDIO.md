@@ -6,7 +6,9 @@ Le chef de projet doit pouvoir répondre à trois questions depuis le même doss
 
 ## État du POC au 27 novembre 2026
 
-Les cinq lots ci-dessous sont disponibles dans le [dossier d’essai S49](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1). La [note de recette](DOSSIER_OPERATION.md) décrit les observations en ligne, les tests reproductibles, les droits et le fonctionnement du dossier partagé. Les cases d’acceptation servent également à la recette par les équipes enseigne, magasin et production. La mesure chronométrée avec ces utilisateurs reste à réaliser.
+Les cinq lots ci-dessous sont disponibles dans le [dossier d’essai S49](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1). La [note de recette](DOSSIER_OPERATION.md) décrit les observations en ligne, les tests reproductibles, les droits et le fonctionnement du dossier partagé. Les cases cochées correspondent aux contrôles techniques et aux parcours vérifiés dans le POC. Le compte rendu précise les vérifications réalisées en ligne et les tests locaux. La mesure chronométrée avec ces utilisateurs reste à réaliser.
+
+La version **2026-11-27.3** clôt la vérification de l’accès Responsable au dossier partagé S49. Elle relie la proposition de prospectus commun aux choix d’affiches A1, réserve les variantes locales aux versions correspondantes et consigne les changements de prix par page et par révision de BAT.
 
 ## Ce que voit le chef de projet en ouvrant une opération
 
@@ -50,12 +52,12 @@ Les versions sont une **propriété multivaluée du produit** et un filtre du ta
 
 ### Intégration et recette de navigation
 
-- [ ] Retrouver dans le menu respectivement trois rubriques en Préparation, une en Produits et deux en Production, dans l’ordre du tableau.
-- [ ] Ouvrir et replier Dates et jalons dans Informations. Conserver la rubrique, le sous-volet, le filtre de jalons et la conversation. Vérifier qu’une tâche existante conserve son échéance et son état.
-- [ ] Vérifier que Préparation → Supports ouvre directement le dispositif sur la liste et la fiche. Production → Supports ouvre les révisions et BAT. Production → Flux ouvre les exports. Aucun de ces liens de la maquette ne renvoie à l’ancienne galerie.
-- [ ] Depuis le prospectus ou un contrôle de flux, ouvrir la fiche produit concernée. Le PIM déplie la bonne ligne et conserve le dossier. Les filtres de version s’appliquent au tableau et n’ajoutent pas de rubrique.
-- [ ] Associer les liens existants de cadrage à Informations, de calendrier à Informations avec les jalons ouverts, de magasins à Participants et d’offres au PIM. Conserver les identifiants des dossiers, produits, supports et révisions pour les liens directs.
-- [ ] Au clavier, rendre les chevrons activables avec Entrée et Espace. Utiliser `aria-expanded` et `aria-controls` pour le sous-volet et `aria-current="page"` pour la rubrique affichée. Deux entrées intitulées « Supports » gardent chacune le nom de leur espace comme contexte accessible.
+- [x] Retrouver dans le menu respectivement trois rubriques en Préparation, une en Produits et deux en Production, dans l’ordre du tableau.
+- [x] Ouvrir et replier Dates et jalons dans Informations. Conserver la rubrique, le sous-volet, le filtre de jalons et la conversation. Vérifier qu’une tâche existante conserve son échéance et son état.
+- [x] Vérifier que Préparation → Supports ouvre directement le dispositif sur la liste et la fiche. Production → Supports ouvre les révisions et BAT. Production → Flux ouvre les exports. Aucun de ces liens de la maquette ne renvoie à l’ancienne galerie.
+- [x] Depuis le prospectus ou un contrôle de flux, ouvrir la fiche produit concernée. Le PIM déplie la bonne ligne et conserve le dossier. Les filtres de version s’appliquent au tableau et n’ajoutent pas de rubrique.
+- [x] Associer les liens existants de cadrage à Informations, de calendrier à Informations avec les jalons ouverts, de magasins à Participants et d’offres au PIM. Conserver les identifiants des dossiers, produits, supports et révisions pour les liens directs.
+- [x] Au clavier, rendre les chevrons activables avec Entrée et Espace. Utiliser `aria-expanded` et `aria-controls` pour le sous-volet et `aria-current="page"` pour la rubrique affichée. Deux entrées intitulées « Supports » gardent chacune le nom de leur espace comme contexte accessible.
 
 **Lecture de la maquette.** Les six rubriques sont accessibles par le menu du PDF. Les signets « Préparation · Supports », « Production · Supports » et « Production · Flux » ouvrent directement les trois écrans. Les filtres V1, V2 et V3 et la fiche produit dépliée sont des états du même PIM.
 
@@ -125,12 +127,12 @@ La capture de BigOne Media fournie le 27 novembre 2026 donne le gabarit du volet
 
 ## Recette visuelle du volet
 
-- [ ] À la dimension de référence, comparer l’ouverture à la capture fournie. Le volet commence à 1 390 px du bord gauche. L’en-tête mesure 72 px, le bandeau « Nouvelle conversation » 40 px et la zone de contexte et de saisie commence vers 720 px du bord haut.
-- [ ] Vérifier les trois questions suggérées en entier, sur une ou deux lignes chacune. Chacune ouvre la réponse attendue et conserve le contexte de S49.
-- [ ] Envoyer une question, puis une deuxième dans le même fil. Faire défiler une réponse longue. Le titre, le contexte actif et le champ de saisie restent accessibles.
-- [ ] Depuis une réponse sur le prix de l’emmental, ouvrir la page 6 du prospectus. Le dossier S49 reste actif et le fil conserve la question d’origine.
-- [ ] Au clavier, ouvrir le volet, atteindre les questions et la saisie, créer un saut de ligne, puis envoyer et fermer. Chaque bouton à pictogramme a un nom accessible.
-- [ ] Sur une fenêtre trop étroite pour afficher dossier et volet côte à côte, présenter le volet en pleine largeur. Revenir à la fiche conserve les filtres et la sélection. Cette adaptation est proposée pour Studio.
+- [x] À la dimension de référence, comparer l’ouverture à la capture fournie. Le volet commence à 1 390 px du bord gauche. L’en-tête mesure 72 px, le bandeau « Nouvelle conversation » 40 px et la zone de contexte et de saisie commence vers 720 px du bord haut.
+- [x] Vérifier les trois questions suggérées en entier, sur une ou deux lignes chacune. Chacune ouvre la réponse attendue et conserve le contexte de S49.
+- [x] Envoyer une question, puis une deuxième dans le même fil. Faire défiler une réponse longue. Le titre, le contexte actif et le champ de saisie restent accessibles.
+- [x] Depuis une réponse sur le prix de l’emmental, ouvrir la page 6 du prospectus. Le dossier S49 reste actif et le fil conserve la question d’origine.
+- [x] Au clavier, ouvrir le volet, atteindre les questions et la saisie, créer un saut de ligne, puis envoyer et fermer. Chaque bouton à pictogramme a un nom accessible.
+- [x] Sur une fenêtre trop étroite pour afficher dossier et volet côte à côte, présenter le volet en pleine largeur. Revenir à la fiche conserve les filtres et la sélection. Cette adaptation est proposée pour Studio.
 
 ## Lire les engagements dans Préparation
 
@@ -184,51 +186,51 @@ Ordre de livraison proposé. Chaque lot doit permettre à un utilisateur d’acc
 
 Réutiliser les identifiants des opérations, produits et magasins du prototype. Introduire les versions commerciales, les liens d’éligibilité et l’affectation d’un magasin dans une opération. Livrer le tableau PIM, la fiche en ligne et le choix multiple des versions. Mettre l’affectation unitaire côté réseau dans Participants. Exposer au volet Assistant la même lecture filtrée que celle de l’écran, avec les droits de l’utilisateur.
 
-- [ ] Sur les trois produits d’exemple, vérifier deux références en V1, deux en V2, une en V3 et trois références distinctes sur l’ensemble.
-- [ ] Rattacher l’emmental à V1 et V2. Une seconde sauvegarde des mêmes choix conserve une seule fiche et deux liens d’éligibilité.
-- [ ] Sur une copie du dossier, réaffecter Super U Démo 01 de V1 à V2. Vérifier dans les données de production que la sélection éligible conserve l’emmental, retire le café et ajoute le champagne. Le magasin a une seule affectation après sauvegarde.
-- [ ] Retirer l’emmental de V2. Vérifier son maintien en V1 et la liste des pièces de V2 à revoir. Retirer sa dernière version demande de compléter l’offre avant sa validation.
-- [ ] Traiter un ancien dossier sans versions. Les éléments à affecter restent identifiables et le dossier reste consultable.
-- [ ] Depuis Participants, ouvrir « Ma participation » avec un compte point de vente rattaché à V1. Vérifier le cloisonnement des engagements lors d’un chargement et d’un accès direct.
+- [x] Sur les trois produits d’exemple, vérifier deux références en V1, deux en V2, une en V3 et trois références distinctes sur l’ensemble.
+- [x] Rattacher l’emmental à V1 et V2. Une seconde sauvegarde des mêmes choix conserve une seule fiche et deux liens d’éligibilité.
+- [x] Sur une copie du dossier, réaffecter Super U Démo 01 de V1 à V2. Vérifier dans les données de production que la sélection éligible conserve l’emmental, retire le café et ajoute le champagne. Le magasin a une seule affectation après sauvegarde.
+- [x] Retirer l’emmental de V2. Vérifier son maintien en V1 et la liste des pièces de V2 à revoir. Retirer sa dernière version demande de compléter l’offre avant sa validation.
+- [x] Traiter un ancien dossier sans versions. Les éléments à affecter restent identifiables et le dossier reste consultable.
+- [x] Depuis Participants, ouvrir « Ma participation » avec un compte point de vente rattaché à V1. Vérifier le cloisonnement des engagements lors d’un chargement et d’un accès direct.
 
 ### Lot 2 — Expliquer la situation de l’opération
 
 Livrer le menu du dossier avec les sous-volets Préparation, Produits et Production, le volet Assistant, son accueil, son fil et la saisie. Relier les réponses et les trois entrées du bloc « À préparer » aux vues filtrées. Vérifier la recette du menu et celle du volet Assistant pour accepter ce lot. Réutiliser les règles métier et les identifiants existants.
 
-- [ ] Sur S49, retrouver 6 magasins engagés, 3 en attente et 1 non participant.
-- [ ] Ouvrir séparément les 6 sélections héritées à confirmer.
-- [ ] Depuis l’offre d’emmental au prix manquant, atteindre la page 6 du prospectus.
+- [x] Sur S49, retrouver 6 magasins engagés, 3 en attente et 1 non participant.
+- [x] Ouvrir séparément les 6 sélections héritées à confirmer.
+- [x] Depuis l’offre d’emmental au prix manquant, atteindre la page 6 du prospectus.
 
 ### Lot 3 — Recueillir et consolider les engagements
 
 Livrer les cinq étapes de configuration enseigne, le parcours de réponse du magasin, son récapitulatif, la confirmation et la synthèse réseau. Raccorder ces parcours au catalogue de supports, aux versions du PIM et aux droits du participant.
 
-- [ ] Vérifier participation obligatoire et facultative, refus, version fixée et version modifiable.
-- [ ] Passer de V1 à V3 et retrouver seulement le champagne dans l’extrait. Les canaux choisis et les quantités PLV restent identifiables.
-- [ ] Masquer les options non proposées et les champs de personnalisation fermés par l’enseigne. Un prix saisi par un magasin ne modifie aucune autre fiche nationale ou locale.
-- [ ] Vérifier les 27 € HT de PLV, le budget retenu indépendant, les 1 500 exemplaires du tract et le prix local TTC. Un tract activé demande une quantité positive et un kit digital retenu un budget positif.
-- [ ] Recharger un brouillon, confirmer puis relire la même réponse. Un second magasin commence avec sa propre affectation et ses propres choix.
+- [x] Vérifier participation obligatoire et facultative, refus, version fixée et version modifiable.
+- [x] Passer de V1 à V3 et retrouver seulement le champagne dans l’extrait. Les canaux choisis et les quantités PLV restent identifiables.
+- [x] Masquer les options non proposées et les champs de personnalisation fermés par l’enseigne. Un prix saisi par un magasin ne modifie aucune autre fiche nationale ou locale.
+- [x] Vérifier les 27 € HT de PLV, le budget retenu indépendant, les 1 500 exemplaires du tract et le prix local TTC. Un tract activé demande une quantité positive et un kit digital retenu un budget positif.
+- [x] Recharger un brouillon, confirmer puis relire la même réponse. Un second magasin commence avec sa propre affectation et ses propres choix.
 
-- [ ] Sur une copie de test, un magasin peut choisir 20 affiches et décliner le prospectus.
-- [ ] Même en cas de double clic sur la confirmation, le total confirmé de l’affiche augmente de 20 une seule fois.
-- [ ] Le magasin retrouve sa réponse. Le chef de projet distingue les quantités confirmées de celles qui restent à obtenir.
+- [x] Sur une copie de test, un magasin peut choisir 20 affiches et décliner le prospectus.
+- [x] Même en cas de double clic sur la confirmation, le total confirmé de l’affiche augmente de 20 une seule fois.
+- [x] Le magasin retrouve sa réponse. Le chef de projet distingue les quantités confirmées de celles qui restent à obtenir.
 
 ### Lot 4 — Préparer les supports et leurs variantes
 
 Livrer la liste et le détail du dispositif dans Préparation → Supports, la sélection des produits, les exceptions locales et l’aperçu des modifications. Retirer les appels à la galerie créative sur les deux écrans de préparation.
 
-- [ ] Un prix local différent crée une proposition de variante pour le magasin concerné.
-- [ ] Avant validation, l’aperçu désigne les supports et les pages touchés.
-- [ ] Après validation, le prix national et les prix des autres magasins conservent leur valeur.
+- [x] Un prix local différent crée une proposition de variante pour le magasin concerné.
+- [x] Avant validation, l’aperçu désigne les supports et les pages touchés.
+- [x] Après validation, le prix national et les prix des autres magasins conservent leur valeur.
 
 ### Lot 5 — Livrer les écrans Supports et Flux de Production
 
 Livrer la synthèse des modifications par révision et les liens entre anomalie, support, page et BAT. Affecter les livrables de famille flux à Production → Flux. Réutiliser les étapes de préparation des données, contrôle et remise.
 
-- [ ] Depuis une offre corrigée après revue, ouvrir la pièce concernée et préparer la révision suivante.
-- [ ] Retrouver la décision prise sur la révision précédente.
-- [ ] Poursuivre le travail sur les supports indépendants.
-- [ ] Depuis un flux de la version V1 avec un prix manquant, atteindre la ligne concernée du PIM avec le bon filtre. Après correction, rejouer le contrôle et tracer son résultat. La remise effective dispose de son propre état.
+- [x] Depuis une offre corrigée après revue, ouvrir la pièce concernée et préparer la révision suivante.
+- [x] Retrouver la décision prise sur la révision précédente.
+- [x] Poursuivre le travail sur les supports indépendants.
+- [x] Depuis un flux de la version V1 avec un prix manquant, atteindre la ligne concernée du PIM avec le bon filtre. Après correction, rejouer le contrôle et tracer son résultat. La remise effective dispose de son propre état.
 
 **Validation métier du parcours complet.** Demander à un chef de projet de retrouver les magasins à relancer pour l’affiche, puis à un chargé de production d’identifier la page concernée par un prix manquant. Vérifier la justesse des deux réponses et mesurer le temps jusqu’à l’ouverture de la bonne fiche. Le pilote suivant ajoute le point de vue du magasin qui confirme sa commande de supports.
 
