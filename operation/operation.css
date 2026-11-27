@@ -7,3 +7,9 @@ body.dossier{--lav:#f4f0ff;--vio:#7440dd;--ink:#111721;--mut:#596578;--line:#dce
 @media(max-width:1150px){.mast{gap:15px;padding:0 17px}.mast nav{gap:10px}.mast nav a{font-size:13px}#main{padding:18px}.shell-grid{grid-template-columns:170px minmax(0,1fr);gap:12px}.sheet{padding:18px}.sidenav{padding:9px}}
 @media(max-width:900px){#ai,#ai.wide{position:fixed;inset:0 0 0 auto;width:min(460px,100%);box-shadow:0 0 0 100vmax #16213933}.mast nav{display:none}.shell-grid{grid-template-columns:156px minmax(0,1fr)}}
 @media(max-width:620px){#ai,#ai.wide{width:100%}.mast{height:58px}.shell-grid{display:block}.sidenav{position:static;margin-bottom:12px}.group{padding:7px 9px}.sidenav .navpage{padding:5px 12px 5px 32px}.sheet{padding:14px}.stats{gap:6px}.stat{padding:8px}.stat strong{font-size:21px}.hrow{align-items:flex-start}#main{padding:12px}.ophead{margin-bottom:12px}.op-brand{font-size:21px}.aibar{height:56px}.welcome{padding-top:20px}.meta{font-size:12px}.wizard{min-height:850px}}
+
+body.dossier #main{display:block;min-width:0;gap:0}
+.ai-icon svg{width:70%;height:70%;display:block}
+.suggest svg{width:17px;height:17px;display:block}
+.compose button[data-chat="send"]{border:1px solid #7869ff;border-radius:50%;width:32px;height:32px;flex:0 0 32px;color:#665dff;padding:6px}
+.compose button[data-chat="send"] svg{width:18px;height:18px}

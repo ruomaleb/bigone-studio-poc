@@ -3,7 +3,8 @@
 Prototype Nanotera : Pilotage, Préparation, Production et Administration.
 
 - Application : https://ruomaleb.github.io/bigone-studio-poc/
-- Version **2026-11-27.1**. [Ouvrir le dossier S49 avec Assistant](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1). Le bouton « Essayer le dossier S49 » de l’accueil ouvre un essai indépendant. Le dossier partagé est accessible au Responsable depuis une opération.
+- Version **2026-11-27.2**. [Ouvrir le dossier S49 avec Assistant](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1). Le bouton « Essayer le dossier S49 » de l’accueil ouvre un essai indépendant. Le dossier partagé est accessible au Responsable depuis une opération.
+- [Feuille de route et critères d’acceptation des cinq lots](docs/FEUILLE_DE_ROUTE_STUDIO.md).
 - [Fonctionnement, publication et reprise du dossier d’opération](docs/DOSSIER_OPERATION.md).
 - Version précédente : **2026-11-26.8** — atelier de consultation et de personnalisation des supports. Deux modèles Studio, sélections privées multipages, import d’images, personnalisation par bandeau et export PNG. Les visuels et les maquettes associés à une révision sont conservés en IndexedDB sur l’appareil. Le fichier de production et les BAT suivent leur circuit habituel.
 - Identité et références : [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
@@ -19,6 +20,7 @@ Les données sont celles du prototype partagé. Garder le code de test hors du d
 
 ```sh
 node tests/design-smoke.mjs
+node tests/operation.mjs
 git diff --check
 ```
 
@@ -31,6 +33,6 @@ Version publiée avant cette évolution : **2026-11-16.2**, commit `bfdbaf6e768b
 1. Relire et intégrer la branche de refonte dans `main`.
 2. Reporter la version validée sur `gh-pages` par avance rapide ou fusion normale, sans forcer l'historique.
 3. Attendre la réussite du déploiement Pages.
-4. Vérifier l'URL publique, la version `2026-11-26.8` en pied de page, les polices, le logo et les routes profondes.
+4. Vérifier l'URL publique, la version `2026-11-27.2` en pied de page, les polices, le logo et les routes profondes.
 
-Retour arrière : revert explicite. Aucun changement de base, de droits serveur ou d'hébergement n'est nécessaire pour cette refonte.
+Retour arrière : revert explicite. Les modalités de reprise pour le service du dossier et les données des essais figurent dans la note de publication.

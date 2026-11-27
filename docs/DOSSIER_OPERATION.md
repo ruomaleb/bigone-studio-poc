@@ -18,6 +18,19 @@ Les contrôles serveur vérifient la portée magasin, les versions éligibles, l
 
 Lancer `node tests/design-smoke.mjs` puis `node tests/operation.mjs` avec Node 24. Le second contrôle utilise SQLite en mémoire et passe par le gestionnaire HTTP du Worker.
 
-Le schéma D1 est dans `server/schema.sql`. Le Worker ES et ses trois modules se déploient avec la configuration `server/wrangler.toml`. Le code Responsable sert à la vérification par le service Studio et ne doit jamais être enregistré dans le dépôt ni journalisé. Le dépôt ne contient que l’identifiant et la clé publique de lecture déjà utilisés par le POC.
+Le schéma D1 est dans `server/schema.sql`. Les trois modules JavaScript du Worker se déploient avec la configuration `server/wrangler.toml`. Le code Responsable sert à la vérification par le service Studio et ne doit jamais être enregistré dans le dépôt ni journalisé. Le dépôt ne contient que l’identifiant et la clé publique de lecture déjà utilisés par le POC.
 
 Publier depuis `main` vers `gh-pages`. Refaire le parcours sur l’URL publique dans un nouvel essai individuel. Vérifier une confirmation magasin, le changement du compteur d’affiches, la correction du prix de l’emmental et le téléchargement du flux. La base historique du Studio reste disponible en cas de retour au site précédent. Pour revenir à la version antérieure, révoquer le changement de publication par un commit de revert. Les écritures du pilote restent dans la base dédiée.
+
+## Parcours vérifiés
+
+| Parcours | Contrôle effectué |
+| --- | --- |
+| Assistant et PIM | Sur l’URL publique, une question sur V3 a renvoyé le champagne seul. Le lien de la réponse a ouvert le PIM avec le filtre V3. |
+| Participant et réseau | Sur deux sessions aux droits distincts, confirmation de 20 affiches A1 et relecture du total côté enseigne. Le test serveur couvre le double envoi et la limitation des accès. |
+| Offre et flux | Sur l’essai en ligne, correction du prix manquant de l’emmental, contrôle de Bonial puis génération et téléchargement du CSV. Le test serveur couvre la remise et les archives lors du changement de version. |
+| BAT | La recette serveur passe de la nouvelle révision à la revue puis à la validation. Elle relit l’historique après modification du prix et contrôle l’accès aux pièces jointes. |
+| Réponse détaillée | En navigateur à 1 850 et 390 px, saisie de deux affiches et d’un kit, de 1 500 tracts, d’un budget local de 400 € et d’un café à 6,75 € TTC. Relecture après confirmation. Le kit porte le total à quatre affiches et la PLV à 27 € HT. |
+| Import | Lecture du dossier historique S49 et conversion de ses 14 produits, 10 participants, 4 supports et 2 flux. Le test de non-régression porte sur le prix source, la page de placement, le nombre de pages et le numéro de BAT. |
+
+Dans les dossiers historiques, les produits dont la version commerciale reste à renseigner apparaissent dans le PIM. Les liens vers des fichiers de l’ancien Studio dépendent de la disponibilité de leur URL d’origine.
