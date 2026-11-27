@@ -1,3 +1,4 @@
+import {editorController} from './editor.mjs?v=8';
 import {axes, matches, targetPlan, participantsOf} from '../server/targeting.mjs';
 import {
   blank,
@@ -7,7 +8,7 @@ import {
   impactedVersions,
   commonPlan,
   localVariantPrices
-} from '../server/model.mjs?v=7';
+} from '../server/model.mjs?v=8';
 import {
   esc,
   info,
@@ -26,17 +27,17 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=7';
+} from './views.mjs?v=8';
 import {
   setupChat
-} from './chat.mjs?v=7';
+} from './chat.mjs?v=8';
 const apiRoot = 'https://bigone-studio-operations.github-46e.workers.dev';
 const $ = s => document.querySelector(s),
   params = new URLSearchParams(location.search);
 const opId = params.get('op') || (/\bid=s49-/.test(location.hash) ? 'u-2649-pbs' : 'bd-2704-deco'),
-  slot = params.get('participant'),
+  slot = params.get('participant'), reviewerSlot=params.get('relecture'),
   shared = params.get('mode') === 'partage' || !['bd-2704-deco','u-2649-pbs'].includes(opId);
-const storageKey = 'studio.operations.v1.' + (slot ? 'magasin.' + slot + (opId === 'u-2649-pbs' ? '' : '.' + opId) : shared ? 'partage.' + opId : opId === 'u-2649-pbs' ? 'essai' : 'essai.' + opId);
+const storageKey = 'studio.operations.v1.' + (reviewerSlot ? 'relecture.'+opId+'.'+reviewerSlot : slot ? 'magasin.' + slot + (opId === 'u-2649-pbs' ? '' : '.' + opId) : shared ? 'partage.' + opId : opId === 'u-2649-pbs' ? 'essai' : 'essai.' + opId);
 const sections = [
   ['Préparation', [
     ['informations', 'Informations'],
@@ -104,6 +105,7 @@ async function api(path, data = {}) {
   });
   return b
 }
+const editor=editorController({context:()=>ctx, save, api, notify, render});
 const chat = setupChat(() => ctx, api, notify);
 
 function newKey() {
@@ -132,7 +134,7 @@ function summaryFrame(pg, q) {
   const t = ctx.state.stores.find(x => x.id === q.get('id')) || participantsOf(ctx.state)[0];
   if ((!t || t.targeted === false) && pg === 'participation') return '<section class="sheet">Aucun participant affecté.</section>';
   return '<div class="hrow sectionhead"><h2>' + esc(names[pg]) + '</h2>' + (ctx.role === 'enseigne' ? link('#participants', 'Revenir aux participants') : '') +
-    '</div><iframe src="participants/?v=7" class="wizard" title="Choix des participants"></iframe>'
+    '</div><iframe src="participants/?v=8" class="wizard" title="Choix des participants"></iframe>'
 }
 
 function selectedProduct() {
@@ -224,6 +226,16 @@ function render() {
   document.title = names[page] + ' · ' + s.op.title + ' · BigOne Studio';
   $('#bar').innerHTML = shop ? '' : link('../#accueil', 'Pilotage', 'toplink') + sections.map(([name, items], i) => '<a href="#' + items[0][0] + '" ' + (i === g ?
     'aria-current="page"' : '') + '>' + name + '</a>').join('');
+  const atelier=(page==='production'||ctx.role==='relecteur')&&editor.current();
+  $('#main').classList.toggle('ed-main',!!atelier);
+  if(atelier){
+    if(ctx.role==='relecteur'){$('#bar').innerHTML='';$('#open-ai').hidden=true;$('#ai').hidden=true;}
+    document.title=(atelier.mode==='fer'?'Chemin de fer':'BAT collaboratif')+' · '+atelier.x.name+' · BigOne Studio';
+    $('#main').innerHTML=editor.html(atelier);editor.mounted(atelier);
+    if(productDialog.open)productDialog.close();
+    if(ctx.role!=='relecteur')chat.render();
+    return;
+  }
   const content = {
     informations: () => info(s, q),
     participants: () => participants(s, q),
@@ -722,7 +734,22 @@ window.addEventListener('beforeunload', e => {
 window.addEventListener('hashchange', () => {
   if (ctx) render()
 });
+let checkingReview=false;
+async function updateReview(){
+  const active=editor.current();
+  if(!active||active.mode!=='bat'||document.hidden||!editor.canRefresh()||checkingReview)return;
+  checkingReview=true;
+  try{
+    const info=await api('/revision');
+    if(info.revision>ctx.revision){
+      const fresh=await api('/read');
+      if(editor.canRefresh() && fresh.revision>ctx.revision){ctx=fresh;editor.redraw();}
+    }
+  }catch{}finally{checkingReview=false;}
+}
+setInterval(updateReview,6000);
 document.addEventListener('visibilitychange', async () => {
+  if(editor.current()){await updateReview();return;}
   if (ctx && !document.hidden && !pending && !$('#modal').open && !['participation', 'configurer', 'produits'].includes(current().page)) try {
     const fresh = await api('/read');
     if (fresh.revision > ctx.revision) {
@@ -769,17 +796,17 @@ async function start(code) {
 
 function ready() {
   render();
-  $('#open-ai').disabled = false;
+  $('#open-ai').disabled = ctx.role==='relecteur';
   if (params.get('assistant') === '1') chat.open()
 }
 async function init() {
   try {
     $('#open-ai').disabled = true;
     const invite = location.hash.match(/^#acces=([a-f0-9]{64})$/);
-    if (slot && invite) {
+    if ((slot || reviewerSlot) && invite) {
       key = invite[1];
       writeStore(storageKey, key);
-      history.replaceState(null, '', location.pathname + location.search + '#participation')
+      history.replaceState(null, '', location.pathname + location.search + (reviewerSlot?route('production',{id:reviewerSlot,atelier:'bat',page:1}):'#participation'))
     }
     key = readStore(storageKey) || '';
     if (key) {
@@ -792,6 +819,7 @@ async function init() {
         key = '';
       }
     }
+    if (reviewerSlot) throw Error('Lien de relecture incomplet ou expiré. Demandez un nouveau lien.');
     if (slot) throw Error('Ce lien magasin a expiré. Demandez un nouvel accès depuis Participants.');
     if (shared) return login();
     await start();

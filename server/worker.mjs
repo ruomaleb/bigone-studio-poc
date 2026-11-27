@@ -1,3 +1,4 @@
+import {reviewerState, annotate} from './edition.mjs';
 import {
   example,
   bricoExample,
@@ -92,7 +93,7 @@ async function dispatch(req, env) {
   const url = new URL(req.url),
     path = url.pathname;
   if (path === '/health') return {
-    version: '2026-11-27.7',
+    version: '2026-11-27.8',
     ok: true
   };
   required(req.method === 'POST', 'Méthode indisponible.', 405);
@@ -107,20 +108,38 @@ async function dispatch(req, env) {
   if (path === '/session') return openSession(req, env, p);
   const key = req.headers.get('Authorization')?.replace(/^Bearer /, '') || '';
   required(keyPattern.test(key), 'Accès requis.', 401);
+  if(path==='/revision'){
+    const version=await env.DB.prepare('SELECT w.revision FROM sessions t JOIN workspaces w ON w.id=t.workspace WHERE t.digest=? AND t.expires>CURRENT_TIMESTAMP').bind(await hash(key)).first();
+    required(version,'Accès expiré ou inconnu.',401);
+    return {revision:version.revision};
+  }
   const row = await env.DB.prepare(
       'SELECT w.id,w.revision,w.document,t.store_id FROM sessions t JOIN workspaces w ON w.id=t.workspace WHERE t.digest=? AND t.expires>CURRENT_TIMESTAMP')
     .bind(await hash(key)).first();
   required(row, 'Accès expiré ou inconnu.', 401);
   const s = upgradeDemo(JSON.parse(row.document)),
     scope = row.store_id;
-  if (scope) required(s.stores.some(t=>t.id===scope && t.targeted!==false), 'Ce point de vente ne fait pas partie du ciblage.', 403);
+  const reviewId=scope?.startsWith('@bat:') ? scope.slice(5) : null;
+  const reviewSupport=reviewId && s.supports.find(x=>x.id===reviewId);
+  if(reviewId) required(reviewSupport,'Ce BAT est indisponible.',404);
+  if (scope && !reviewId) required(s.stores.some(t=>t.id===scope && t.targeted!==false), 'Ce point de vente ne fait pas partie du ciblage.', 403);
   const view = () => ({
-    state: forRole(s, scope),
+    state: reviewId ? reviewerState(s,reviewSupport) : forRole(s, scope),
     revision: row.revision,
-    role: scope ? 'magasin' : 'enseigne',
+    role: reviewId ? 'relecteur' : scope ? 'magasin' : 'enseigne',
     workspace: row.id
   });
   if (path === '/read') return view();
+  if(reviewId && path==='/file'){
+    const allowed=reviewerState(s,reviewSupport).supports[0].proofs.some(proof=>proof.attachment?.id===p.id);
+    required(allowed,'Fichier hors du BAT.',403);
+  }else if(reviewId) required(path==='/change' && p.action==='annotation' && p.payload?.id===reviewId && ['add','reply'].includes(p.payload?.step),'Cet accès est réservé aux commentaires de ce BAT.',403);
+  if(path==='/review-invite'){
+    required(!scope && s.supports.some(x=>x.id===p.id),'Accès enseigne et support requis.',403);
+    const k=token();
+    await sessionStmt(env.DB,await hash(k),row.id,'@bat:'+p.id).run();
+    return {key:k};
+  }
   if (path === '/invite') {
     required(!scope, 'Accès enseigne requis.', 403);
     required(s.stores.some(x => x.id === p.store && x.targeted !== false), 'Magasin absent.');
@@ -131,7 +150,7 @@ async function dispatch(req, env) {
     }
   }
   if (path === '/file') {
-    required(!scope, 'Accès enseigne requis.', 403);
+    required(!scope || reviewId, 'Accès enseigne requis.', 403);
     const f = await env.DB.prepare('SELECT name,mime,content FROM files WHERE id=? AND workspace=?').bind(String(p.id), row.id).first();
     required(f, 'Fichier absent.', 404);
     return f;
@@ -176,7 +195,8 @@ async function dispatch(req, env) {
     return answer(env, forRole(s, scope), scope, p, budget)
   }
   required(path === '/change', 'Page inconnue.', 404);
-  const changed = mutate(s, p.action, p.payload || {}, scope);
+  if(reviewId) required(!s.op.closed,'Ce dossier est clôturé.',409);
+  const changed = reviewId ? annotate(s,reviewSupport,p.payload,'Relecteur') : mutate(s, p.action, p.payload || {}, scope);
   if (!changed) return view();
   required(row.revision === p.revision, 'Une autre personne a modifié le dossier. Rechargez avant de reprendre votre saisie.', 409);
   const r = await env.DB.prepare('UPDATE workspaces SET document=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(s), row.id, row

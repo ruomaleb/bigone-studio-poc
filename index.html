@@ -8,7 +8,7 @@
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
 <link rel="stylesheet" href="assets/studio.css?v=2026-11-26.8">
-<link rel="stylesheet" href="assets/product-sheet.css?v=7">
+<link rel="stylesheet" href="assets/product-sheet.css?v=8">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -41,13 +41,13 @@
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="assets/visuels.js?v=2026-11-26.8"></script>
-<script src="assets/product-sheet.js?v=7"></script>
+<script src="assets/product-sheet.js?v=8"></script>
 <script src="assets/list-filters.js?v=2026-11-26.8"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-27.7';
+const VERSION='2026-11-27.8';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -344,7 +344,7 @@ function contentItems(kind,operation){
     const name=titre(s),format=s.format||baseDe(s).format,family=FAMILLES[typ(s).f];
     const engaged=magsSup(s,o),stores=engaged.map(m=>m.nom),facets=supportFacets(s,o,engaged);
     if(kind==='supports'){
-      rows.push({o,record:s,...facets,name,meta:[format,family,enProd(s)?'En production':'En préparation'],terms:stores,href:s.id==='bd-ecatalogue' ? dossierUrl(o,'production',s.id)+'&page='+place(p,s) : innerLink(o.id,'dispositif',s.id)});
+      rows.push({o,record:s,...facets,name,meta:[format,family,enProd(s)?'En production':'En préparation'],terms:stores,href:innerLink(o.id,'dispositif',s.id)});
       continue;
     }
     const asset=(v,archived)=>({
@@ -595,7 +595,7 @@ function supportProducts(s,o){
 }
 function compoHtml(s,o){const ps=prodsOf(o.id);
   const pg=pagesDe(s),libres=ps.filter(p=>place(p,s)==null);
-  return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Chemin de fer</h3><button class="btn sm" data-addpage="${esc(s.id)}">${pg.length?'Ajouter une page':'Créer le chemin de fer'}</button></div>
+  return `<div class="sub2"><div class="row" style="justify-content:space-between"><h3>Chemin de fer</h3><a class="btn" href="${esc(dossierUrl(o,'production',s.id)+'&atelier=fer')}">Ouvrir la mise en page</a><button class="btn sm" data-addpage="${esc(s.id)}">${pg.length?'Ajouter une page':'Créer le chemin de fer'}</button></div>
   ${(chemin(s)||{}).historique?`<p class="muted small" style="margin:0">Compositions précédentes conservées : ${chemin(s).historique.map(h=>'rév. '+h.rev+' du '+fd(h.date)+' ('+h.pages.length+' pages)').join(', ')}.</p>`:''}${pg.length?`<p class="muted small" style="margin:0">Touchez une offre pour choisir sa page, ou glissez-la sur une page.</p><div class="pages">${pg.map(p=>{const inn=ps.filter(x=>place(x,s)===p.n);return `<div class="page" data-page="${p.n}" data-sup="${esc(s.id)}"><div class="row" style="justify-content:space-between"><span class="pn">${p.n}</span><span class="pill ${inn.length>p.cases?'crit':inn.length===p.cases?'ok':''}">${inn.length}/${p.cases}</span></div><button class="btn sm" data-rub="${p.n}" data-sup="${esc(s.id)}" style="text-align:left">${esc(p.rubrique||'Rubrique')}</button>${inn.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div>`}).join('')}</div>${libres.length?`<div><h3>Offres non placées dans ce support</h3><div class="row" style="margin-top:6px">${libres.map(x=>`<button class="chip" draggable="true" data-chip="${esc(x.id)}" data-sup="${esc(s.id)}">${esc(x.libelle)}</button>`).join('')}</div></div>`:''}`:vide('Pas encore de chemin de fer.')}</div>`}
 function carteSup(s,o){
   const b=baseDe(s),stores=magsSup(s,o),variants=s.groupe?[]:varsDe(s);

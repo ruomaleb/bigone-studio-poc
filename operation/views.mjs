@@ -8,7 +8,7 @@ import {
   totals,
   eligible,
   anomalies
-} from '../server/model.mjs?v=7';
+} from '../server/model.mjs?v=8';
 export const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({
   '&': '&amp;',
   '<': '&lt;',
@@ -79,7 +79,7 @@ export function info(s, q) {
   const source = o.id === bricoId ? '<section class="sheet catalogue-intro"><a href="' + route('production',{id:catalogueId,page:1}) +
     '"><img src="../assets/brico-deco/page-1.webp" alt="Feuilleter le catalogue Brico-déco"></a><div><h2>Catalogue Brico-déco</h2>' +
     '<p>Édition Nanotera Levallois du 19 au 26 novembre 2022. Les pages 2 à 5 présentent les 21 références de l’offre d’origine.</p><div class="actions">' +
-    link(route('production',{id:catalogueId,page:2}), 'Feuilleter le catalogue') + link('#produits','Consulter les fiches produits') +
+    link(route('production',{id:catalogueId,page:2}), 'Feuilleter le catalogue') + link(route('production',{id:catalogueId,atelier:'fer',page:2}),'Chemin de fer') + link(route('production',{id:catalogueId,atelier:'bat',page:2}),'BAT collaboratif') + link('#produits','Consulter les fiches produits') +
     '<a class="quiet" target="_blank" rel="noopener" href="' + cataloguePdf + '">Ouvrir le PDF original ↗</a></div></div></section>' : '';
   return source + summary + jal + card('À préparer', row('Confirmer les choix de supports', t.heritage + ' sélections héritées · ' + t.attente +
       ' participations en attente.', link('#participants?filtre=heritage', 'Voir les participants')) + row(miss.length ? 'Compléter les produits utilisés' : 'Vérifier l’offre commerciale', miss.length ? miss.length + ' fiche(s) avec un prix manquant.' : s.products.length + ' références avec un prix renseigné.', link(route('produits', {
@@ -178,6 +178,10 @@ function variantPanel(s, support) {
   }
   return card('Variantes locales', rows.join('') || none('Aucun prix local distinct et confirmé pour ce support.'));
 }
+function editorLinks(id,page=1) {
+  return '<div class="actions">'+link(route('production',{id,atelier:'fer',page}),'Chemin de fer')+
+    link(route('production',{id,atelier:'bat',page}),'BAT collaboratif')+'</div>';
+}
 export function supports(s, q, prodMode = false) {
   const page = prodMode ? 'production' : 'supports',
     x = s.supports.find(x => x.id === q.get('id'));
@@ -186,11 +190,11 @@ export function supports(s, q, prodMode = false) {
     .supports.map(y => tr(esc(y.name), esc(prodMode ? 'R' + y.revision : y.format), prodMode ? tag(y.state, y.review ? 'warn' : '') : esc(y.products.length),
       link(route(page, {
         id: y.id
-      }), prodMode ? 'Voir le BAT' : 'Voir le dispositif')))), prodMode ? '' : btn('new-device', 'Ajouter un support'));
+      }), prodMode ? 'Voir le BAT' : 'Voir le dispositif') + editorLinks(y.id)))), prodMode ? '' : btn('new-device', 'Ajouter un support'));
   if (!x) return listing;
   const ps = s.products.filter(p => x.products.includes(p.id)),
     pg = Math.max(1, Math.min(x.pages, Number(q.get('page')) || 1));
-  if (!prodMode) return listing + card(x.name, '<form id="support" data-id="' + esc(x.id) + '"><div class="fields">' + (x.participantItemId === 'a1' ?
+  if (!prodMode) return listing + card(x.name, editorLinks(x.id,pg) + '<form id="support" data-id="' + esc(x.id) + '"><div class="fields">' + (x.participantItemId === 'a1' ?
         '<p>Quantité d’affiches à saisir par point de vente dans Ma participation.</p>' : '') + field('format', 'Format attendu', x.format) +
       sel('scope', 'Version commerciale', [
         ['Toutes', 'Toutes les versions'], ...s.config.versions.map(v => [v.id, v.id + ' · ' + v.name])
@@ -215,7 +219,7 @@ export function supports(s, q, prodMode = false) {
     }), 'Revenir au BAT actuel'));
   }
   const changes = reviewChanges(s, x);
-  return listing + card(x.name + ' · BAT R' + x.revision, tag(x.state) + (changes.length ? '<details><summary>Modifications depuis la dernière revue (' + changes
+  return listing + card(x.name + ' · BAT R' + x.revision, editorLinks(x.id,pg) + tag(x.state) + (changes.length ? '<details><summary>Modifications depuis la dernière revue (' + changes
       .length + ')</summary><ul>' + changes.map(text => '<li>' + esc(text) + '</li>').join('') + '</ul></details>' : '') + (x.review ? ' ' + tag(
       'Nouvelle revue requise', 'warn') : '') + '<p>Décision attendue · ' +
     esc(x.decider) + '</p><div class="filters">' + sel('batpage', 'Page du BAT', Array.from({

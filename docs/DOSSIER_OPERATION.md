@@ -14,6 +14,14 @@ Les 21 fiches PIM reprennent les références existantes. Les pages 2, 3, 4 et 5
 
 Pour illustrer le ciblage du réseau fictif de 900 points de vente, les supermarchés reçoivent la version V1 « Luminaires et miroirs » (17 références), les hypermarchés la V2 « Catalogue intégral » (21) et les supérettes la V3 « Ampoules LED » (4). Ces assortiments et le flux d’export sont des choix de démonstration. Les groupes se modifient dans Participants.
 
+## Chemin de fer et BAT collaboratif
+
+Dans Brico-déco, [ouvrir la mise en page](https://ruomaleb.github.io/bigone-studio-poc/operation/?op=bd-2704-deco#production?id=bd-ecatalogue&atelier=fer&page=2) affiche les pages à gauche, la composition au centre et le chutier à droite. Le filtre Rayon reprend le PIM. Le catalogue Brico-déco propose aussi les familles Luminaires, Miroirs et Ampoules LED. Le responsable peut placer une offre, un visuel ou un logo, déplacer ou redimensionner le bloc et ajouter du texte. Un produit déplacé vers une autre page conserve une seule affectation dans ce support. Le bouton de placement et les champs de position offrent une alternative au glisser-déposer.
+
+Le [BAT collaboratif](https://ruomaleb.github.io/bigone-studio-poc/operation/?op=bd-2704-deco#production?id=bd-ecatalogue&atelier=bat&page=2) ouvre le catalogue original en R1. « Transmettre au BAT » fige la nouvelle composition pour la relecture. La personne qui produit peut générer un lien de relecture, saisir une correction sur une page, y répondre, la marquer résolue ou la rouvrir. Le lien donne au relecteur accès aux épreuves et aux échanges de ce support. La signature est déclarative. Une correction ouverte sur le BAT courant doit être traitée avant sa validation. Les commentaires restent consultables sur la révision annotée.
+
+La recette navigateur déplace le miroir Nina de la page 3 à la page 2, ajoute un visuel et un texte, transmet le BAT R2 et ouvre un deuxième accès relecteur. Elle vérifie la réponse de la production, la résolution et la consultation de R1. Les épreuves déposées en PDF et en image s’affichent dans la surface d’annotation. Un fichier hébergé ailleurs doit autoriser sa lecture par le navigateur pour afficher ses pages dans Studio.
+
 ## Données et exploitation du POC
 
 GitHub Pages sert l’interface. Le Worker `bigone-studio-operations` traite les demandes, valide les accès et enregistre les révisions dans la base dédiée `bigone-studio-operations-poc`. Le modèle Workers AI explique les données du dossier. Le service applique une limite de 35 demandes par dossier et 80 au total par jour, puis affiche une synthèse calculée. Une indisponibilité du modèle active le même mode de lecture.
