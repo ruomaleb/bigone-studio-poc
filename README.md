@@ -3,7 +3,9 @@
 Prototype Nanotera : Pilotage, Préparation, Production et Administration.
 
 - Application : https://ruomaleb.github.io/bigone-studio-poc/
-- Version : **2026-11-26.8** — atelier de consultation et de personnalisation des supports. Deux modèles Studio, sélections privées multipages, import d’images, personnalisation par bandeau et export PNG. Les visuels et les maquettes associés à une révision sont conservés en IndexedDB sur l’appareil. Le fichier de production et les BAT suivent leur circuit habituel.
+- Version **2026-11-27.1**. [Ouvrir le dossier S49 avec Assistant](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1). Le bouton « Essayer le dossier S49 » de l’accueil ouvre un essai indépendant. Le dossier partagé est accessible au Responsable depuis une opération.
+- [Fonctionnement, publication et reprise du dossier d’opération](docs/DOSSIER_OPERATION.md).
+- Version précédente : **2026-11-26.8** — atelier de consultation et de personnalisation des supports. Deux modèles Studio, sélections privées multipages, import d’images, personnalisation par bandeau et export PNG. Les visuels et les maquettes associés à une révision sont conservés en IndexedDB sur l’appareil. Le fichier de production et les BAT suivent leur circuit habituel.
 - Identité et références : [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
 - Recette et limites : [docs/QA_REFONTE_20261116.md](docs/QA_REFONTE_20261116.md).
 
