@@ -33,7 +33,7 @@ const stores = core.stores.map(s => s.name);
 const channels = ['SMS', 'RCS', 'E-mail', 'Écrans internes', 'Réseaux sociaux organiques'];
 const products = core.products;
 const adminTabs = [
-  ['rules', 'Participation et versions', 'setup'],
+  ['rules', 'Proposition par groupe', 'setup'],
   ['plv', 'PLV', 'box'],
   ['owned', 'Canaux propriétaires', 'radio'],
   ['ads', 'Publicité', 'ad'],
@@ -93,7 +93,7 @@ function save() {
       if (request.payload.confirm) toast('Réponse confirmée et enregistrée.')
     } catch (e) {
       persistOK = false;
-      R().confirmed = false;
+      if (R()) R().confirmed = false;
       render();
       toast(e.message)
     } finally {
@@ -152,17 +152,77 @@ const verOpts = () => data.versions.map(v => [v.id, v.id + ' · ' + v.name]);
 const modeBtn = (id, label) => '<button class="' + (mode === id ? 'chosen' : '') + '" aria-pressed="' + (mode === id) + '" data-action="mode:' + id + '">' + esc(
   label) + '</button>';
 
+const network = core.network || [],
+  axes = core.axes;
+let groups = structuredClone(core.groups || []),
+  editing = '';
+const draftGroup = () => ({
+  id: crypto.randomUUID(),
+  name: '',
+  version: data.versions[0]?.id || 'V1',
+  rule: 'free',
+  criteria: {
+    format: [],
+    region: [],
+    zone: []
+  }
+});
+let draft = draftGroup();
+const groupSummary = g => Object.values(g.criteria).filter(x => x.length).map(x => x.join(' ou ')).join(' · ') || 'Tout le réseau';
+const plan = () => core.targetPlan(network, groups);
+const chosenOffers = () => products.filter((_, i) => data.eligibility[i]?.[draft.version]);
+const opt = (val, label, chosen) => '<option value="' + esc(val) + '" ' + (val === chosen ? 'selected' : '') + '>' + esc(label) + '</option>';
+
+function groupEditor() {
+  const version = fld('Version proposée', '<select id="group-version">' + data.versions.map(v => opt(v.id, v.id + ' · ' + v.name, draft.version)).join(
+    '') + '</select>');
+  const items = chosenOffers();
+  const assortment = '<div class="assort"><strong>Assortiment de ' + esc(draft.version) + ' · ' + items.length + ' référence' + (items.length > 1 ? 's' :
+      '') + '</strong><p>' + esc(items.map(p => p.name).join(' · ') || 'Associez des produits à cette version dans le PIM.') +
+    '</p><a target="_parent" href="' + esc(core.pimLink(draft.version)) + '">Consulter cette version dans le PIM</a></div>';
+  const facets = Object.entries(axes).map(([key, label]) => {
+    const values = [...new Set(network.map(t => t[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+    return '<fieldset class="facet"><legend>' + esc(label) + '</legend>' + values.map(v =>
+      '<label class="pick pill"><input type="checkbox" data-axis="' + key + '" value="' + esc(v) + '" ' + (draft.criteria[key].includes(v) ?
+        'checked' : '') + '>' + esc(v) + '</label>').join('') + '</fieldset>';
+  }).join('');
+  const targets = network.filter(t => core.matches(t, draft.criteria));
+  const name = fld('Nom du groupe', '<input id="group-name" maxlength="80" placeholder="Ex. Hypers de Bretagne" value="' + esc(draft.name) + '">');
+  const rule = fld('Participation', '<select id="group-rule">' + opt('free', 'Au choix du magasin', draft.rule) + opt('must', 'Obligatoire', draft.rule) +
+    '</select>');
+  return section('Version et assortiment', version + assortment) + section(editing ? 'Modifier le groupe' : 'Composer un groupe de magasins',
+    '<p>Combinez format, région et zone. Sans filtre, tout le réseau est éligible.</p>' + facets +
+    '<div class="assort" role="status"><strong>' + targets.length + ' point' + (targets.length === 1 ? '' : 's') + ' de vente correspondant' + (targets
+      .length === 1 ? '' : 's') + ' sur ' + network.length + '</strong><p>' + esc(targets.slice(0, 3).map(t => t.name).join(' · ')) +
+    '</p></div><div class="fields">' + name + rule + '</div><div class="actions">' +
+    btn(editing ? 'Mettre à jour le groupe' : 'Ajouter le groupe en priorité', 'draft-add', 'prime') + (editing ? btn('Annuler la modification',
+      'draft-cancel') : groups.length ? btn('Cibler uniquement ce groupe', 'draft-only') : '') + '</div>');
+}
+
 function rules() {
-  return title('Participation et versions', 'Définissez les sorties d’offres et affectez une version commerciale à chaque magasin.') + section(
-    'Règle par participant', tbl(['Participant', 'Participation', 'Version affectée'], stores.map((s, i) => tr('<b>' + esc(s) + '</b>', sel('rules.' + i, data
-      .rules[i], [
-        ['free', 'Au choix · Oui / Non'],
-        ['must', 'Obligatoire']
-      ], 'Participation de ' + s), sel('assigned.' + i, data.assigned[i], verOpts(), 'Version affectée à ' + s))))) + section('Versions de l’offre commerciale',
-    tbl(['Code', 'Typologie de sortie d’offres', 'Descriptif présenté au magasin'], data.versions.map((v, i) => tr(tag(v.id), field('versions.' + i + '.name', v
-      .name, 'Nom ' + v.id, 'text', 'required maxlength="48"'), field('versions.' + i + '.desc', v.desc, 'Descriptif ' + v.id, 'text',
-      'required maxlength="160"')))) + '<div class="gap">' + ck('localVersion', data.localVersion, 'Autoriser le magasin à modifier sa version affectée') +
-    '</div>')
+  const result = plan();
+  const dirty = JSON.stringify(groups) !== JSON.stringify(core.groups) || core.legacy;
+  const removed = network.filter(t => t.targeted !== false && !result.assignments.has(t.id)).length;
+  const changed = network.filter(t => t.targeted !== false && result.assignments.has(t.id) && result.assignments.get(t.id).version !== t.assigned).length;
+  const reviewCount = network.filter(t => core.confirmed.includes(t.id) && (!result.assignments.has(t.id) || result.assignments.get(t.id).version !== t
+    .assigned || result.assignments.get(t.id).rule !== t.rule)).length;
+  const rows = groups.map((g, i) => tr('<b>' + esc(g.name) + '</b><br><small>' + esc(groupSummary(g)) + '</small>', tag(g.version) + '<br><small>' + esc(g
+      .rule === 'must' ? 'Obligatoire' : 'Au choix') + '</small>', String(result.counts[i].assigned) + ' / ' + result.counts[i].matched,
+    '<div class="group-tools">' + btn('Modifier', 'draft-edit:' + g.id) + (i ? btn('Monter', 'draft-up:' + g.id) : '') + btn('Retirer',
+      'draft-remove:' + g.id) + '</div>'));
+  return title('Proposition par groupe', 'Choisissez une version de l’offre, puis les groupes de points de vente auxquels la proposer.') + (core.legacy ?
+      note('Ce dossier conserve des affectations historiques. Appliquez la proposition pour passer au ciblage par groupes.') : '') + groupEditor() +
+    section('Groupes de la proposition',
+      '<p>Les groupes sont lus de haut en bas. Un magasin reçoit la version du premier groupe auquel il correspond.</p>' +
+      (rows.length ? tbl(['Groupe', 'Version', 'Retenus / éligibles', 'Actions'], rows) : note('Aucun groupe dans cette proposition.')) +
+      '<p><strong>' + result.assignments.size + ' magasins ciblés sur ' + network.length + '</strong> · ' + (network.length - result.assignments.size) +
+      ' hors proposition.</p>' +
+      (dirty ? '<p>' + removed + ' sortie(s) du ciblage · ' + changed + ' changement(s) de version · ' + reviewCount + ' confirmation(s) à revoir.</p>' :
+        '') +
+      '<button class="btn prime" data-action="draft-apply" ' + (!dirty ? 'disabled' : '') + '>Appliquer la proposition</button>') +
+    section('Versions commerciales', tbl(['Code', 'Nom de la version', 'Descriptif'], data.versions.map((v, i) => tr(tag(v.id), field('versions.' + i +
+      '.name', v.name, 'Nom ' + v.id, 'text', 'required maxlength="48"'), field('versions.' + i + '.desc', v.desc, 'Descriptif ' + v.id, 'text',
+      'required maxlength="160"')))));
 }
 
 function plv() {
@@ -330,10 +390,8 @@ function right() {
     lines = [];
   if (mode === 'admin') {
     const pair = {
-      rules: ['Version du magasin', 'Chaque magasin reçoit une seule version de l’offre. Il choisit ensuite ses supports et ses canaux.', [
-        ['Participation', must() ? 'Obligatoire' : 'Oui ou non'],
-        ['Version affectée', data.assigned[store]],
-        ['Choix de version', data.localVersion ? 'Modifiable' : 'Fixé par l’enseigne']
+      rules: ['Portée de la proposition', 'Un magasin ciblé reçoit une seule version commerciale.', [
+        ['Réseau', network.length], ['Groupes', groups.length], ['Magasins ciblés', plan().assignments.size]
       ]],
       plv: ['Catalogue visible', 'Le magasin saisit une quantité pour chaque support ou kit proposé.', [
         ['Supports au détail', data.items.filter(x => x.on).length],
@@ -370,7 +428,7 @@ function right() {
   }
   return '<div class="asideHead">' + ico(mode === 'admin' ? 'eye' : 'list') + (mode === 'admin' ? 'Aperçu des règles' : 'Ma réponse') +
     '</div><div class="asideBody"><h3>' + esc(cap) + '</h3><p>' + esc(desc) + '</p>' + lines.map(x => math(x[0], x[1])).join('') + '</div><div class="asideFoot">' +
-    (mode === 'admin' ? 'Magasin de l’aperçu · ' + esc(stores[store]) :
+    (mode === 'admin' ? 'Paramétrage de l’opération' :
       'Montants de démonstration. Les coûts de presse, d’OOH et d’impression du tract sont hors de ces montants.') + '</div>'
 }
 const pages = {
@@ -390,20 +448,18 @@ function render() {
   sanitize();
   const menu = tabs();
   if (!menu.some(t => t[0] === tab)) tab = menu[0][0];
-  document.querySelector('#modes').innerHTML = (core.shop ? '' : modeBtn('admin', 'Paramétrer les choix') + modeBtn('shop', 'Aperçu magasin'));
+  document.querySelector('#modes').innerHTML = (core.shop ? '' : modeBtn('admin', 'Paramétrer les choix') + (stores.length ? modeBtn('shop', 'Aperçu magasin') : ''));
   document.querySelector('#nav').innerHTML = '<div class="navHead">' + ico(mode === 'admin' ? 'setup' : 'shop') + (mode === 'admin' ? 'Choix proposés' :
       'Ma participation') + '</div><div class="navBody">' + menu.map(([k, t, ic]) => '<button type="button" data-action="go:' + k + '" class="navItem ' + (tab ===
       k ? 'active' : '') + '" ' + (tab === k ? 'aria-current="page"' : '') + '>' + ico(ic) + esc(t) + '</button>').join('') +
-    '</div><div class="navFoot"><label>Magasin de l’aperçu<select id="store">' + stores.map((s, i) => '<option value="' + i + '" ' + (i === store ? 'selected' :
-      '') + '>' + esc(s) + '</option>').join('') + '</select></label></div>';
-  if (core.shop) document.querySelector('.navFoot').hidden = true;
+    '</div>' + (mode === 'shop' && !core.shop ? '<div class="navFoot"><label>Magasin de l’aperçu<select id="store">' + stores.slice(0,20).map((s,i)=>'<option value="'+i+'" '+(i===store?'selected':'')+'>'+esc(s)+'</option>').join('')+(store>=20?'<option selected value="'+store+'">'+esc(stores[store])+'</option>':'')+'</select></label></div>' : '');
   const n = menu.findIndex(t => t[0] === tab),
     next = menu[n + 1],
     prev = menu[n - 1],
-    problem = issue();
+    problem = mode === 'shop' ? issue() : null;
   let action = '';
   if (next) action = btn(mode === 'admin' ? 'Suivant' : 'Continuer', 'go:' + next[0], 'prime', 'arrow');
-  else if (mode === 'admin') action = btn('Tester côté magasin', 'mode:shop', 'prime', 'eye');
+  else if (mode === 'admin') action = stores.length ? btn('Tester côté magasin', 'mode:shop', 'prime', 'eye') : '';
   else if (!R().confirmed) action = problem ? btn('Compléter ma réponse', 'go:' + problem[0], 'prime') : btn('Confirmer ma réponse', 'confirm', 'prime', 'check');
   else action = btn('Revoir ma participation', 'go:entry', '', 'arrow');
   document.querySelector('#panel').innerHTML = pages[tab]() + '<div class="actions"><div>' + (prev ? btn('Précédent', 'go:' + prev[0]) : '<span class="subtle">' + (
@@ -457,15 +513,6 @@ function update(el) {
         return;
       }
     }
-    if (p.startsWith('assigned.') && atBefore && !v) {
-      el.value = atBefore;
-      toast('Sélectionnez une version pour ce participant.');
-      return;
-    }
-    if (p.startsWith('assigned.') && v !== atBefore && !window.confirm('Changer la version de ce magasin ? ' + core.impact(atBefore, v))) {
-      render();
-      return
-    }
     if (p.match(/^kits\.\d+\.on$/) && v && !Object.values(data.kits[Number(p.split('.')[1])].parts).some(n => n > 0)) {
       toast('Ajoutez un support au kit avant de le proposer.');
       return
@@ -475,8 +522,7 @@ function update(el) {
       const k = data.kits[Number(p.split('.')[1])];
       if (!Object.values(k.parts).some(n => n > 0)) k.on = false
     }
-    if (p.startsWith('rules.') && v === 'free') data.replies[Number(p.split('.')[1])].yn = '';
-    if (p.startsWith('assigned.')) data.replies[Number(p.split('.')[1])].v = v;
+
   }
   sanitize();
   save();
@@ -495,6 +541,17 @@ function flushFields() {
 document.addEventListener('change', e => {
   const el = e.target;
   edited.delete(el);
+  if (el.id === 'group-name') {draft.name=el.value;return;}
+  if (el.id === 'group-rule') {draft.rule=el.value;return;}
+  if (el.id === 'group-version') {draft.version=el.value;render();return;}
+  if (el.dataset.axis) {
+    const key=el.dataset.axis;
+    draft.criteria[key]=el.checked?[...draft.criteria[key],el.value]:draft.criteria[key].filter(v=>v!==el.value);
+    render();
+    const next=[...document.querySelectorAll('[data-axis]')].find(n=>n.dataset.axis===key&&n.value===el.value);
+    next?.focus({preventScroll:true});
+    return;
+  }
   if (el.id === 'store') {
     store = Number(el.value);
     render();
@@ -504,13 +561,6 @@ document.addEventListener('change', e => {
   update(el);
   if (el.matches('input[type=text],input[type=number]')) {
     document.querySelector('#aside').innerHTML = right();
-    if (tab === 'rules' && /^versions\.\d+\.name$/.test(el.dataset.path)) {
-      document.querySelectorAll('select[data-path^="assigned."]').forEach(select => {
-        Array.from(select.options).forEach(option => {
-          option.textContent = option.value + ' · ' + V(option.value).name;
-        });
-      });
-    }
     if (tab === 'plv' && el.dataset.path.includes('.parts.')) {
       const i = Number(el.dataset.path.split('.')[1]);
       document.querySelector('input[data-path="kits.' + i + '.on"]').checked = data.kits[i].on
@@ -523,11 +573,34 @@ document.addEventListener('change', e => {
   }
   render()
 });
-document.addEventListener('click', e => {
+document.addEventListener('click', async e => {
   const el = e.target.closest('button[data-action]');
   if (!el) return;
   flushFields();
   const [a, arg] = el.dataset.action.split(':');
+  if(a.startsWith('draft-')) {
+    const i=groups.findIndex(g=>g.id===arg);
+    if(a==='draft-add' || a==='draft-only') {
+      if(!chosenOffers().length) return toast('Cette version doit contenir au moins un produit.');
+      if(!network.some(t=>core.matches(t,draft.criteria))) return toast('Aucun magasin ne correspond à ces critères.');
+      draft.name=(document.querySelector('#group-name').value.trim() || groupSummary(draft)).slice(0,80);
+      if(a==='draft-only') groups=[structuredClone(draft)];
+      else if(editing) groups[groups.findIndex(g=>g.id===editing)]=structuredClone(draft);
+      else groups.unshift(structuredClone(draft));
+      editing='';draft=draftGroup();
+    } else if(a==='draft-edit' && i>=0) {editing=arg;draft=structuredClone(groups[i]);}
+    else if(a==='draft-cancel') {editing='';draft=draftGroup();}
+    else if(a==='draft-remove' && i>=0) {groups.splice(i,1);if(editing===arg){editing='';draft=draftGroup();}}
+    else if(a==='draft-up' && i>0) {[groups[i-1],groups[i]]=[groups[i],groups[i-1]];}
+    else if(a==='draft-apply') {
+      el.disabled=true;
+      try {await chain; await core.applyGroups(groups);} catch(err){el.disabled=false;toast(err.message);}
+      return;
+    }
+    render();
+    if(a==='draft-edit') document.querySelector('#group-version').focus();
+    return;
+  }
   if (a === 'go') {
     navigate(arg);
     return

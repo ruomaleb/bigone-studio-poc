@@ -24,10 +24,10 @@ const s = example(),
   t = s.stores[0];
 assert.deepEqual(['V1', 'V2', 'V3'].map(v => eligible(s, v).length), [2, 2, 1]);
 assert.deepEqual(totals(s), {
-  engage: 6,
-  attente: 3,
-  non: 1,
-  heritage: 6,
+  engage: 540,
+  attente: 270,
+  non: 90,
+  heritage: 540,
   quantity: 0,
   confirmed: 0
 });
@@ -68,6 +68,8 @@ assert.throws(() => mutate(s, 'product', {
 }, t.id));
 assert.equal(forRole(s, t.id).stores.length, 1);
 assert.equal(forRole(s, t.id).supports, undefined);
+// Exercise the historical locally editable version mode.
+s.config.localVersion = true;
 mutate(s, 'reply', {
   reply: {
     ...r,
@@ -285,6 +287,7 @@ assert.deepEqual(flow.archive[0].rows, before);
 assert.equal(flow.archive[0].v, 'V2');
 assert.equal(flow.archive[0].receipt, 'R01');
 const independent = example();
+delete independent.targetGroups; // Pre-group catalogue compatibility.
 mutate(independent, 'reply', {
   confirm: true,
   reply: r
@@ -524,6 +527,7 @@ assert.equal((await call('/change', participantTwo.key, confirmation))[1].revisi
 assert.equal(totals((await call('/read', manager))[1].state).quantity, 24);
 
 const lastVersion = example();
+delete lastVersion.targetGroups;
 const eligibility = Object.fromEntries(lastVersion.products.map(p => [p.id, p.versions]));
 const setup = {
   config: lastVersion.config,
@@ -546,3 +550,34 @@ assert.throws(() => mutate(structuredClone(lastVersion), 'config', {
   }
 }), /Affectation incorrecte/);
 console.log('PASS · dernière éligibilité et affectation unitaire protégées dans le paramétrage');
+
+const {targetPlan, participantsOf, projectCatalog} = await import('../server/targeting.mjs');
+const {upgradeDemo} = await import('../server/model.mjs');
+const net = example();
+assert.equal(net.stores.length,900);
+assert(net.stores.every(t=>t.name.startsWith('Nanotera ')));
+const firstGroup = {id:'hyper-ouest',name:'Hypers du centre commercial',version:'V3',rule:'free',
+  criteria:{format:['Hypermarché'],region:['Bretagne','Normandie'],zone:['Centre commercial']}};
+const impacts=targetPlan(net.stores,[firstGroup,...net.targetGroups]);
+const matching=net.stores.filter(t=>t.format==='Hypermarché' && ['Bretagne','Normandie'].includes(t.region) && t.zone==='Centre commercial');
+assert(matching.length>1 && matching.length<300);
+assert.equal(impacts.counts[0].assigned,matching.length);
+assert.equal(impacts.counts[2].assigned,300-matching.length);
+assert.equal(impacts.assignments.size,900);
+const managerState=(await call('/read',manager))[1];
+const applied=(await call('/change',manager,{revision:managerState.revision,action:'targeting',payload:{groups:[firstGroup]}}))[1];
+assert.equal(participantsOf(applied.state).length,matching.length);
+assert.equal((await call('/read',inv.key))[0],403);
+assert.equal((await call('/invite',manager,{store:'m01'}))[0],422);
+assert.equal((await call('/read',participantTwo.key))[1].state.stores[0].assigned,'V3');
+assert.equal((await call('/read',participantTwo.key))[1].state.replies.m02.confirmed,false);
+assert.deepEqual((await call('/read',participantTwo.key))[1].state.products.map(p=>p.name),['Champagne brut']);
+assert.equal((await call('/change',manager,{revision:applied.revision,action:'targeting',payload:{groups:[firstGroup]}}))[1].revision,applied.revision);
+assert.equal((await call('/change',manager,{revision:applied.revision,action:'targeting',payload:{groups:[{...firstGroup,criteria:{...firstGroup.criteria,region:['Introuvable']}}]}}))[0],422);
+const old=example();delete old.networkEdition;delete old.targetGroups;old.stores=old.stores.slice(0,10);
+old.op.network='Magasins U';old.stores[0].name='Super U Démo 01';old.stores[0].assigned='V3';old.replies.m01={...blank('V3'),yn:'yes',confirmed:true};
+const migrated=upgradeDemo(old);
+assert.equal(migrated.stores.length,900);assert.equal(migrated.op.network,'Nanotera');assert(migrated.replies.m01.confirmed);assert.equal(migrated.stores[0].assigned,'V3');
+const demoData=projectCatalog({operations:[{id:'u-2649-pbs',nom:'Carte U',enseignes:['Super U']}],magasins:[],supports:[],produits:[],engagements:[{id:'u-2649-pbs'}]},false);
+assert.equal(demoData.magasins.length,900);assert(!/Super U|Carte U/.test(JSON.stringify(demoData)));
+console.log('PASS · réseau Nanotera de 900 · exemple multi-critères '+matching.length+' magasins · priorités, persistance, accès et migration');

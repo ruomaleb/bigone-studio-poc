@@ -8,13 +8,13 @@ Le chef de projet doit pouvoir répondre à trois questions depuis le même doss
 
 Les cinq lots ci-dessous sont disponibles dans le [dossier d’essai S49](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1). La [note de recette](DOSSIER_OPERATION.md) décrit les observations en ligne, les tests reproductibles, les droits et le fonctionnement du dossier partagé. Les cases cochées correspondent aux contrôles techniques et aux parcours vérifiés dans le POC. Le compte rendu précise les vérifications réalisées en ligne et les tests locaux. La mesure chronométrée avec ces utilisateurs reste à réaliser.
 
-La version **2026-11-27.4** clôt la vérification de l’accès Responsable au dossier partagé S49. Elle relie la proposition de prospectus commun aux choix d’affiches A1, réserve les variantes locales aux versions correspondantes et consigne les changements de prix par page et par révision de BAT.
+La version **2026-11-27.5** clôt la vérification de l’accès Responsable au dossier partagé S49. Elle relie la proposition de prospectus commun aux choix d’affiches A1, réserve les variantes locales aux versions correspondantes et consigne les changements de prix par page et par révision de BAT.
 
 ## Ce que voit le chef de projet en ouvrant une opération
 
 Le dossier s’ouvre sur Informations. Sous les données de l’opération et la section « Dates et jalons », le bloc « À préparer » renvoie aux participants, aux fiches produits ou à la pièce à relire. Chaque entrée donne un fait, sa conséquence et une action. Le planning de l’accueil conserve son bloc repliable. L’utilisateur retrouve les rubriques et les filtres du dossier. Le bouton « Assistant » dans la barre supérieure ouvre le volet à droite. L’utilisateur peut poser une question sur le dossier tout en gardant sous les yeux le tableau des magasins, la fiche offre ou le BAT.
 
-**Engagements.** Dans l’exemple, « Confirmer les choix de supports » renvoie au tableau des participants pour l’affiche A1. Il distingue six magasins engagés dont la sélection est héritée et trois magasins dont la participation reste en attente. Pour la livraison, chaque compteur ouvre la sélection correspondante.
+**Engagements.** Dans l’exemple, « Confirmer les choix de supports » renvoie au tableau des participants pour l’affiche A1. Il distingue 540 magasins engagés dont la sélection est héritée et 270 magasins en attente dans un nouvel essai. Pour la livraison, chaque compteur ouvre la sélection correspondante.
 
 **Offre commerciale.** « Compléter les produits utilisés » ouvre le PIM. Dans l’extrait, la ligne de l’emmental donne accès au prix manquant et à la page du prospectus qui reprend l’offre.
 
@@ -90,21 +90,23 @@ L’extrait compte **3 produits distincts** et 5 liens d’éligibilité. Le cha
 
 **Dossiers existants.** Une référence ou un magasin importé sans correspondance porte l’état « À affecter ». Le chef de projet peut terminer le rattachement progressivement. La ligne d’un participant sans version signale le rattachement à compléter dans Participants. Un produit sans version reste dans les fiches à compléter. Proposer un récapitulatif des éléments incomplets avant validation de l’offre.
 
-**Conséquence d’une modification.** Avant de retirer un produit d’une version, indiquer les magasins de cette version et les supports ou pages qui utilisent effectivement cette offre. Avant de réaffecter un magasin, montrer les produits gagnés, perdus et communs. Après confirmation, recalculer la sélection éligible pour les supports et les flux concernés. Une révision de BAT déjà validée conserve son contenu et sa décision. Les pièces concernées sont signalées pour revue. Une version commerciale organise l’assortiment, tandis qu’une révision de BAT identifie un état daté d’un fichier.
+**Conséquence d’une modification.** Avant de retirer un produit d’une version, indiquer les magasins de cette version et les supports ou pages qui utilisent effectivement cette offre. Avant d’appliquer le ciblage, afficher l’assortiment proposé, le nombre de magasins qui changent de version, les sorties et les confirmations à revoir. Après confirmation, recalculer la sélection éligible pour les supports et les flux concernés. Une révision de BAT déjà validée conserve son contenu et sa décision. Les pièces concernées sont signalées pour revue. Une version commerciale organise l’assortiment, tandis qu’une révision de BAT identifie un état daté d’un fichier.
 
 ## Participants · paramétrage enseigne et réponse du magasin
 
-Depuis Informations ou Participants, « Configurer les choix proposés » ouvre le paramétrage de l’opération. Ce parcours comporte cinq étapes internes à Participants. Le responsable peut basculer vers un aperçu du parcours magasin et revenir à sa configuration. Les six entrées du menu principal restent celles de la section Navigation.
+Depuis Informations ou Participants, « Proposer une version par groupe » ouvre le paramétrage de l’opération. Ce parcours comporte cinq étapes internes à Participants. Le responsable peut basculer vers un aperçu du parcours magasin et revenir à sa configuration. Les six entrées du menu principal restent celles de la section Navigation.
+
+Le réseau de démonstration Nanotera comprend 900 magasins fictifs. Trois groupes de format contiennent initialement 300 magasins chacun. Les valeurs d’un même critère se cumulent (Bretagne ou Normandie). Deux critères différents se croisent (hypermarché en Bretagne). La proposition affiche le nombre correspondant avant application. L’ordre des groupes est modifiable et le premier groupe correspondant fournit l’unique version du magasin. Une nouvelle règle prend la première position. Les magasins sans correspondance sortent de la proposition. Le serveur conserve leurs données et ferme leur accès à la réponse. La liste des participants se consulte par pages de 25.
 
 | Étape enseigne | Décisions et données à conserver |
 | --- | --- |
-| Participation et versions | Pour chaque participant, définir « au choix » ou « obligatoire » et une version affectée. Pour l’opération, libeller et décrire V1, V2, V3 et autoriser ou verrouiller le changement de version par le magasin. |
+| Proposition par groupe | Choisir V1, V2 ou V3, vérifier les références du PIM, puis définir le groupe par format, région ou zone et sa règle de participation. |
 | PLV | Proposer des supports au détail et des kits. Définir unité, prix indicatif HT, composition et prix propre de chaque kit. Piloter séparément l’affichage des prix et celui du sous-total. |
 | Canaux propriétaires | Autoriser individuellement SMS, RCS, e-mail, écrans internes et réseaux sociaux organiques. Le magasin sélectionne ensuite ses canaux parmi ceux proposés. |
 | Publicité | Proposer le tract et sa pagination, des kits digitaux avec budget local recommandé, la presse et l’affichage extérieur. La saisie porte sur l’intention du point de vente et son budget. La planification, la diffusion et les mesures de performance relèvent des autres modules BigOne. |
 | Offre produits | Associer l’offre du PIM et sélectionner les références éligibles par version. Définir si le point de vente peut retenir des références localement et s’il peut renseigner un prix local TTC. Toute modification d’éligibilité utilise la même association produit/version que le PIM. |
 
-**Parcours magasin.** Le magasin indique sa participation, utilise sa version attribuée ou en choisit une si ce droit est ouvert, commande ses unités et kits PLV, sélectionne ses canaux propriétaires, puis ses options publicitaires. Dans « Mon offre produits », il personnalise les seules références éligibles et autorisées. Cette étape appartient à la réponse du participant. Elle ne crée aucune entrée de navigation dans le PIM. En cas de refus d’une opération facultative, aller directement au récapitulatif. Une participation obligatoire suit le parcours d’engagement. Masquer l’étape de personnalisation quand aucune offre éligible n’est proposée.
+**Parcours magasin.** Le magasin indique sa participation, retrouve la version et l’assortiment proposés à son groupe, commande ses unités et kits PLV, sélectionne ses canaux propriétaires, puis ses options publicitaires. Dans « Mon offre produits », il personnalise les seules références éligibles et autorisées. Cette étape appartient à la réponse du participant. Elle ne crée aucune entrée de navigation dans le PIM. En cas de refus d’une opération facultative, aller directement au récapitulatif. Une participation obligatoire suit le parcours d’engagement. Masquer l’étape de personnalisation quand aucune offre éligible n’est proposée.
 
 **Montants et confirmation.** Présenter les valeurs HT de la PLV, le budget digital retenu et le prix de vente local TTC avec leurs unités. Dans la maquette, deux affiches à 4,50 € HT et un kit à 18 € HT donnent **27 € HT**. Les deux affiches et dix stop-rayons inclus dans le kit ne sont pas facturés une deuxième fois. Le tract porte sur 1 500 exemplaires, le budget digital retenu est de 400 € HT pour une recommandation de 450 € HT, et le prix local du café est de 6,75 € TTC. Le récapitulatif reprend les choix avant confirmation. Le scénario de relance de l’affiche A1, qui illustre séparément une réponse de **20 exemplaires**, ne s’additionne pas à cet exemple.
 
@@ -136,7 +138,7 @@ La capture de BigOne Media fournie le 27 novembre 2026 donne le gabarit du volet
 
 ## Lire les engagements dans Préparation
 
-Dans le jeu fictif « Les prix bas de la semaine S49 », Studio affiche 10 points de vente éligibles, 6 engagés, 3 en attente et 1 non participant. Les 6 engagés ont une liste de supports héritée, à confirmer. Le tirage confirmé affiche un tiret tant que la quantité est inconnue. Ce résultat ne permet pas de commander un tirage. Il faut connaître les choix et les quantités effectivement confirmés.
+Dans le jeu fictif « Les prix bas de la semaine S49 », Studio affiche 900 points de vente Nanotera ciblés, 540 engagés, 270 en attente et 90 non participants. Les 540 engagés ont une liste de supports héritée, à confirmer. Le tirage confirmé affiche un tiret tant que la quantité est inconnue. Ce résultat ne permet pas de commander un tirage. Il faut connaître les choix et les quantités effectivement confirmés.
 
 ## Concevoir le dispositif avec le réseau
 
@@ -184,11 +186,11 @@ Ordre de livraison proposé. Chaque lot doit permettre à un utilisateur d’acc
 
 ### Lot 1 — Livrer le PIM de l’opération
 
-Réutiliser les identifiants des opérations, produits et magasins du prototype. Introduire les versions commerciales, les liens d’éligibilité et l’affectation d’un magasin dans une opération. Livrer le tableau PIM, la fiche en ligne et le choix multiple des versions. Mettre l’affectation unitaire côté réseau dans Participants. Exposer au volet Assistant la même lecture filtrée que celle de l’écran, avec les droits de l’utilisateur.
+Réutiliser les identifiants des opérations, produits et magasins du prototype. Introduire les versions commerciales, les liens d’éligibilité et l’affectation d’un magasin dans une opération. Livrer le tableau PIM, la fiche en ligne et le choix multiple des versions. Appliquer l’affectation collectivement depuis Participants. Exposer au volet Assistant la même lecture filtrée que celle de l’écran, avec les droits de l’utilisateur.
 
 - [x] Sur les trois produits d’exemple, vérifier deux références en V1, deux en V2, une en V3 et trois références distinctes sur l’ensemble.
 - [x] Rattacher l’emmental à V1 et V2. Une seconde sauvegarde des mêmes choix conserve une seule fiche et deux liens d’éligibilité.
-- [x] Sur une copie du dossier, réaffecter Super U Démo 01 de V1 à V2. Vérifier dans les données de production que la sélection éligible conserve l’emmental, retire le café et ajoute le champagne. Le magasin a une seule affectation après sauvegarde.
+- [x] Sur une copie du dossier, faire passer le groupe contenant Nanotera Paris 001 de V1 à V2. Vérifier dans les données de production que la sélection éligible conserve l’emmental, retire le café et ajoute le champagne. Le magasin a une seule affectation après sauvegarde.
 - [x] Retirer l’emmental de V2. Vérifier son maintien en V1 et la liste des pièces de V2 à revoir. Retirer sa dernière version demande de compléter l’offre avant sa validation.
 - [x] Traiter un ancien dossier sans versions. Les éléments à affecter restent identifiables et le dossier reste consultable.
 - [x] Depuis Participants, ouvrir « Ma participation » avec un compte point de vente rattaché à V1. Vérifier le cloisonnement des engagements lors d’un chargement et d’un accès direct.

@@ -2,7 +2,7 @@ import {
   esc,
   btn,
   tag
-} from './views.mjs?v=4';
+} from './views.mjs?v=5';
 const paths = {
   history: 'M20 12a8 8 0 1 1-2-5M12 7v5l3 2',
   new: 'M12 5v14M5 12h14',
@@ -52,7 +52,7 @@ export function setupChat(get, api, notify) {
 
   function context() {
     const ctx = get(),
-      id = 'studio.chat.' + ctx.workspace + '.' + (ctx.role === 'magasin' ? ctx.state.stores[0].id : 'enseigne');
+      id = 'studio.chat.nanotera.' + ctx.workspace + '.' + (ctx.role === 'magasin' ? ctx.state.stores[0].id : 'enseigne');
     if (storage !== id) {
       storage = id;
       let data;

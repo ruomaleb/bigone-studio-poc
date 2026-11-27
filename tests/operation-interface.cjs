@@ -179,7 +179,7 @@ const root = path.resolve(__dirname, '..'),
       name: 'Fermer l’assistant'
     }).click();
     await p.goto(url + '#participants?filtre=heritage');
-    assert.equal(await p.locator('tbody tr').count(), 6);
+    assert.equal(await p.locator('tbody tr').count(), 25);
     await p.goto(url + '#produits?id=s49-08');
     await p.getByLabel('Prix national TTC (€)').fill('4.99');
     await p.getByRole('button', {
@@ -257,7 +257,7 @@ const root = path.resolve(__dirname, '..'),
       name: 'Valider la variante'
     }).click();
     const preview = await p.locator('dialog').innerText();
-    for (const value of ['Super U Démo 01', 'Prospectus', 'V1', 'Café moulu', 'page 7', '8,40', '6,75']) assert(preview.includes(value));
+    for (const value of ['Nanotera Paris 001', 'Prospectus', 'V1', 'Café moulu', 'page 7', '8,40', '6,75']) assert(preview.includes(value));
     await p.locator('dialog').getByRole('button', {
       name: 'Valider',
       exact: true
@@ -286,6 +286,30 @@ const root = path.resolve(__dirname, '..'),
     await head.waitFor();
     assert.equal(await p.locator('tbody tr').count(), 2);
     console.log('PASS deux supports réutilisés sans doublon, affiches par point de vente et mobile');
+    await p.goto(url+'#configurer');
+    const groups=p.frameLocator('iframe');
+    await groups.getByLabel('Version proposée').selectOption('V3');
+    await groups.getByLabel('Hypermarché',{exact:true}).check();
+    await groups.getByLabel('Bretagne',{exact:true}).check();
+    await groups.getByLabel('Centre commercial',{exact:true}).check();
+    await groups.getByLabel('Nom du groupe').fill('Hypers de Bretagne en centre commercial');
+    assert((await groups.locator('.assort').first().innerText()).includes('Champagne brut'));
+    assert((await groups.locator('[role=status].assort').innerText()).includes('6 points de vente'));
+    await groups.getByRole('button',{name:'Ajouter le groupe en priorité'}).click();
+    await groups.getByRole('button',{name:'Appliquer la proposition'}).click();
+    await p.locator('#notice').getByText('Proposition appliquée aux groupes de magasins.').waitFor();
+    await p.reload();
+    const row=groups.getByRole('row').filter({hasText:'Hypers de Bretagne en centre commercial'});
+    assert((await row.innerText()).includes('6 / 6'));
+    assert.equal(await groups.locator('select[data-path^="assigned"]').count(),0);
+    for(const label of ['Supermarchés','Hypermarchés','Supérettes']) await groups.getByRole('row').filter({hasText:label}).getByRole('button',{name:'Retirer'}).click();
+    await groups.getByRole('button',{name:'Appliquer la proposition'}).click();
+    await p.locator('#notice').getByText('Proposition appliquée aux groupes de magasins.').waitFor();
+    await p.goto(url+'#participants');
+    await p.getByText('6 points de vente ciblés sur 900 dans le réseau.').waitFor();
+    assert.equal(await p.locator('tbody tr').count(),6);
+    assert(!(await p.locator('main').innerText()).includes('Super U'));
+    console.log('PASS ciblage depuis le mobile → assortiment V3, six hypers en Bretagne en centre commercial, relecture et liste des destinataires');
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();

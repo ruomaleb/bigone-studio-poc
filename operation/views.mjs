@@ -1,3 +1,4 @@
+import {participantsOf} from '../server/targeting.mjs';
 import {
   pageFor,
   localVariantPrices,
@@ -6,7 +7,7 @@ import {
   totals,
   eligible,
   anomalies
-} from '../server/model.mjs?v=4';
+} from '../server/model.mjs?v=5';
 export const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({
   '&': '&amp;',
   '<': '&lt;',
@@ -47,7 +48,7 @@ export const statNames = {
   attente: 'En attente',
   non: 'Non participant'
 };
-export const filterStores = (s, f) => s.stores.filter(t => f === 'heritage' ? stateOf(s, t) === 'engage' && !s.replies[t.id]?.confirmed : f === 'confirmed' ? s
+export const filterStores = (s, f) => participantsOf(s).filter(t => f === 'heritage' ? stateOf(s, t) === 'engage' && !s.replies[t.id]?.confirmed : f === 'confirmed' ? s
   .replies[t.id]?.confirmed : !f || stateOf(s, t) === f);
 export function info(s, q) {
   const o = s.op,
@@ -75,7 +76,7 @@ export function info(s, q) {
         id: miss[0]?.id
       }), 'Ouvrir le PIM')) + (next ? row('Relire les supports', next.name + ' · ' + next.state, link(route('production', {
       id: next.id
-    }), 'Ouvrir le BAT')) : ''), link('#configurer', 'Configurer les choix proposés')) +
+    }), 'Ouvrir le BAT')) : ''), link('#configurer', 'Proposer une version par groupe')) +
     card('Engagement du réseau', '<div class="stats">' + metric(t.engage, 'Engagés', '#participants?filtre=engage') + metric(t.attente, 'En attente',
       '#participants?filtre=attente') + metric(t.non, 'Non participant', '#participants?filtre=non') + '</div>');
 }
@@ -83,8 +84,9 @@ export function participants(s, q) {
   const t = totals(s),
     f = q.get('filtre') || '',
     rows = filterStores(s, f),
+    page = Math.max(1, Math.min(Math.ceil(rows.length/25), parseInt(q.get('page'),10)||1)),
     store = q.get('id'),
-    x = s.stores.find(t => t.id === store),
+    x = participantsOf(s).find(t => t.id === store),
     r = x && s.replies[x.id];
   const filters = [
     ['', 'Tous'],
@@ -93,11 +95,11 @@ export function participants(s, q) {
     ['confirmed', 'Confirmés'],
     ['non', 'Non participants']
   ];
-  return card('Participants', '<p class="sub">' + s.stores.length + ' points de vente éligibles à l’opération.</p><div class="stats">' + metric(t.engage, 'Engagés',
+  return card('Participants', '<p class="sub">' + participantsOf(s).length + ' points de vente ciblés sur '+s.stores.length+' dans le réseau.</p><div class="stats">' + metric(t.engage, 'Engagés',
       '#participants?filtre=engage') + metric(t.heritage, 'Sélections à confirmer', '#participants?filtre=heritage') + metric(t.confirmed ? t.quantity : '—',
       'Affiches A1 confirmées', '#participants?filtre=confirmed') + '</div><div class="filters">' + filters.map(([k, v]) => link(route('participants', {
       filtre: k
-    }), v, 'chip ' + (k === f ? 'active' : ''))).join('') + '</div>' + table(['Point de vente', 'Participation', 'Version', 'Choix de supports', ''], rows.map(
+    }), v, 'chip ' + (k === f ? 'active' : ''))).join('') + '</div>' + table(['Point de vente', 'Participation', 'Version', 'Choix de supports', ''], rows.slice((page-1)*25,page*25).map(
       t => {
         const r = s.replies[t.id];
         return tr(link(route('participants', {
@@ -106,11 +108,9 @@ export function participants(s, q) {
         }), t.name, 'quiet'), tag(statNames[stateOf(s, t)] || 'À renseigner', stateOf(s, t) === 'engage' ? 'good' : ''), esc(r?.v || t.assigned ||
           'À affecter'), esc(r?.review ? 'À revoir' : r?.confirmed ? 'Confirmés' : stateOf(s, t) === 'engage' ? 'Hérités' : '—'), btn('invite',
           'Accès magasin', t.id))
-      })) + (rows.length ? '' : none('Aucun participant dans cette sélection.')) + '<div class="actions">' + btn('reminder', 'Préparer une relance', f) + btn(
-      'refresh', 'Actualiser les réponses') + '</div>', link('#configurer', 'Configurer les choix proposés', 'primary')) +
-    (x ? card(x.name, row('Version affectée', x.assigned || 'À affecter', link(route('configurer', {
-      id: x.id
-    }), 'Paramétrer')) + row('Réponse du magasin', r?.review ? 'À revoir' : r?.confirmed ? 'Confirmée' : r ? 'Brouillon' : 'À recueillir', link(route(
+      })) + (rows.length>25?'<div class="actions">'+(page>1?link(route('participants',{filtre:f,page:page-1}),'Précédente'):'')+'<span>Page '+page+' sur '+Math.ceil(rows.length/25)+'</span>'+(page*25<rows.length?link(route('participants',{filtre:f,page:page+1}),'Suivante'):'')+'</div>':'') + (rows.length ? '' : none('Aucun participant dans cette sélection.')) + '<div class="actions">' + btn('reminder', 'Préparer une relance', f) + btn(
+      'refresh', 'Actualiser les réponses') + '</div>', link('#configurer', 'Proposer une version par groupe', 'primary')) +
+    (x ? card(x.name, row('Version affectée', x.assigned || 'À affecter', esc(s.targetGroups?.find(g=>g.id===x.groupId)?.name || '')) + row('Réponse du magasin', r?.review ? 'À revoir' : r?.confirmed ? 'Confirmée' : r ? 'Brouillon' : 'À recueillir', link(route(
       'participation', {
         id: x.id
       }), 'Ouvrir le parcours magasin')) + (r ? '<p>Affiches au détail · ' + esc(r.counts.a1 ?? 0) + ' · Tract · ' + esc(r.copies) + ' ex. · Budget local · ' +
