@@ -2,7 +2,7 @@ import {
   esc,
   btn,
   tag
-} from './views.mjs?v=7';
+} from './views.mjs?v=8';
 const paths = {
   history: 'M20 12a8 8 0 1 1-2-5M12 7v5l3 2',
   new: 'M12 5v14M5 12h14',
