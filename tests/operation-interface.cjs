@@ -231,6 +231,9 @@ const root = path.resolve(__dirname, '..'),
     await form.getByRole('button', {
       name: 'Aperçu magasin'
     }).click();
+    const proposed = form.getByRole('heading', {name:'Version et assortiment proposés'}).locator('..');
+    assert((await proposed.innerText()).includes('Café moulu'));
+    assert(!(await proposed.innerText()).includes('Champagne brut'));
     await form.getByRole('radio', {
       name: 'Oui, je participe'
     }).check();
