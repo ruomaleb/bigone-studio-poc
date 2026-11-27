@@ -1,3 +1,4 @@
+import {editLayout, submitLayout, annotate, preserveProof} from './edition.mjs';
 import {bricoId, catalogueId, catalogueUrl, bricoProducts, bricoVersions} from './brico.mjs';
 import {axes, demoNetwork, demoGroups, participantsOf, targetPlan, networkText, demoId, demoFields} from './targeting.mjs';
 const MODELES = {
@@ -741,7 +742,18 @@ export function mutate(s, action, p, scope) {
       ...reviewSnapshot(s, support)
     };
   }
-  if (action === 'reply') {
+  if (['layout','submitLayout','annotation'].includes(action)) {
+    const x=s.supports.find(v=>v.id===p.id);
+    required(x,'Support absent.');
+    if(action==='layout') editLayout(s,x,p);
+    if(action==='annotation' && !annotate(s,x,p,'Studio')) return false;
+    if(action==='submitLayout'){
+      const before={revision:x.revision,at:date(),decision:x.state,comment:'Épreuve précédente',file:x.file,...reviewSnapshot(s,x)};
+      if(!submitLayout(s,x)) return false;
+      if(before.revision!==x.revision) x.history.push(before);
+      x.history.push({revision:x.revision,at:date(),decision:'En revue',comment:'Mise en page transmise au BAT',file:'',...reviewSnapshot(s,x)});
+    }
+  } else if (action === 'reply') {
     required(t && t.targeted !== false, 'Ce point de vente ne fait pas partie du ciblage.', 403);
     const r = normalize(s, t, p.reply || {}, p.confirm === true);
     if (JSON.stringify(r) === JSON.stringify(s.replies[t.id])) return false;
@@ -981,6 +993,8 @@ export function mutate(s, action, p, scope) {
         'En corrections': ['En revue'],
         'Remis': ['Validé']
       };
+      if (p.step==='Nouvelle révision') preserveProof(s,x);
+      if (p.step==='Validé') required(!(x.comments||[]).some(c=>c.revision===x.revision&&!c.resolved),'Traitez les commentaires ouverts du BAT avant de valider.');
       if (p.step === 'Validé' || p.step === 'Remis') required((x.variants || []).every(z => variantCurrent(s, x, z)),
         'Revoyez les variantes locales avant de valider le BAT.');
       if (p.step !== 'Nouvelle révision') required(allowed[p.step].includes(x.state), 'Transition indisponible.');
