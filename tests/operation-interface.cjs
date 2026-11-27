@@ -190,7 +190,7 @@ const root = path.resolve(__dirname, '..'),
       name: 'Prospectus · page 6'
     }).click();
     await p.getByText(/Modifications depuis la dernière revue/).click();
-    await p.getByText(/Emmental râpé · page 6 · prix TTC de/).waitFor();
+    await p.getByText(/Emmental râpé · page 6 · prix TTC/).waitFor();
     await p.getByRole('button', {
       name: 'Nouvelle révision'
     }).click();
@@ -218,6 +218,16 @@ const root = path.resolve(__dirname, '..'),
     }).click();
     await p.goto(url + '#configurer');
     const form = p.frameLocator('iframe');
+    await form.getByRole('button', {
+      name: 'Offre produits',
+      exact: true
+    }).click();
+    const sole = form.getByRole('checkbox', {
+      name: 'Café moulu · V1',
+      exact: true
+    });
+    await sole.click();
+    assert(await sole.isChecked());
     await form.getByRole('button', {
       name: 'Aperçu magasin'
     }).click();

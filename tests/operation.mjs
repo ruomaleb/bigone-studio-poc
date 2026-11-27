@@ -522,3 +522,27 @@ assert.equal(done.state.replies.m02.copies, 0);
 assert.equal(done.state.replies.m02.counts.a1, 20);
 assert.equal((await call('/change', participantTwo.key, confirmation))[1].revision, done.revision);
 assert.equal(totals((await call('/read', manager))[1].state).quantity, 24);
+
+const lastVersion = example();
+const eligibility = Object.fromEntries(lastVersion.products.map(p => [p.id, p.versions]));
+const setup = {
+  config: lastVersion.config,
+  assign: Object.fromEntries(lastVersion.stores.map(t => [t.id, t.assigned])),
+  rules: Object.fromEntries(lastVersion.stores.map(t => [t.id, t.rule])),
+  eligibility
+};
+assert.throws(() => mutate(structuredClone(lastVersion), 'config', {
+  ...setup,
+  eligibility: {
+    ...eligibility,
+    's49-09': []
+  }
+}), /au moins une version/);
+assert.throws(() => mutate(structuredClone(lastVersion), 'config', {
+  ...setup,
+  assign: {
+    ...setup.assign,
+    m01: ''
+  }
+}), /Affectation incorrecte/);
+console.log('PASS · dernière éligibilité et affectation unitaire protégées dans le paramétrage');

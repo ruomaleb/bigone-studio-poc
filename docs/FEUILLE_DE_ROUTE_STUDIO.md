@@ -8,7 +8,7 @@ Le chef de projet doit pouvoir répondre à trois questions depuis le même doss
 
 Les cinq lots ci-dessous sont disponibles dans le [dossier d’essai S49](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1). La [note de recette](DOSSIER_OPERATION.md) décrit les observations en ligne, les tests reproductibles, les droits et le fonctionnement du dossier partagé. Les cases cochées correspondent aux contrôles techniques et aux parcours vérifiés dans le POC. Le compte rendu précise les vérifications réalisées en ligne et les tests locaux. La mesure chronométrée avec ces utilisateurs reste à réaliser.
 
-La version **2026-11-27.3** clôt la vérification de l’accès Responsable au dossier partagé S49. Elle relie la proposition de prospectus commun aux choix d’affiches A1, réserve les variantes locales aux versions correspondantes et consigne les changements de prix par page et par révision de BAT.
+La version **2026-11-27.4** clôt la vérification de l’accès Responsable au dossier partagé S49. Elle relie la proposition de prospectus commun aux choix d’affiches A1, réserve les variantes locales aux versions correspondantes et consigne les changements de prix par page et par révision de BAT.
 
 ## Ce que voit le chef de projet en ouvrant une opération
 
