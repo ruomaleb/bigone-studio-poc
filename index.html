@@ -53,7 +53,7 @@
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-26.8';
+const VERSION='2026-11-27.1';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -444,7 +444,7 @@ function vDirectory(kind){
     ${list.toolbar}</aside>`;
   const placeholders={operations:'Rechercher une opération, une enseigne ou un pilote…',supports:'Rechercher un support, un format ou un magasin…',produits:'Rechercher un libellé, une référence ou un rayon…',assets:'Rechercher un fichier, un support, un BAT ou un magasin…'};
   const search=`<label class="home-search" for="catalog-query">${uiIcon('search')}<span class="visually-hidden">Rechercher</span><input type="search" id="catalog-query" value="${esc(q)}" placeholder="${placeholders[kind]}"></label>`;
-  return workspace(navigation,(kind==='supports'||kind==='assets'?galerieVisuelle(null):'')+search+`<section class="result-panel" id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,op,list,mode):''}</section>`,heading);
+  return workspace(navigation,(kind==='assets'?galerieVisuelle(null):'')+search+`<section class="result-panel" id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,op,list,mode):''}</section>`,heading);
 }
 function suiviContent(ops){
  const rank={crit:0,warn:1,ok:2};
@@ -471,7 +471,7 @@ function vAccueil(){
  operationQuery=directoryState().q;
  const ops=sorted().filter(o=>suivi(o)&&!o.cloture);
  const header=`<div class="hd" id="home-top" tabindex="-1"><div><h1>Plan d’action commerciale</h1></div>
- <button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div>${banner()}`;
+ <div class="row"><a class="btn" href="operation/?assistant=1">✦ &nbsp; Essayer le dossier S49</a><button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div></div>${banner()}`;
  const covers={operations:'preparation',produits:'produits',assets:'production'};
  const nav=`<nav class="content-doors" aria-label="Accès aux contenus">${Object.entries(covers).map(([k,file])=>`<a href="${directoryLink(k)}"><img src="assets/${file}.webp" width="520" height="520" alt=""><span class="door-caption"><span><strong>${directories[k].label}</strong><small>${directories[k].hint}</small></span><span class="door-open" aria-hidden="true">${uiIcon('arrow')}</span></span></a>`).join('')}</nav>`;
  if(status!=='ok'&&!S.operations.length)return header+nav;
@@ -624,7 +624,7 @@ function carteSup(s,o){
     ${enProd(s)?'':`<details class="readiness"><summary>${missing.length?missing.length+' prérequis à compléter':'Prêt pour la production'}</summary><div class="list">${readiness.map(([ok,label])=>`<div><span>${esc(label)}</span><span class="pill ${ok?'ok':'crit'}">${ok?'Satisfait':'Manquant'}</span></div>`).join('')}</div></details>`}
     ${o.cloture?'':`<div class="support-settings">${edit}${addVariant}</div>`}</section>`;
   const composition=s.groupe||!typ(s).pagine?supportProducts(s,o):`<section class="card support-pagination">${compoHtml(s,o)}</section>`;
-  return resume+galerieVisuelle(s)+composition+
+  return resume+composition+
     (variants.length?`<section class="card"><h2>Variantes locales</h2>${variants.map(v=>contentRow({o,name:titre(v),meta:[],href:innerLink(o.id,'dispositif',v.id)},'operations','supports')).join('')}</section>`:'');
 }
 function tDispositif(o,context){
@@ -634,7 +634,7 @@ function tDispositif(o,context){
     return s?carteSup(s,o):back+vide('Ce support est indisponible dans cette opération.');
   }
   const list=filterList(contentItems('supports',o.id),contentFilters.supports.filter(k=>k!=='op'),contentSorts.supports),docs=list.visible;
-  return galerieVisuelle(null)+`<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports et variantes</h2><span class="row"><button class="btn sm" data-act="csv-dispo">Copier tout le dispositif (CSV)</button><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></span></div>
+  return `<section class="card"><div class="row" style="justify-content:space-between"><h2>Supports et variantes</h2><span class="row"><button class="btn sm" data-act="csv-dispo">Copier tout le dispositif (CSV)</button><button class="btn sm pri" data-act="new-sup">Ajouter un support</button></span></div>
   ${list.toolbar}${list.count}${docs.length?docs.map(r=>contentRow(r,'operations','supports')).join(''):vide(list.changed?'Aucun support avec ces filtres.':'Aucun support dans cette opération.')}</section>`}
 function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><span><input type="checkbox" data-task="${esc(x.id)}"${x.fait?' checked':''}> ${esc(x.libelle)}</span><span class="pill ${tardif(x)?'warn':x.fait?'ok':enRetard(x)?'crit':''}">${tardif(x)?'Terminé en retard · échéance '+fd(x.echeance):x.fait?'Fait':nonAppl(x)?'Non applicable, approbation interne':enRetard(x)?'Retard · '+fd(x.echeance):fd(x.echeance)}</span></label>`;
   const list=filterList(ts.map(t=>({record:t,name:t.libelle,support:ss.some(s=>s.id===t.support)?t.support:'Jalons généraux',
@@ -649,12 +649,21 @@ function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><s
   return list.toolbar+list.count+(groups||general.length?'':vide(list.changed?'Aucun jalon avec ces filtres.':'Ajoutez un support pour construire le calendrier.'))+
     groups+(general.length?`<section class="card"><h2>Jalons généraux</h2><div class="list">${general.map(r=>ligne(r.record)).join('')}</div></section>`:'');
 }
+function dossierUrl(o,tab,context){
+ const pages={cadrage:'informations',offres:'produits',magasins:'participants',dispositif:'supports',calendrier:'informations',production:'production'};
+ const q=new URLSearchParams();if(context)q.set('id',context);if(tab==='calendrier')q.set('jalons','1');
+ const url='operation/?'+(o.id!=='u-2649-pbs'||ROLE==='responsable'?'mode=partage&':'')+'op='+encodeURIComponent(o.id)+'#'+(pages[tab]||'informations')+(q.size?'?'+q:'');
+ return url;
+}
+function dossierStudio(o,tab,context){const url=dossierUrl(o,tab,context);
+ return '<div class="row" style="margin:0 0 14px"><a class="btn pri" href="'+esc(url)+'">Ouvrir le dossier avec Assistant</a>'+(o.id==='u-2649-pbs'?'<a class="btn" href="operation/?assistant=1">Essayer sur une copie de S49</a>':'')+'</div>';
+}
 function vPreparation(tab,context){const o=curOp();if(!o)return `<div class="hd"><div><p class="eyebrow">Préparation en amont</p><h1>Préparer une opération</h1><p class="sub">Définissez vos offres, supports et engagements magasins.</p></div><button class="btn pri" data-act="new-op">Créer une opération</button></div>${banner()}<section class="card">${vide('Aucun dossier pour le moment.')}</section>`;
  const T={cadrage:tCadrage,offres:tOffres,magasins:tMagasins,dispositif:tDispositif,calendrier:tCalendrier};
  const content=T[tab](o,context);
  const onSupport=tab==='dispositif'&&context&&supsOf(o.id).some(s=>encodeURIComponent(s.id)===context);
  const heading=onSupport?`<div class="support-context"><div><strong>${esc(o.nom)}</strong><span>${esc(resOp(o))} · ${periode(o)}${o.cloture?' · Dossier clôturé':''}</span></div>${opSelect('preparation',tab)}</div>`:operationHeading(o,'preparation',tab);
- return workspace(enTete(o,tab),content,heading+banner())}
+ return workspace(enTete(o,tab),dossierStudio(o,tab,context)+content,heading+banner())}
 
 
 /* ---------- Production : les supports ouverts, leurs révisions et leurs preuves ---------- */
@@ -664,7 +673,7 @@ function probleme(s){const r=[],n=nbBloqS(s),t=S.taches.filter(x=>x.support===s.
 const boutons=s=>`<button class="btn sm" data-chk="${esc(s.id)}">Contrôles et fiche</button><button class="btn sm" data-brief="${esc(s.id)}">Copier le brief</button>${typ(s).f!=='imprime'?`<button class="btn sm" data-paquet="${esc(s.id)}">Préparer le paquet Media</button>`:''}${gele(s)?`<button class="btn sm" data-rev="${esc(s.id)}">Nouvelle révision</button>`:''}`;
 const selStat=s=>`<select data-stat="${esc(s.id)}" aria-label="Statut ${esc(titre(s))}">${STATUTS.map(([k,l])=>`<option value="${k}"${s.statut===k?' selected':''}>${l}</option>`).join('')}</select>`;
 function vProduction(supportKey,revisionKey){const o=curOp();if(!o)return '<div class="hd"><div><p class="eyebrow">Production des supports</p><h1>Production</h1></div><a class="btn" href="#preparation">Ouvrir la préparation</a></div>'+banner()+vide('Les supports apparaîtront ici une fois préparés dans le dispositif.');
-  return workspace(enTete(o,'production'),productionContent(o,supportKey,revisionKey),operationHeading(o,'production')+banner());
+  return workspace(enTete(o,'production'),dossierStudio(o,'production',supportKey)+productionContent(o,supportKey,revisionKey),operationHeading(o,'production')+banner());
 }
 function productionContent(o,supportKey,revisionKey){
   const tous=supsOf(o.id),att=tous.filter(s=>!enProd(s)),jr=S.journal.filter(j=>j.op===o.id).sort((a,b)=>b.date.localeCompare(a.date));
@@ -751,6 +760,9 @@ function render(){
  if(productDialog.open){catalogNeedsRender=true;refreshProductDialog();return}
  catalogNeedsRender=false;
  const r=route(),o=curOp(),inOp=r.v==='preparation'||r.v==='production';
+ if(PUBLIC&&status==='ok'&&o&&inOp&&!o.cloture&&!new URLSearchParams(location.search).has('classique')&&(ROLE==='responsable'||o.id==='u-2649-pbs')&&!(r.v==='production'&&r.context)){
+   location.replace(dossierUrl(o,r.v==='production'?'production':r.tab,r.v==='production'?r.tab:r.context));return
+ }
  const dir=r.v==='contenus'?r.tab:r.v==='production'?'assets':r.v==='preparation'?(r.tab==='offres'?'produits':r.tab==='dispositif'?'supports':'operations'):null;
  const active=dir?directories[dir].nav:r.v==='accueil'?'pilotage':r.v;
  document.querySelectorAll('.global-nav a[data-v]').forEach(a=>{if(a.dataset.v===active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
