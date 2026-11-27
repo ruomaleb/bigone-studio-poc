@@ -2,7 +2,7 @@ import {
   esc,
   btn,
   tag
-} from './views.mjs?v=6';
+} from './views.mjs?v=7';
 const paths = {
   history: 'M20 12a8 8 0 1 1-2-5M12 7v5l3 2',
   new: 'M12 5v14M5 12h14',
@@ -72,7 +72,11 @@ export function setupChat(get, api, notify) {
       t = current(),
       s = ctx.state,
       shop = ctx.role === 'magasin',
-      questions = shop ? ['Quelle version est affectée à mon magasin ?', 'Quels produits puis-je retenir ?', 'Quels choix ai-je confirmés ?'] : qs;
+      questions = shop ? ['Quelle version est affectée à mon magasin ?', 'Quels produits puis-je retenir ?', 'Quels choix ai-je confirmés ?'] : s.op.id === 'bd-2704-deco' ? [
+        'À quelle page du catalogue se trouve le miroir Nina ?',
+        'Quels produits sont éligibles à chaque version de l’offre ?',
+        'Quels groupes de magasins reçoivent la version Ampoules LED ?'
+      ] : qs;
     pane.classList.toggle('wide', wide);
     let body;
     if (past) body = '<h3>Historique des conversations</h3>' + threads.slice().reverse().map(x => '<button class="suggest" data-thread="' + esc(x.id) + '">' + esc(x

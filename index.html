@@ -8,7 +8,7 @@
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
 <link rel="stylesheet" href="assets/studio.css?v=2026-11-26.8">
-<link rel="stylesheet" href="assets/product-sheet.css?v=6">
+<link rel="stylesheet" href="assets/product-sheet.css?v=7">
 </head>
 <body>
 <a class="skip-link" href="#view">Aller au contenu</a>
@@ -41,13 +41,13 @@
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="assets/visuels.js?v=2026-11-26.8"></script>
-<script src="assets/product-sheet.js?v=6"></script>
+<script src="assets/product-sheet.js?v=7"></script>
 <script src="assets/list-filters.js?v=2026-11-26.8"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-27.6';
+const VERSION='2026-11-27.7';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -65,7 +65,7 @@ const S={operations:[],produits:[],magasins:[],supports:[],taches:[],journal:[],
 let db=null,status='loading',cur=null,timer=null;
 let planningOpen=false,suiviOpen=false;
 let operationQuery='';
-try{cur=localStorage.getItem('bos-op')}catch(e){}
+try{cur=localStorage.getItem('bos-op')||'bd-2704-deco'}catch(e){}
 let contexteOperation=cur;
 
 /* ---------- dates ---------- */
@@ -344,7 +344,7 @@ function contentItems(kind,operation){
     const name=titre(s),format=s.format||baseDe(s).format,family=FAMILLES[typ(s).f];
     const engaged=magsSup(s,o),stores=engaged.map(m=>m.nom),facets=supportFacets(s,o,engaged);
     if(kind==='supports'){
-      rows.push({o,record:s,...facets,name,meta:[format,family,enProd(s)?'En production':'En préparation'],terms:stores,href:innerLink(o.id,'dispositif',s.id)});
+      rows.push({o,record:s,...facets,name,meta:[format,family,enProd(s)?'En production':'En préparation'],terms:stores,href:s.id==='bd-ecatalogue' ? dossierUrl(o,'production',s.id)+'&page='+place(p,s) : innerLink(o.id,'dispositif',s.id)});
       continue;
     }
     const asset=(v,archived)=>({
@@ -465,7 +465,7 @@ function vAccueil(){
  operationQuery=directoryState().q;
  const ops=sorted().filter(o=>suivi(o)&&!o.cloture);
  const header=`<div class="hd" id="home-top" tabindex="-1"><div><h1>Plan d’action commerciale</h1></div>
- <div class="row"><a class="btn" href="operation/?assistant=1">✦ &nbsp; Essayer le dossier S49</a><button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div></div>${banner()}`;
+ <div class="row"><a class="btn" href="operation/?op=bd-2704-deco&amp;assistant=1">✦ &nbsp; Ouvrir la démo Brico-déco</a><button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div></div>${banner()}`;
  const covers={operations:'preparation',produits:'produits',assets:'production'};
  const nav=`<nav class="content-doors" aria-label="Accès aux contenus">${Object.entries(covers).map(([k,file])=>`<a href="${directoryLink(k)}"><img src="assets/${file}.webp" width="520" height="520" alt=""><span class="door-caption"><span><strong>${directories[k].label}</strong><small>${directories[k].hint}</small></span><span class="door-open" aria-hidden="true">${uiIcon('arrow')}</span></span></a>`).join('')}</nav>`;
  if(status!=='ok'&&!S.operations.length)return header+nav;
@@ -519,7 +519,7 @@ function catalogRecord(){
   return {key:o.id+'/'+p.id,operation:o.nom,name:p.libelle||'Produit sans libellé',closed:!!o.cloture,description:p.description,facts:fields,
     media:window.StudioProductSheet.mediaFor(p,o.id),supports:supsOf(o.id).filter(s=>!baseDe(s).institutionnel&&utilise(s,p)).map(s=>({
       name:titre(s),detail:[typ(s).pagine?'Page '+place(p,s):'',s.prixVar?.[p.id]!=null?'Prix local '+prixTxt(s.prixVar[p.id]):''].filter(Boolean).join(' · '),
-      href:innerLink(o.id,'dispositif',s.id)}))};
+      href:s.id==='bd-ecatalogue' ? dossierUrl(o,'production',s.id)+'&page='+place(p,s) : innerLink(o.id,'dispositif',s.id)}))};
 }
 function refreshProductDialog(){
   const next=catalogRecord();
@@ -551,7 +551,7 @@ function tOffres(o,context){
   <section class="card"><div class="row" style="justify-content:space-between"><h2>Produits et offres</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier toutes les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${list.toolbar}${list.count}${rows?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide(list.changed?'Aucune offre avec ces filtres.':'Aucune offre dans cette opération.')}</section>`}
 const varPour=(b,m)=>varsDe(b).find(v=>(v.magasinsVar||[]).includes(m.id));
 function tMagasins(o,context){
- if(o.id==='u-2649-pbs')return '<section class="card"><h2>Proposition par groupe</h2><p>Choisissez une version commerciale et son assortiment, puis ciblez le groupe par format, région ou type de zone.</p><a class="btn pri" href="'+esc(dossierUrl(o,'magasins').replace('#participants','#configurer'))+'">Proposer une version par groupe</a></section>';
+ if(['bd-2704-deco','u-2649-pbs'].includes(o.id))return '<section class="card"><h2>Proposition par groupe</h2><p>Choisissez une version commerciale et son assortiment, puis ciblez le groupe par format, région ou type de zone.</p><a class="btn pri" href="'+esc(dossierUrl(o,'magasins').replace('#participants','#configurer'))+'">Proposer une version par groupe</a></section>';
  const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m=>eng(o,m).statut==='engage'),choisi=(e,b)=>!e.supports||e.supports.includes(b.id);
   const list=filterList(ms.map(m=>{
     const e=eng(o,m);
@@ -645,11 +645,11 @@ function dossierUrl(o,tab,context,revision){
  const q=new URLSearchParams();if(context)q.set('id',context);if(tab==='calendrier')q.set('jalons','1');
  if(tab==='production' && context && supsOf(o.id).some(x=>x.id===context && /flux/i.test(x.type)))pages.production='flux';
  if(tab==='production' && /^rev-[0-9]+$/.test(revision||''))q.set('revision',revision.slice(4));
- const url='operation/?'+(o.id!=='u-2649-pbs'||ROLE==='responsable'?'mode=partage&':'')+'op='+encodeURIComponent(o.id)+'#'+(pages[tab]||'informations')+(q.size?'?'+q:'');
+ const url='operation/?'+(!['bd-2704-deco','u-2649-pbs'].includes(o.id)||ROLE==='responsable'?'mode=partage&':'')+'op='+encodeURIComponent(o.id)+'#'+(pages[tab]||'informations')+(q.size?'?'+q:'');
  return url;
 }
 function dossierStudio(o,tab,context,revision){const url=dossierUrl(o,tab,context,revision);
- return '<div class="row" style="margin:0 0 14px"><a class="btn pri" href="'+esc(url)+'">Ouvrir le dossier avec Assistant</a>'+(o.id==='u-2649-pbs'?'<a class="btn" href="operation/?assistant=1">Essayer sur une copie de S49</a>':'')+'</div>';
+ return '<div class="row" style="margin:0 0 14px"><a class="btn pri" href="'+esc(url)+'">Ouvrir le dossier avec Assistant</a>'+(o.id==='u-2649-pbs'?'<a class="btn" href="operation/?op=u-2649-pbs&amp;assistant=1">Essayer sur une copie de S49</a>':'')+'</div>';
 }
 function vPreparation(tab,context){const o=curOp();if(!o)return `<div class="hd"><div><p class="eyebrow">Préparation en amont</p><h1>Préparer une opération</h1><p class="sub">Définissez vos offres, supports et engagements magasins.</p></div><button class="btn pri" data-act="new-op">Créer une opération</button></div>${banner()}<section class="card">${vide('Aucun dossier pour le moment.')}</section>`;
  const T={cadrage:tCadrage,offres:tOffres,magasins:tMagasins,dispositif:tDispositif,calendrier:tCalendrier};
@@ -753,7 +753,7 @@ function render(){
  if(productDialog.open){catalogNeedsRender=true;refreshProductDialog();return}
  catalogNeedsRender=false;
  const r=route(),o=curOp(),inOp=r.v==='preparation'||r.v==='production';
- if(PUBLIC&&status==='ok'&&o&&inOp&&!o.cloture&&!new URLSearchParams(location.search).has('classique')&&(ROLE==='responsable'||o.id==='u-2649-pbs')&&!(r.v==='production'&&r.context)){
+ if(PUBLIC&&status==='ok'&&o&&inOp&&!o.cloture&&!new URLSearchParams(location.search).has('classique')&&(ROLE==='responsable'||['bd-2704-deco','u-2649-pbs'].includes(o.id))&&!(r.v==='production'&&r.context)){
    location.replace(dossierUrl(o,r.v==='production'?'production':r.tab,r.v==='production'?r.tab:r.context,r.v==='production'?r.context:null));return
  }
  const dir=r.v==='contenus'?r.tab:r.v==='production'?'assets':r.v==='preparation'?(r.tab==='offres'?'produits':r.tab==='dispositif'?'supports':'operations'):null;

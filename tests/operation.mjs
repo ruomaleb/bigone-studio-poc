@@ -179,7 +179,17 @@ const call = async (path, token, body = {}) => {
   return [res.status, await res.json()]
 };
 const manager = 'b'.repeat(64);
-assert.equal((await call('/session', manager))[0], 200);
+const bricoToken = 'e'.repeat(64);
+assert.equal((await call('/session', bricoToken))[0], 200);
+const [, bricoWorkspace] = await call('/read', bricoToken);
+const brico = bricoWorkspace.state;
+assert.equal(brico.op.id, 'bd-2704-deco');
+assert.equal(brico.stores.length, 900);
+assert.equal(brico.products.length, 21);
+assert.deepEqual(brico.config.versions.map(v => brico.products.filter(p => p.versions.includes(v.id)).length), [17,21,4]);
+const catalogue = brico.supports.find(x => x.id === 'bd-ecatalogue');
+assert.deepEqual([1,2,3,4,5,6].map(n => Object.values(catalogue.useByPage).filter(page => page === n).length), [0,5,5,4,7,0]);
+assert.equal((await call('/session', manager, {operation:'u-2649-pbs'}))[0], 200);
 const [_, initial] = await call('/read', manager);
 assert.equal(initial.role, 'enseigne');
 const [, inv] = await call('/invite', manager, {

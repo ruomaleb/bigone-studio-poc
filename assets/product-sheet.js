@@ -14,8 +14,6 @@
     video: 'Vidéo'
   };
   const examples = {
-    'bd-18': 'ampoule',
-    'bd-21': 'ampoule-standard',
     's49-07': 'beurre',
     's49-08': 'emmental',
     's49-09': 'cafe',
@@ -42,11 +40,16 @@
       url: new URL(file, assetBase).href,
       label
     });
+    if (operation === 'bd-2704-deco' && /^bd-(0[1-9]|1[0-9]|2[01])$/.test(id)) {
+      const i = Number(id.slice(3)), page = i <= 5 ? 2 : i <= 10 ? 3 : i <= 14 ? 4 : 5;
+      items.push(asset('image','../brico-deco/' + id + '.webp','Photographie du catalogue Brico-déco · page ' + page));
+      items.push(asset('logo','../brico-deco/logo-catalogue.webp','Signature Nanotera du catalogue'));
+      if (id === 'bd-18') items.push(asset('video','ampoule.mp4','Animation illustrative de démonstration · 4 s'));
+      return items;
+    }
     if (file) items.push(asset('image', file + '.webp', 'Vue produit · illustration de démonstration'));
-    if (id === 'bd-18') items.push(asset('image', 'ampoule-detail.webp', 'Détail du filament · illustration de démonstration'));
     if (/^nanotera(?:\s|$)/i.test(product.marque || product.brand || '')) items.push(asset('logo', 'nanotera.png',
     'Signature Nanotera · démonstration'));
-    if (id === 'bd-18') items.push(asset('video', 'ampoule.mp4', 'Présentation animée du packshot · 4 s'));
     return items;
   }
 

@@ -6,7 +6,13 @@ Le chef de projet doit pouvoir répondre à trois questions depuis le même doss
 
 ## État du POC au 27 novembre 2026
 
-Les cinq lots ci-dessous sont disponibles dans le [dossier d’essai S49](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1). La [note de recette](DOSSIER_OPERATION.md) décrit les observations en ligne, les tests reproductibles, les droits et le fonctionnement du dossier partagé. Les cases cochées correspondent aux contrôles techniques et aux parcours vérifiés dans le POC. Le compte rendu précise les vérifications réalisées en ligne et les tests locaux. La mesure chronométrée avec ces utilisateurs reste à réaliser.
+Le [dossier Brico-déco](https://ruomaleb.github.io/bigone-studio-poc/operation/?op=bd-2704-deco&assistant=1) est le point d’entrée de la démonstration. Le [catalogue Nanotera Levallois](https://ruomaleb.github.io/bigone-studio-poc/assets/brico-deco/catalogue.pdf) présente l’offre du 19 au 26 novembre 2022. Le calendrier de simulation va du 19 janvier au 1er février 2027.
+
+Les 21 fiches PIM reprennent les références existantes. Les pages 2, 3, 4 et 5 en regroupent respectivement 5, 5, 4 et 7. Chaque fiche montre la photographie extraite du catalogue. Son onglet « Supports associés » ouvre la page correspondante en Production. Les prix des fiches sont modifiables dans la copie d’essai. Le PDF conserve les prix imprimés.
+
+Pour illustrer le ciblage du réseau fictif de 900 points de vente, les supermarchés reçoivent la version V1 « Luminaires et miroirs » (17 références), les hypermarchés la V2 « Catalogue intégral » (21) et les supérettes la V3 « Ampoules LED » (4). Ces assortiments et le flux d’export sont des choix de démonstration. Les groupes se modifient dans Participants.
+
+Les cas de recette historiques restent accessibles dans le [dossier S49](https://ruomaleb.github.io/bigone-studio-poc/operation/?op=u-2649-pbs). La [note de recette](DOSSIER_OPERATION.md) décrit les observations en ligne, les tests reproductibles, les droits et le fonctionnement du dossier partagé. Les cases cochées correspondent aux contrôles techniques et aux parcours vérifiés dans le POC. Le compte rendu précise les vérifications réalisées en ligne et les tests locaux. La mesure chronométrée avec ces utilisateurs reste à réaliser.
 
 La version **2026-11-27.6** réunit le ciblage par groupes de magasins Nanotera et la fiche produit commune au catalogue et au PIM. Le magasin consulte sa version et son assortiment avant de répondre. Le responsable consulte les caractéristiques et les médias du produit dès l’ouverture de la fiche.
 

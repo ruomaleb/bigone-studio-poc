@@ -1,3 +1,4 @@
+import {bricoId, catalogueId} from '../server/brico.mjs';
 import {participantsOf} from '../server/targeting.mjs';
 import {
   pageFor,
@@ -7,7 +8,7 @@ import {
   totals,
   eligible,
   anomalies
-} from '../server/model.mjs?v=6';
+} from '../server/model.mjs?v=7';
 export const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({
   '&': '&amp;',
   '<': '&lt;',
@@ -50,6 +51,11 @@ export const statNames = {
 };
 export const filterStores = (s, f) => participantsOf(s).filter(t => f === 'heritage' ? stateOf(s, t) === 'engage' && !s.replies[t.id]?.confirmed : f === 'confirmed' ? s
   .replies[t.id]?.confirmed : !f || stateOf(s, t) === f);
+const cataloguePdf = '../assets/brico-deco/catalogue.pdf';
+function sourcePage(n) {
+  return '<a class="catalogue-page" rel="noopener" target="_blank" href="' + cataloguePdf + '#page=' + n +
+    '"><img src="../assets/brico-deco/page-' + n + '.webp" alt="Page ' + n + ' du catalogue Brico-déco"><span>Catalogue original · ouvrir la page ' + n + ' du PDF ↗</span></a>';
+}
 export function info(s, q) {
   const o = s.op,
     t = totals(s),
@@ -70,9 +76,13 @@ export function info(s, q) {
       ['', 'Tous'], ...s.supports.map(x => [x.id, x.name])
     ], sup) + btn('schedule', 'Générer le rétroplanning') + '</div>' + table(['Jalon', 'Support', 'Échéance', 'État'], taskRows.map(x => tr(esc(x.name), esc(s
       .supports.find(y => y.id === x.support)?.name || 'Général'), esc(x.due), btn('task', x.done ? 'Terminé' : 'À faire', x.id)))) + '</details></section>';
-  return summary + jal + card('À préparer', row('Confirmer les choix de supports', t.heritage + ' sélections héritées · ' + t.attente +
-      ' participations en attente.', link('#participants?filtre=heritage', 'Voir les participants')) + row('Compléter les produits utilisés', miss.length +
-      ' fiche(s) avec un prix manquant.', link(route('produits', {
+  const source = o.id === bricoId ? '<section class="sheet catalogue-intro"><a href="' + route('production',{id:catalogueId,page:1}) +
+    '"><img src="../assets/brico-deco/page-1.webp" alt="Feuilleter le catalogue Brico-déco"></a><div><h2>Catalogue Brico-déco</h2>' +
+    '<p>Édition Nanotera Levallois du 19 au 26 novembre 2022. Les pages 2 à 5 présentent les 21 références de l’offre d’origine.</p><div class="actions">' +
+    link(route('production',{id:catalogueId,page:2}), 'Feuilleter le catalogue') + link('#produits','Consulter les fiches produits') +
+    '<a class="quiet" target="_blank" rel="noopener" href="' + cataloguePdf + '">Ouvrir le PDF original ↗</a></div></div></section>' : '';
+  return source + summary + jal + card('À préparer', row('Confirmer les choix de supports', t.heritage + ' sélections héritées · ' + t.attente +
+      ' participations en attente.', link('#participants?filtre=heritage', 'Voir les participants')) + row(miss.length ? 'Compléter les produits utilisés' : 'Vérifier l’offre commerciale', miss.length ? miss.length + ' fiche(s) avec un prix manquant.' : s.products.length + ' références avec un prix renseigné.', link(route('produits', {
         id: miss[0]?.id
       }), 'Ouvrir le PIM')) + (next ? row('Relire les supports', next.name + ' · ' + next.state, link(route('production', {
       id: next.id
@@ -210,7 +220,7 @@ export function supports(s, q, prodMode = false) {
       'Nouvelle revue requise', 'warn') : '') + '<p>Décision attendue · ' +
     esc(x.decider) + '</p><div class="filters">' + sel('batpage', 'Page du BAT', Array.from({
       length: Math.min(x.pages, 200)
-    }, (_, i) => [String(i + 1), 'Page ' + (i + 1)]), String(pg)) + '</div>' + table(['Offre sur cette page', 'Prix national', 'Fiche'], ps.filter(p => pageFor(x,
+    }, (_, i) => [String(i + 1), 'Page ' + (i + 1)]), String(pg)) + '</div>' + (s.op.id === bricoId && x.id === catalogueId && pg <= 6 ? sourcePage(pg) : '') + table(['Offre sur cette page', 'Prix national', 'Fiche'], ps.filter(p => pageFor(x,
       p) === pg).map(p => tr(link(route('produits',{id:p.id}),p.name,'quiet'), p.price === null ? tag('Prix manquant', 'warn') : esc(euros(p.price)), link(route('produits', {
       id: p.id
     }), 'Ouvrir le PIM')))) +
