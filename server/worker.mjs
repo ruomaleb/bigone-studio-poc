@@ -91,7 +91,7 @@ async function dispatch(req, env) {
   const url = new URL(req.url),
     path = url.pathname;
   if (path === '/health') return {
-    version: '2026-11-27.5',
+    version: '2026-11-27.6',
     ok: true
   };
   required(req.method === 'POST', 'Méthode indisponible.', 405);

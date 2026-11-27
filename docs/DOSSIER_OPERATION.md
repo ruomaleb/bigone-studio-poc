@@ -58,3 +58,9 @@ Sur l’URL publique, la question sur l’emmental a ouvert directement la page 
 Ouvrir Préparation → Participants → Proposer une version par groupe. La version donne l’assortiment du PIM. Le responsable compose le ciblage par format, région et type de zone, place ses groupes par ordre de priorité puis applique la proposition. Les recoupements comptent une fois. Les réponses confirmées affectées par une nouvelle version demandent une relecture. Les anciennes sessions des magasins sortis du ciblage perdent l’accès. Les autres confirmations restent acquises.
 
 Le dossier d’essai conserve les mêmes identifiants pour les dix magasins historiques, complète le réseau à 900 et utilise Nanotera dans les écrans du catalogue et du dossier. Les affectations historiques personnalisées restent disponibles jusqu’à la première application du ciblage.
+
+## Fiche produit · version 2026-11-27.6
+
+Le catalogue en cartes ou en liste et le PIM du dossier emploient le même composant de consultation. L’onglet Caractéristiques s’ouvre systématiquement, y compris sur une opération clôturée et en suivant un lien depuis un support. L’onglet Supports associés ouvre chaque utilisation à sa page lorsque la pièce est paginée. La modification de la fiche et la gestion des médias respectent le droit d’écriture du dossier.
+
+Le packshot, son détail et la courte animation de l’ampoule LED sont des illustrations fictives de démonstration. Le beurre, le café, l’emmental, le champagne et une seconde ampoule disposent aussi d’une illustration. Les autres références indiquent les médias effectivement associés. L’éditeur peut associer par URL HTTPS des images, logos ou vidéos avec un libellé. La gestion du catalogue utilise le stockage existant du catalogue. L’essai individuel conserve ses propres associations.

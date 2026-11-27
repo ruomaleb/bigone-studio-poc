@@ -322,11 +322,12 @@ export function importRows(rows, opId) {
   s.products = sourceProducts.map(x => {
     const witness = demo?.products.find(p => p.id === x.id);
     return {
-      ...prod(x.id, x.libelle || x.id, x.conditionnement || witness?.pack || '', (Array.isArray(x.versions) ? x.versions.filter(v => codes.includes(v)) :
+      ...prod(x.id, x.libelle || x.id, x.conditionnement || x.unite || witness?.pack || '', (Array.isArray(x.versions) ? x.versions.filter(v => codes.includes(v)) :
         witness
         ?.versions) || [], x.prix ?? null, x.page ?? null, x.rayon || ''),
-      brand: x.marque || '',
-      note: x.mentions || ''
+      brand: x.marque || '', ref:x.ref || '', description:x.description || '',
+      ...(Array.isArray(x.media)?{media:x.media}:{}),
+      note: x.mentions || x.mention || ''
     };
   });
   s.stores = all('magasins').filter(x => Object.hasOwn(eng, x.id)).map(x => ({
@@ -664,7 +665,7 @@ function affect(s, ids, versions) {
   }
 }
 export function impactedVersions(prior, next) {
-  const contentChanged = ['name', 'price', 'pack', 'note', 'brand', 'rayon'].some(k => prior[k] !== next[k]);
+  const contentChanged = ['name', 'price', 'pack', 'note', 'brand', 'rayon', 'ref', 'description'].some(k => prior[k] !== next[k]);
   return contentChanged ? [...new Set([...prior.versions, ...next.versions])] : eligibilityChange(prior.versions, next.versions);
 }
 
@@ -765,6 +766,20 @@ export function mutate(s, action, p, scope) {
         s.replies[x.id] = next
       }
     }
+  } else if (action === 'productMedia') {
+    const product=s.products.find(x=>x.id===p.id);
+    required(product, 'Produit absent.', 404);
+    required(Array.isArray(p.media) && p.media.length<=24, 'Maximum 24 médias par produit.');
+    const media=p.media.map(item=>{
+      const label=clean(item?.label,120),kind=item?.kind,url=clean(item?.url,1800);
+      let address;
+      try{address=new URL(url);}catch{}
+      required(['image','logo','video'].includes(kind) && label && address?.protocol==='https:' && !address.username && !address.password,'Média invalide. Un libellé et un lien HTTPS sont requis.');
+      return {kind,url,label};
+    });
+    if(JSON.stringify(product.media)===JSON.stringify(media))return false;
+    product.media=media;
+    affect(s,[product.id],product.versions);
   } else if (action === 'product') {
     const x = s.products.find(y => y.id === p.id);
     required(x, 'Produit absent.', 404);
@@ -780,6 +795,8 @@ export function mutate(s, action, p, scope) {
       price: p.price,
       pack: clean(p.pack),
       note: clean(p.note, 500),
+      ref: Object.hasOwn(p,'ref')?clean(p.ref):x.ref,
+      description: Object.hasOwn(p,'description')?clean(p.description,1800):x.description,
       brand: clean(p.brand),
       rayon: clean(p.rayon)
     };

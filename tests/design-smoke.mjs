@@ -172,7 +172,7 @@ assert.match(productList,/18,00 €/);
 location.hash=location.hash.replace('vue=liste','vue=cartes');
 assert.match(run("vDirectory('produits')"),/content-row object-card/);
 assert.match(run("vDirectory('produits')"),/data-product-id="autre" data-operation-id="clos" aria-haspopup="dialog"/);
-assert.ok(!run("productEditButton(opById('clos'),S.produits.find(p=>p.id==='autre'))").includes('data-prod'));
+assert.ok(!run("productDetail(opById('clos'),'autre')").includes('data-prod="'));
 location.hash='#contenus--assets?vue=liste';
 assert.ok(!run("vDirectory('assets')").includes('data-product-view'));
 // Depuis le support, la fiche conserve la sélection et les prix de la variante.

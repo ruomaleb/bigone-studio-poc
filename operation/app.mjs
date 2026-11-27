@@ -7,12 +7,13 @@ import {
   impactedVersions,
   commonPlan,
   localVariantPrices
-} from '../server/model.mjs?v=5';
+} from '../server/model.mjs?v=6';
 import {
   esc,
   info,
   participants,
   pim,
+  productForm,
   supports,
   flows,
   route,
@@ -25,10 +26,10 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=5';
+} from './views.mjs?v=6';
 import {
   setupChat
-} from './chat.mjs?v=5';
+} from './chat.mjs?v=6';
 const apiRoot = 'https://bigone-studio-operations.github-46e.workers.dev';
 const $ = s => document.querySelector(s),
   params = new URLSearchParams(location.search);
@@ -131,8 +132,83 @@ function summaryFrame(pg, q) {
   const t = ctx.state.stores.find(x => x.id === q.get('id')) || participantsOf(ctx.state)[0];
   if ((!t || t.targeted === false) && pg === 'participation') return '<section class="sheet">Aucun participant affecté.</section>';
   return '<div class="hrow sectionhead"><h2>' + esc(names[pg]) + '</h2>' + (ctx.role === 'enseigne' ? link('#participants', 'Revenir aux participants') : '') +
-    '</div><iframe src="participants/?v=5" class="wizard" title="Choix des participants"></iframe>'
+    '</div><iframe src="participants/?v=6" class="wizard" title="Choix des participants"></iframe>'
 }
+
+function selectedProduct() {
+  const {
+    page,
+    q
+  } = current();
+  return page === 'produits' ? ctx.state.products.find(x => x.id === q.get('id')) : null;
+}
+
+function operationRecord() {
+  const p = selectedProduct();
+  if (!p) return null;
+  const s = ctx.state;
+  const pieces = s.supports.filter(x => x.products.includes(p.id)).map(x => ({
+    name: x.name,
+    detail: [x.pages > 1 ? 'Page ' + pageFor(x, p) : '', x.state].filter(Boolean).join(' · '),
+    href: route('production', {
+      id: x.id,
+      ...(x.pages > 1 ? {
+        page: pageFor(x, p)
+      } : {})
+    })
+  }));
+  const exports = s.flows.filter(f => p.versions.includes(f.v)).map(f => ({
+    name: f.name,
+    detail: 'Flux · assortiment ' + f.v + ' · ' + f.stage,
+    href: route('flux', {
+      id: f.id
+    })
+  }));
+  return {
+    key: s.op.id + '/' + p.id,
+    name: p.name,
+    operation: s.op.title,
+    closed: !!s.op.closed,
+    description: p.description || '',
+    facts: [
+      ['Référence', p.ref || p.id],
+      ['Marque', p.brand || 'À renseigner'],
+      ['Rayon', p.rayon || 'À renseigner'],
+      ['Conditionnement', p.pack || 'À renseigner'],
+      ['Prix national TTC', euros(p.price)],
+      ['Versions commerciales', p.versions.join(' · ') || 'À affecter'],
+      ['Mentions', p.note]
+    ],
+    media: window.StudioProductSheet.mediaFor(p, s.op.id),
+    supports: [...pieces, ...exports]
+  };
+}
+const productDialog = $('#product-dialog');
+const operationSheet = window.StudioProductSheet.create(productDialog, {
+  reload: operationRecord,
+  edit: host => {
+    host.innerHTML = productForm(ctx.state, selectedProduct());
+  },
+  saveMedia: media => save('productMedia', {
+    id: selectedProduct().id,
+    media
+  }, false),
+  close: record => {
+    const {
+      page,
+      q
+    } = current();
+    if (page === 'produits' && record && record.key === ctx.state.op.id + '/' + q.get('id')) {
+      const id = q.get('id');
+      q.delete('id');
+      history.replaceState(null, '', route(page, Object.fromEntries(q)));
+      const source = [...document.querySelectorAll('#content a')].find(a => new URLSearchParams(a.hash.split('?')[1]).get('id') === id);
+      source?.focus({
+        preventScroll: true
+      });
+    }
+  }
+});
 
 function render() {
   if (!ctx) return;
@@ -166,6 +242,9 @@ function render() {
       ctx.workspace.startsWith('shared:') ? '<p>' + link('../?classique=1#preparation--' + encodeURIComponent(s.op.id) + '--cadrage', 'Outils du dossier d’origine',
         'quiet') + '</p>' : '') + '</div></div>';
   chat.render();
+  const record=shop?null:operationRecord();
+  if(record)operationSheet.open(record);
+  else if(productDialog.open)productDialog.close();
 }
 async function refresh() {
   ctx = await api('/read');
@@ -534,6 +613,7 @@ document.addEventListener('submit', async e => {
   if (!data.versions.length) return notify('Sélectionnez au moins une version.');
   const apply = async () => {
     await save('product', data);
+    operationSheet.finish();
     notify('Fiche produit enregistrée.')
   };
   if (removed.length) return modal('Impact sur les versions', '<p>Versions retirées · ' + esc(removed.join(', ')) + '</p><p>Participants concernés · ' + esc(s

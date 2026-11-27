@@ -278,18 +278,20 @@ function offer() {
 }
 
 function entry() {
-  const r = R(),
-    v = V(r.v);
-  return title('Ma participation', 'Indiquez votre participation et vérifiez la version commerciale de votre magasin.') + section('Participer à l’opération',
-  must() ? '<div class="rows">' + row('<b>Participation obligatoire</b><span class="hint">Votre enseigne a inscrit ce magasin à l’opération.</span>', tag(
-      'Obligatoire', 'green')) + '</div>' : '<div class="pills">' + radio('reply.yn', 'yes', r.yn, 'Oui, je participe') + radio('reply.yn', 'no', r.yn,
-      'Non, je décline') + '</div>') + (yes() ? section('Ma version de l’offre', data.localVersion ? '<div class="threecol">' + data.versions.map(x =>
-    '<label class="choice"><input type="radio" name="ver" data-path="reply.v" value="' + x.id + '" ' + (r.v === x.id ? 'checked' : '') + '><span><b>' + x.id +
-    ' · ' + esc(x.name) + '</b><small>' + esc(x.desc) + '</small>' + assortment(x.id) + '</span></label>').join('') + '</div>' : '<div class="tile">' + tag(v
-    .id) + ' <b>' + esc(v.name) + '</b><span>' + esc(v.desc) + '</span>' + assortment(v.id) + '</div>') + note(
-    'Votre version détermine les produits proposés. Vous choisissez ensuite vos supports et vos canaux de diffusion.') : note(r.yn === 'no' ?
-    'Vous pouvez confirmer votre refus dans le récapitulatif. Aucune quantité ni dépense ne sera engagée.' :
-    'Répondez pour accéder aux choix proposés pour votre opération.'))
+  const reply = R();
+  const version = V(reply.v || data.assigned[store]);
+  const versionCard = '<div class="tile">' + tag(version.id) + ' <b>' + esc(version.name) +
+    '</b><span>' + esc(version.desc) + '</span>' + assortment(version.id) + '</div>';
+  const choices = data.localVersion && yes() ? '<div class="threecol">' + data.versions.map(v =>
+    '<label class="choice"><input type="radio" name="ver" data-path="reply.v" value="' + esc(v.id) + '" ' +
+    (reply.v === v.id ? 'checked' : '') + '><span><b>' + esc(v.id + ' · ' + v.name) + '</b><small>' + esc(v.desc) +
+    '</small>' + assortment(v.id) + '</span></label>').join('') + '</div>' : versionCard;
+  const participation = must() ? '<div class="rows">' + row('<b>Participation obligatoire</b><span class="hint">Votre enseigne a inscrit ce magasin à l’opération.</span>', tag('Obligatoire', 'green')) + '</div>' :
+    '<div class="pills">' + radio('reply.yn', 'yes', reply.yn, 'Oui, je participe') +
+    radio('reply.yn', 'no', reply.yn, 'Non, je décline') + '</div>';
+  return title('Ma participation', 'Consultez l’offre proposée à votre magasin avant de répondre.') +
+    section('Version et assortiment proposés', choices) + section('Participer à l’opération', participation) +
+    (reply.yn === 'no' ? note('Vous pouvez confirmer votre refus dans le récapitulatif.') : '');
 }
 
 function local() {

@@ -8,7 +8,8 @@ Le chef de projet doit pouvoir répondre à trois questions depuis le même doss
 
 Les cinq lots ci-dessous sont disponibles dans le [dossier d’essai S49](https://ruomaleb.github.io/bigone-studio-poc/operation/?assistant=1). La [note de recette](DOSSIER_OPERATION.md) décrit les observations en ligne, les tests reproductibles, les droits et le fonctionnement du dossier partagé. Les cases cochées correspondent aux contrôles techniques et aux parcours vérifiés dans le POC. Le compte rendu précise les vérifications réalisées en ligne et les tests locaux. La mesure chronométrée avec ces utilisateurs reste à réaliser.
 
-La version **2026-11-27.5** clôt la vérification de l’accès Responsable au dossier partagé S49. Elle relie la proposition de prospectus commun aux choix d’affiches A1, réserve les variantes locales aux versions correspondantes et consigne les changements de prix par page et par révision de BAT.
+La version **2026-11-27.6** réunit le ciblage par groupes de magasins Nanotera et la fiche produit commune au catalogue et au PIM. Le magasin consulte sa version et son assortiment avant de répondre. Le responsable consulte les caractéristiques et les médias du produit dès l’ouverture de la fiche.
+
 
 ## Ce que voit le chef de projet en ouvrant une opération
 
@@ -40,9 +41,9 @@ Les trois espaces se déplient dans l’ordre suivant. Cliquer sur leur intitul�
 
 ### Produits
 
-La rubrique **Produits** ouvre le PIM de l’opération. Une ligne correspond à une référence de l’offre commerciale. Le tableau présente le libellé, le conditionnement, les versions éligibles et les anomalies. Une ligne se déplie sur place pour consulter ou modifier la fiche : référence, marque, rayon, conditionnement, prix, avantage éventuel, période et mentions selon les champs disponibles. Dans la maquette, l’emmental illustre la fiche dépliée.
+La rubrique **Produits** ouvre le PIM de l’opération. Une ligne correspond à une référence de l’offre commerciale. Le tableau présente le libellé, le conditionnement, les versions éligibles et les anomalies. Le nom du produit ouvre une fiche de 1 160 px sur grand écran. Les cartes, la liste, le PIM et les liens depuis un support ouvrent « Caractéristiques ». La galerie propose les images du produit, les logos qui lui sont associés et les vidéos avec leurs commandes de lecture. L’onglet « Supports associés » donne les supports et les pages utilisant la référence. Les champs d’une fiche ouverte à l’écriture se modifient dans la même fenêtre. Le mode consultation reste disponible pour une opération clôturée.
 
-Les versions sont une **propriété multivaluée du produit** et un filtre du tableau. Filtrer sur V1, V2 ou V3 conserve le même tableau et ses colonnes. Une fiche ouverte peut le rester tant que le produit est éligible au filtre choisi. Replier la fiche retrouve le filtre précédent. L’enseigne affecte une seule version à chaque magasin dans Participants et définit si le magasin peut la modifier. Conserver la version affectée initialement et la version effectivement retenue dans la réponse. Le périmètre du PIM se limite au référentiel produit. Les comparaisons par magasin et la consultation d’un assortiment magasin sortent du périmètre de ses écrans.
+Les versions sont une **propriété multivaluée du produit** et un filtre du tableau. Filtrer sur V1, V2 ou V3 conserve le même tableau et ses colonnes. Fermer la fiche retrouve le filtre précédent. Dans Participants, l’ordre des groupes détermine la version proposée au magasin. Conserver la version affectée initialement et la version effectivement retenue dans la réponse. Le périmètre du PIM se limite au référentiel produit. Les comparaisons par magasin et la consultation d’un assortiment magasin sortent du périmètre de ses écrans.
 
 ### Production
 
@@ -55,7 +56,7 @@ Les versions sont une **propriété multivaluée du produit** et un filtre du ta
 - [x] Retrouver dans le menu respectivement trois rubriques en Préparation, une en Produits et deux en Production, dans l’ordre du tableau.
 - [x] Ouvrir et replier Dates et jalons dans Informations. Conserver la rubrique, le sous-volet, le filtre de jalons et la conversation. Vérifier qu’une tâche existante conserve son échéance et son état.
 - [x] Vérifier que Préparation → Supports ouvre directement le dispositif sur la liste et la fiche. Production → Supports ouvre les révisions et BAT. Production → Flux ouvre les exports. Aucun de ces liens de la maquette ne renvoie à l’ancienne galerie.
-- [x] Depuis le prospectus ou un contrôle de flux, ouvrir la fiche produit concernée. Le PIM déplie la bonne ligne et conserve le dossier. Les filtres de version s’appliquent au tableau et n’ajoutent pas de rubrique.
+- [x] Depuis le prospectus ou un contrôle de flux, ouvrir la fiche produit concernée. Le PIM ouvre la fiche dans l’onglet Caractéristiques et conserve le dossier. Les filtres de version s’appliquent au tableau et n’ajoutent pas de rubrique.
 - [x] Associer les liens existants de cadrage à Informations, de calendrier à Informations avec les jalons ouverts, de magasins à Participants et d’offres au PIM. Conserver les identifiants des dossiers, produits, supports et révisions pour les liens directs.
 - [x] Au clavier, rendre les chevrons activables avec Entrée et Espace. Utiliser `aria-expanded` et `aria-controls` pour le sous-volet et `aria-current="page"` pour la rubrique affichée. Deux entrées intitulées « Supports » gardent chacune le nom de leur espace comme contexte accessible.
 
