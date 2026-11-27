@@ -1,3 +1,4 @@
+import {axes, demoNetwork, demoGroups, participantsOf, targetPlan, networkText, demoId, demoFields} from './targeting.mjs';
 const MODELES = {
   imprime: [
     ['donnees', 'Données reçues', -15],
@@ -107,7 +108,7 @@ function config() {
       name: 'Produit vedette',
       desc: 'Une référence mise en avant.'
     }],
-    localVersion: true,
+    localVersion: false,
     items: [{
       id: 'a1',
       name: 'Affiche A1',
@@ -162,7 +163,7 @@ const prod = (id, name, pack, versions, price, page, rayon) => ({
   price,
   page,
   rayon,
-  brand: 'U',
+  brand: 'Nanotera',
   note: ''
 });
 const piece = (id, name, format, state, pages, products) => ({
@@ -189,7 +190,7 @@ export function example() {
     op: {
       id: 'u-2649-pbs',
       title: 'Les prix bas de la semaine S49',
-      network: 'Magasins U',
+      network: 'Nanotera',
       start: '2026-12-01',
       end: '2026-12-13',
       owner: 'Chef de projet démo',
@@ -199,15 +200,9 @@ export function example() {
     },
     config: config(),
     products,
-    stores: Array.from({
-      length: 10
-    }, (_, i) => ({
-      id: 'm' + String(i + 1).padStart(2, '0'),
-      name: (i === 8 ? 'U Express' : 'Super U') + ' Démo ' + String(i + 1).padStart(2, '0'),
-      status: i < 6 ? 'engage' : i < 9 ? 'attente' : 'non',
-      assigned: codes[i % 3],
-      rule: i === 1 ? 'must' : 'free'
-    })),
+    stores: demoNetwork(),
+    targetGroups: demoGroups(),
+    networkEdition: 1,
     replies: {},
     supports: [piece('s49-prospectus', 'Prospectus', '12 pages · A4', 'En revue', 12, products.map(p => p.id)), piece('s49-affiche', 'Affiche A1',
       '594 × 841 mm', 'En corrections', 1, ['s49-05'])],
@@ -244,6 +239,60 @@ export function example() {
     audit: []
   };
 }
+// Upgrade only the S49 demonstration. Existing store IDs, replies and custom assignments survive.
+export function upgradeDemo(s) {
+  if (s.networkEdition === 1 || !demoId(s.op.id)) return s;
+  if (s.op.id !== 'u-2649-pbs') {
+    const branded = demoFields(s),
+      stores = demoNetwork();
+    branded.op.network = 'Nanotera';
+    for (const t of branded.stores) {
+      const fixture = stores.find(n => n.id === t.id);
+      if (fixture) Object.assign(t, {
+        name: fixture.name,
+        format: fixture.format,
+        zone: fixture.zone,
+        region: fixture.region
+      });
+    }
+    branded.networkEdition = 1;
+    return branded;
+  }
+  const prior = new Map(s.stores.map(t => [t.id, t]));
+  const oldGroups = Array.isArray(s.targetGroups);
+  const groups = oldGroups ? s.targetGroups : demoGroups();
+  const knownIds = new Set();
+  const network = demoNetwork().map(t => {
+    const old = prior.get(t.id);
+    knownIds.add(t.id);
+    return {
+      ...t,
+      ...old,
+      name: t.name,
+      format: t.format,
+      region: t.region,
+      zone: t.zone
+    };
+  });
+  const extras = s.stores.filter(t => !knownIds.has(t.id)).map((t, i) => ({
+    ...t,
+    name: 'Nanotera · Point de vente ' + (901 + i)
+  }));
+  s.stores = [...network, ...extras];
+  s.targetGroups = groups;
+  Object.assign(s, demoFields(s));
+  s.op.network = 'Nanotera';
+  for (const k of ['title', 'contact', 'objective', 'owner']) s.op[k] = networkText(s.op[k]);
+  for (const p of s.products)
+    for (const k of ['name', 'brand', 'note']) p[k] = networkText(p[k]);
+  for (const r of s.reminders || []) r.text = networkText(r.text);
+  // Historically customised assignments continue until the manager applies a new group plan.
+  if (!oldGroups && s.stores.some(t => t.assigned !== groups.find(g => g.criteria.format.includes(t.format))?.version || t.rule !== groups.find(g => g
+      .criteria.format.includes(t.format))?.rule)) s.legacyAssignments = true;
+  s.networkEdition = 1;
+  return s;
+}
+
 export function importRows(rows, opId) {
   const all = col => rows.filter(x => x.col === col).map(x => ({
       ...x.data,
@@ -255,6 +304,8 @@ export function importRows(rows, opId) {
   const s = example(),
     own = col => all(col).filter(p => p.op === opId),
     eng = all('engagements').find(x => x.id === opId) || {};
+  delete s.networkEdition;
+  delete s.targetGroups;
   s.op = {
     id: o.id,
     title: o.nom,
@@ -281,6 +332,7 @@ export function importRows(rows, opId) {
   s.stores = all('magasins').filter(x => Object.hasOwn(eng, x.id)).map(x => ({
     id: x.id,
     name: x.nom,
+    format: x.format || x.typologie || x.enseigne || 'Non renseigné', region: x.region || 'Non renseigné', zone: x.zone || 'Non renseigné',
     status: eng[x.id],
     assigned: demo?.stores.find(t => t.id === x.id)?.assigned || '',
     rule: demo?.stores.find(t => t.id === x.id)?.rule || 'free'
@@ -340,7 +392,7 @@ export function importRows(rows, opId) {
     due: x.echeance || '',
     done: !!x.fait
   }));
-  return s;
+  return upgradeDemo(s);
 }
 export function pageFor(support, product) {
   return Math.min(support.pages, Math.max(1, Number(support.useByPage?.[product.id] ?? product.page) || 1))
@@ -355,7 +407,7 @@ export function totals(s) {
     quantity: 0,
     confirmed: 0
   };
-  for (const t of s.stores) {
+  for (const t of participantsOf(s)) {
     const r = s.replies[t.id],
       status = r?.confirmed ? (r.yn === 'yes' ? 'engage' : 'non') : t.status;
     counts[status] = (counts[status] || 0) + 1;
@@ -370,7 +422,7 @@ export function totals(s) {
 export function forRole(s, storeId) {
   if (!storeId) return s;
   const t = s.stores.find(t => t.id === storeId);
-  required(t, 'Participant absent.', 404);
+  required(t && t.targeted !== false, 'Ce point de vente ne fait pas partie du ciblage.', 403);
   const c = structuredClone(s.config);
   const v = s.replies[t.id]?.v || t.assigned;
   if (!c.localVersion) c.versions = c.versions.filter(x => x.id === v);
@@ -641,17 +693,51 @@ export function mutate(s, action, p, scope) {
     };
   }
   if (action === 'reply') {
-    required(t, 'Participant inconnu.', 404);
+    required(t && t.targeted !== false, 'Ce point de vente ne fait pas partie du ciblage.', 403);
     const r = normalize(s, t, p.reply || {}, p.confirm === true);
     if (JSON.stringify(r) === JSON.stringify(s.replies[t.id])) return false;
     s.replies[t.id] = r
+  } else if (action === 'targeting') {
+    required(Array.isArray(p.groups) && p.groups.length <= 100, 'Ciblage incorrect (100 groupes maximum).');
+    const ids = new Set();
+    const groups = p.groups.map(g=>{
+      required(g && /^[a-zA-Z0-9_-]{1,80}$/.test(g.id) && !ids.has(g.id), 'Identifiant de groupe incorrect.');
+      ids.add(g.id);
+      required(clean(g.name,80) && codes.includes(g.version) && eligible(s,g.version).length && ['free','must'].includes(g.rule), 'Nom, version avec assortiment et participation requis.');
+      const criteria = {};
+      for (const k of Object.keys(axes)) {
+        const values = g.criteria?.[k];
+        required(Array.isArray(values) && values.length<=100 && values.every(v=>typeof v==='string' && s.stores.some(t=>t[k]===v)), 'Critère de ciblage inconnu.');
+        criteria[k] = [...new Set(values)].sort();
+      }
+      return {id:g.id,name:clean(g.name,80),version:g.version,rule:g.rule,criteria};
+    });
+    const {assignments}=targetPlan(s.stores,groups);
+    s.config.localVersion=false;
+    if (!s.legacyAssignments && JSON.stringify(s.targetGroups)===JSON.stringify(groups)) return false;
+    for (const t of s.stores) {
+      const group=assignments.get(t.id), version=group?.version || '', rule=group?.rule || 'free';
+      const changed=!!(group && s.replies[t.id]?.v && s.replies[t.id].v!==version) || t.assigned!==version || t.rule!==rule || (t.targeted!==false)!==!!group;
+      Object.assign(t,{assigned:version, rule, targeted:!!group, groupId:group?.id || ''});
+      const old=s.replies[t.id];
+      if (changed && old) {
+        const next=group ? normalize(s,t,{...old,v:version},false) : {...old,confirmed:false};
+        if (old.confirmed || old.review) next.review=true;
+        s.replies[t.id]=next;
+      }
+    }
+    delete s.legacyAssignments;
+    s.targetGroups=groups;
   } else if (action === 'config') {
     const before = structuredClone(s);
     validateConfig(p.config);
-    required(s.stores.every(x => ['free', 'must'].includes(p.rules[x.id]) && (codes.includes(p.assign[x.id]) || (!x.assigned && p.assign[x.id] === ''))),
+    required(Array.isArray(s.targetGroups) || s.stores.every(x => ['free', 'must'].includes(p.rules[x.id]) && (codes.includes(p.assign[x.id]) || (!x.assigned && p.assign[x.id] === ''))),
       'Affectation incorrecte.');
-    s.config = p.config;
+    s.config = {...p.config, localVersion:s.targetGroups && !s.legacyAssignments ? false : p.config.localVersion};
 
+    for(const v of new Set(s.targetGroups?.map(g=>g.version))) {
+      required(!eligible(s,v).length || s.products.some(x=>p.eligibility[x.id]?.includes(v)), 'Conservez au moins une référence dans l’assortiment proposé en '+v+'.');
+    }
     for (const x of s.products) {
       const vs = codes.filter(v => p.eligibility[x.id]?.includes(v));
       required(!x.versions.length || vs.length > 0, 'Conservez au moins une version pour '+x.name+'.');
@@ -662,8 +748,11 @@ export function mutate(s, action, p, scope) {
 
     for (const x of s.stores) {
       const old = x.assigned;
-      x.rule = p.rules[x.id];
-      x.assigned = p.assign[x.id];
+      if (!Array.isArray(s.targetGroups)) {
+        x.rule = p.rules[x.id];
+        x.assigned = p.assign[x.id];
+      }
+      if (x.targeted === false) continue;
       if (s.replies[x.id]) {
         const r = s.replies[x.id];
         const previous = before.stores.find(y => y.id === x.id);
@@ -695,6 +784,9 @@ export function mutate(s, action, p, scope) {
       rayon: clean(p.rayon)
     };
     const nextVersions = codes.filter(v => p.versions.includes(v));
+    for (const v of prior.versions.filter(v=>!nextVersions.includes(v))) {
+      required(!s.targetGroups?.some(g=>g.version===v) || eligible(s,v).length>1, 'Conservez au moins une référence dans l’assortiment proposé en '+v+'.');
+    }
     const changedVersions = eligibilityChange(prior.versions, nextVersions);
     const affected = impactedVersions(prior, {
       ...values,
@@ -707,7 +799,7 @@ export function mutate(s, action, p, scope) {
     affect(s, [x.id], affected);
     for (const store of s.stores) {
       const r = s.replies[store.id];
-      if (!r || r.yn !== 'yes' || !s.config.offer || !changedVersions.includes(r.v)) continue;
+      if (store.targeted === false || !r || r.yn !== 'yes' || !s.config.offer || !changedVersions.includes(r.v)) continue;
       const next = normalize(s, store, r, false);
       if (r.confirmed || r.review) next.review = true;
       s.replies[store.id] = next;
@@ -723,7 +815,7 @@ export function mutate(s, action, p, scope) {
     affect(s, [id], vs);
     for (const store of s.stores) {
       const r = s.replies[store.id];
-      if (s.config.offer && r?.yn === 'yes' && vs.includes(r.v)) {
+      if (store.targeted !== false && s.config.offer && r?.yn === 'yes' && vs.includes(r.v)) {
         const next = normalize(s, store, r, false);
         if (r.confirmed || r.review) next.review = true;
         s.replies[store.id] = next;
@@ -880,7 +972,7 @@ export function mutate(s, action, p, scope) {
       f.delivered = date()
     } else required(false, 'Action inconnue.')
   } else if (action === 'reminder') {
-    const ids = s.stores.filter(t => p.stores?.includes(t.id)).map(t => t.id);
+    const ids = participantsOf(s).filter(t => p.stores?.includes(t.id)).map(t => t.id);
     required(ids.length && clean(p.text), 'Sélection et texte obligatoires.');
     s.reminders.push({
       id: crypto.randomUUID(),
