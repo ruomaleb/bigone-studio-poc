@@ -7,7 +7,7 @@ import {
   totals,
   eligible,
   anomalies
-} from '../server/model.mjs?v=5';
+} from '../server/model.mjs?v=6';
 export const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({
   '&': '&amp;',
   '<': '&lt;',
@@ -120,38 +120,33 @@ export function participants(s, q) {
 }
 export function pim(s, q) {
   const v = q.get('v') || '',
-    id = q.get('id'),
     ps = v ? eligible(s, v) : s.products;
-  const rows = ps.flatMap(p => {
-    const open = p.id === id;
-    const line = tr(link(route('produits', {
+  const rows = ps.map(p => {
+    const href = route('produits', {
       v,
-      id: open ? '' : p.id
-    }), p.name, 'quiet'), esc(p.pack), p.versions.map(x => tag(x, 'violet')).join(' ') || tag('À affecter', 'warn'), p.price === null ? tag('Prix manquant',
-      'warn') : esc(euros(p.price)), link(route('produits', {
-      v,
-      id: open ? '' : p.id
-    }), open ? 'Replier' : 'Ouvrir', 'quiet'));
-    if (!open) return [line];
-    const pieces = s.supports.filter(x => x.products.includes(p.id));
-    return [line, '<tr><td colspan="5"><form id="product" class="inset" data-id="' + esc(p.id) + '"><h3>Fiche offre · ' + esc(p.name) +
-      '</h3><p class="sub">Référence ' + esc(p.id) + '</p><div class="fields">' + field('name', 'Libellé', p.name, 'text', 'required') + field('pack',
-        'Conditionnement', p.pack) + field('price', 'Prix national TTC (€)', p.price, 'number', 'min=".01" step=".01"') + field('brand', 'Marque', p.brand) +
-      field('rayon', 'Rayon', p.rayon) + field('note', 'Mentions', p.note) + '</div><fieldset><legend>Versions éligibles</legend>' + checks('versions', s
-        .config.versions.map(x => [x.id, x.id + ' · ' + x.name]), p.versions) + '</fieldset><div class="actions">' + submit('Enregistrer la fiche') + pieces
-      .map(x => link(route('production', {
-        id: x.id,
-        page: pageFor(x, p)
-      }), x.name + ' · page ' + pageFor(x, p))).join('') + '</div></form></td></tr>'
-    ]
+      id: p.id
+    });
+    return tr(link(href, p.name, 'quiet'), esc(p.pack), p.versions.map(id => tag(id, 'violet')).join(' ') || tag('À affecter', 'warn'),
+      p.price == null ? tag('Prix manquant', 'warn') : esc(euros(p.price)), link(href, 'Ouvrir', 'quiet'));
   });
   return card('Produits', '<p class="sub">Offre commerciale de l’opération · ' + s.products.length + ' références distinctes.</p><div class="filters">' + [
-    ['', 'Toutes les versions'], ...s.config.versions.map(x => [x.id, x.id + ' · ' + x.name])
-  ].map(([key, n]) => link(route('produits', {
-    v: key,
-    id: s.products.some(p => p.id === id && (!key || p.versions.includes(key))) ? id : ''
-  }), n, 'chip ' + (v === key ? 'active' : ''))).join('') + '</div>' + table(['Produit', 'Conditionnement', 'Versions éligibles', 'Prix / anomalie', 'Fiche'],
-    rows) + none(ps.length + ' référence(s) dans cette sélection.'), btn('new-product', 'Ajouter une référence'));
+      ['', 'Toutes les versions'], ...s.config.versions.map(x => [x.id, x.id + ' · ' + x.name])
+    ].map(([key, label]) =>
+      link(route('produits', {
+        v: key
+      }), label, 'chip ' + (key === v ? 'active' : ''))).join('') + '</div>' +
+    table(['Produit', 'Conditionnement', 'Versions éligibles', 'Prix / anomalie', 'Fiche'], rows) + none(ps.length +
+      ' référence(s) dans cette sélection.'), btn('new-product', 'Ajouter une référence'));
+}
+export function productForm(s, p) {
+  return '<form id="product" data-id="' + esc(p.id) + '"><div class="fields">' + field('name', 'Libellé', p.name, 'text', 'required') +
+    field('ref', 'Référence commerciale', p.ref || '') + field('pack', 'Conditionnement', p.pack) + field('price', 'Prix national TTC (€)', p.price,
+      'number', 'min=".01" step=".01"') +
+    field('brand', 'Marque', p.brand) + field('rayon', 'Rayon', p.rayon) +
+    '</div><label class="field">Description<textarea name="description" maxlength="1800">' + esc(p.description || '') +
+    '</textarea></label>' + field('note', 'Mentions', p.note) + '<fieldset><legend>Versions éligibles</legend>' + checks('versions', s.config.versions.map(
+      v => [v.id, v.id + ' · ' + v.name]), p.versions) +
+    '</fieldset><div class="actions"><button class="btn" type="button" data-ps-back>Annuler</button>' + submit('Enregistrer la fiche') + '</div></form>';
 }
 
 function variantPanel(s, support) {
@@ -216,7 +211,7 @@ export function supports(s, q, prodMode = false) {
     esc(x.decider) + '</p><div class="filters">' + sel('batpage', 'Page du BAT', Array.from({
       length: Math.min(x.pages, 200)
     }, (_, i) => [String(i + 1), 'Page ' + (i + 1)]), String(pg)) + '</div>' + table(['Offre sur cette page', 'Prix national', 'Fiche'], ps.filter(p => pageFor(x,
-      p) === pg).map(p => tr(esc(p.name), p.price === null ? tag('Prix manquant', 'warn') : esc(euros(p.price)), link(route('produits', {
+      p) === pg).map(p => tr(link(route('produits',{id:p.id}),p.name,'quiet'), p.price === null ? tag('Prix manquant', 'warn') : esc(euros(p.price)), link(route('produits', {
       id: p.id
     }), 'Ouvrir le PIM')))) +
     '<div class="actions">' + (x.file && /^https:\/\//i.test(x.file) ? '<a class="act" target="_blank" rel="noreferrer" href="' + esc(x.file) +

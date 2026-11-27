@@ -165,10 +165,10 @@ const root = path.resolve(__dirname, '..'),
     await p.getByRole('button', {
       name: 'Relire la proposition de dispositif'
     }).click();
-    await p.locator('dialog').getByText('Prospectus commun', {
+    await p.locator('#modal').getByText('Prospectus commun', {
       exact: true
     }).waitFor();
-    await p.locator('dialog').getByText('Affiche A1', {
+    await p.locator('#modal').getByText('Affiche A1', {
       exact: true
     }).waitFor();
     await p.getByRole('button', {
@@ -181,14 +181,15 @@ const root = path.resolve(__dirname, '..'),
     await p.goto(url + '#participants?filtre=heritage');
     assert.equal(await p.locator('tbody tr').count(), 25);
     await p.goto(url + '#produits?id=s49-08');
+    await p.getByRole('button',{name:'Modifier le produit'}).click();
     await p.getByLabel('Prix national TTC (€)').fill('4.99');
     await p.getByRole('button', {
       name: 'Enregistrer la fiche'
     }).click();
+    await p.getByRole('tab',{name:'Caractéristiques'}).waitFor();
     await p.getByText('Fiche produit enregistrée.').waitFor();
-    await p.getByRole('link', {
-      name: 'Prospectus · page 6'
-    }).click();
+    await p.getByRole('tab',{name:'Supports associés'}).click();
+    await p.locator('#product-dialog').getByRole('link',{name:/Prospectus.*Page 6/}).click();
     await p.getByText(/Modifications depuis la dernière revue/).click();
     await p.getByText(/Emmental râpé · page 6 · prix TTC/).waitFor();
     await p.getByRole('button', {
@@ -259,9 +260,9 @@ const root = path.resolve(__dirname, '..'),
     await p.getByRole('button', {
       name: 'Valider la variante'
     }).click();
-    const preview = await p.locator('dialog').innerText();
+    const preview = await p.locator('#modal').innerText();
     for (const value of ['Nanotera Paris 001', 'Prospectus', 'V1', 'Café moulu', 'page 7', '8,40', '6,75']) assert(preview.includes(value));
-    await p.locator('dialog').getByRole('button', {
+    await p.locator('#modal').getByRole('button', {
       name: 'Valider',
       exact: true
     }).click();
@@ -313,6 +314,47 @@ const root = path.resolve(__dirname, '..'),
     assert.equal(await p.locator('tbody tr').count(),6);
     assert(!(await p.locator('main').innerText()).includes('Super U'));
     console.log('PASS ciblage depuis le mobile → assortiment V3, six hypers en Bretagne en centre commercial, relecture et liste des destinataires');
+    const rootUrl=url.replace('/operation/','/');
+    const seed=[
+      {col:'operations',id:'bd-2704-deco',version:1,data:{nom:'Brico-déco',debut:'2026-11-01',fin:'2026-11-30',source:'demo',enseignes:['Nanotera']}},
+      {col:'produits',id:'bd-18',version:1,data:{op:'bd-2704-deco',libelle:'AMPOULE LED ÉDITION FANTASTIC COLORS',marque:'Nanotera',rayon:'Bricolage',prix:11.99,description:'5 W · E27'}},
+      {col:'supports',id:'aff-demo',version:1,data:{op:'bd-2704-deco',type:'Affiche A1',produits:['bd-18'],statut:'amonter'}}
+    ];
+    await c.route('**/rest/v1/docs?**',route=>route.fulfill({json:seed}));
+    await c.route('**/rest/v1/rpc/studio_write2',route=>route.fulfill({json:{ok:true,version:2,role:'responsable'}}));
+    await p.evaluate(()=>{localStorage.setItem('bos-code','fixture-test');localStorage.setItem('bos-role','responsable');});
+    await p.setViewportSize({width:1850,height:914});
+    await p.goto(rootUrl+'#contenus--produits?vue=liste');
+    const record=p.locator('#product-dialog');
+    await p.getByRole('link',{name:'AMPOULE LED ÉDITION FANTASTIC COLORS',exact:true}).click();
+    await record.getByRole('tab',{name:'Caractéristiques'}).waitFor();
+    assert((await record.boundingBox()).width>=1100);
+    assert(await record.locator('.ps-stage img').evaluate(el=>el.complete && el.naturalWidth>0));
+    await record.getByRole('button',{name:/^Logo ·/}).click();
+    assert(await record.locator('.ps-logo').isVisible());
+    await record.getByRole('button',{name:/^Vidéo ·/}).click();
+    assert(await record.locator('video[controls]').isVisible());
+    await record.getByRole('tab',{name:'Supports associés'}).click();
+    await record.getByRole('link',{name:/Affiche A1/}).waitFor();
+    await record.getByRole('button',{name:'Fermer la fiche produit'}).click();
+    await p.getByRole('button',{name:'Cartes',exact:true}).click();
+    await p.locator('a[data-product-id="bd-18"]').click();
+    assert.equal(await record.getByRole('tab',{name:'Caractéristiques'}).getAttribute('aria-selected'),'true');
+    await record.getByRole('button',{name:'Modifier le produit'}).click();
+    assert.equal(await p.locator('dialog[open]').count(),1);
+    await record.locator('textarea#f-description').fill('Description mise à jour');
+    await record.getByRole('button',{name:'Enregistrer',exact:true}).click();
+    await record.getByText('Description mise à jour',{exact:true}).waitFor();
+    await record.getByRole('button',{name:'Gérer les médias'}).click();
+    await record.getByRole('button',{name:'Ajouter un média'}).click();
+    const asset=record.locator('.ps-media-rows fieldset').last();
+    await asset.getByLabel('Libellé').fill('Nouvelle photo');
+    await asset.getByLabel('Adresse du fichier').fill('https://example.org/photo.jpg');
+    await record.getByRole('button',{name:'Enregistrer les médias'}).click();
+    await record.getByRole('button',{name:'Image · Nouvelle photo'}).waitFor();
+    await p.setViewportSize({width:390,height:844});
+    assert((await record.boundingBox()).width<=390);
+    console.log('PASS fiche large catalogue + PIM, onglet par défaut, édition sans double fenêtre, photos, logo, vidéo et associations');
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();
