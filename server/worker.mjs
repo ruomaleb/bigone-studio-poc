@@ -1,6 +1,7 @@
 import {
   example,
   importRows,
+  upgradeDemo,
   forRole,
   mutate,
   required
@@ -90,7 +91,7 @@ async function dispatch(req, env) {
   const url = new URL(req.url),
     path = url.pathname;
   if (path === '/health') return {
-    version: '2026-11-27.4',
+    version: '2026-11-27.5',
     ok: true
   };
   required(req.method === 'POST', 'Méthode indisponible.', 405);
@@ -109,8 +110,9 @@ async function dispatch(req, env) {
       'SELECT w.id,w.revision,w.document,t.store_id FROM sessions t JOIN workspaces w ON w.id=t.workspace WHERE t.digest=? AND t.expires>CURRENT_TIMESTAMP')
     .bind(await hash(key)).first();
   required(row, 'Accès expiré ou inconnu.', 401);
-  const s = JSON.parse(row.document),
+  const s = upgradeDemo(JSON.parse(row.document)),
     scope = row.store_id;
+  if (scope) required(s.stores.some(t=>t.id===scope && t.targeted!==false), 'Ce point de vente ne fait pas partie du ciblage.', 403);
   const view = () => ({
     state: forRole(s, scope),
     revision: row.revision,
@@ -120,7 +122,7 @@ async function dispatch(req, env) {
   if (path === '/read') return view();
   if (path === '/invite') {
     required(!scope, 'Accès enseigne requis.', 403);
-    required(s.stores.some(x => x.id === p.store), 'Magasin absent.');
+    required(s.stores.some(x => x.id === p.store && x.targeted !== false), 'Magasin absent.');
     const k = token();
     await sessionStmt(env.DB, await hash(k), row.id, p.store).run();
     return {

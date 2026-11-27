@@ -1,3 +1,4 @@
+import {axes, matches, targetPlan, participantsOf} from '../server/targeting.mjs';
 import {
   blank,
   eligible,
@@ -6,7 +7,7 @@ import {
   impactedVersions,
   commonPlan,
   localVariantPrices
-} from '../server/model.mjs?v=4';
+} from '../server/model.mjs?v=5';
 import {
   esc,
   info,
@@ -24,10 +25,10 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=4';
+} from './views.mjs?v=5';
 import {
   setupChat
-} from './chat.mjs?v=4';
+} from './chat.mjs?v=5';
 const apiRoot = 'https://bigone-studio-operations.github-46e.workers.dev';
 const $ = s => document.querySelector(s),
   params = new URLSearchParams(location.search);
@@ -50,7 +51,7 @@ const sections = [
   ]]
 ];
 const names = Object.fromEntries(sections.flatMap(x => x[1]).concat([
-  ['configurer', 'Configurer les choix proposés'],
+  ['configurer', 'Proposition aux magasins'],
   ['participation', 'Ma participation']
 ]));
 const groupFor = page => page === 'configurer' || page === 'participation' ? 0 : Math.max(0, sections.findIndex(([, l]) => l.some(x => x[0] === page)));
@@ -127,10 +128,10 @@ function sectionMenu(pg) {
 }
 
 function summaryFrame(pg, q) {
-  const t = ctx.state.stores.find(x => x.id === q.get('id')) || ctx.state.stores[0];
-  if (!t && pg === 'participation') return '<section class="sheet">Aucun participant affecté.</section>';
+  const t = ctx.state.stores.find(x => x.id === q.get('id')) || participantsOf(ctx.state)[0];
+  if ((!t || t.targeted === false) && pg === 'participation') return '<section class="sheet">Aucun participant affecté.</section>';
   return '<div class="hrow sectionhead"><h2>' + esc(names[pg]) + '</h2>' + (ctx.role === 'enseigne' ? link('#participants', 'Revenir aux participants') : '') +
-    '</div><iframe src="participants/?v=4" class="wizard" title="Choix des participants"></iframe>'
+    '</div><iframe src="participants/?v=5" class="wizard" title="Choix des participants"></iframe>'
 }
 
 function render() {
@@ -352,10 +353,10 @@ async function perform(a, id) {
   if (a === 'reminder') {
     const list = filterStores(s, id).filter(t => !s.replies[t.id]?.confirmed && t.status !== 'non');
     if (!list.length) return notify('Aucun destinataire à relancer dans cette sélection.');
-    return modal('Préparer une relance', '<fieldset><legend>Participants</legend>' + checks('stores', pairs(list, 'id'), list.map(t => t.id)) +
-      '</fieldset><label class="field">Brouillon<textarea name="text" rows="5" required>Bonjour, merci de confirmer votre participation à ' + esc(s.op.title) +
+    return modal('Préparer une relance', sel('group','Destinataires',[['','Toute la sélection · '+list.length],...(s.targetGroups||[]).map(g=>[g.id,g.name+' · '+list.filter(t=>t.groupId===g.id).length]).filter(x=>!x[1].endsWith(' · 0'))], '') +
+      '<label class="field">Brouillon<textarea name="text" rows="5" required>Bonjour, merci de confirmer votre participation à ' + esc(s.op.title) +
       ' et la quantité d’affiches A1 souhaitée pour votre magasin.</textarea></label>', d => save('reminder', {
-        stores: d.getAll('stores'),
+        stores: list.filter(t=>!d.get('group') || t.groupId===d.get('group')).map(t=>t.id),
         text: d.get('text')
       }), 'Enregistrer le brouillon')
   }
@@ -536,7 +537,7 @@ document.addEventListener('submit', async e => {
     notify('Fiche produit enregistrée.')
   };
   if (removed.length) return modal('Impact sur les versions', '<p>Versions retirées · ' + esc(removed.join(', ')) + '</p><p>Participants concernés · ' + esc(s
-      .stores.filter(t => removed.includes(s.replies[t.id]?.v || t.assigned)).map(t => t.name).join(', ') || 'aucun') + '</p><p>Supports à revoir · ' +
+      .stores.filter(t => t.targeted!==false && removed.includes(s.replies[t.id]?.v || t.assigned)).length) + '</p><p>Supports à revoir · ' +
     esc(s.supports.filter(y => y.products.includes(id) && impactedVersions(p, data).some(v => inScope(y, v))).map(y => y.name + ' · page ' + pageFor(y,
       p)).join(', ') || 'aucun') + '</p>', apply,
     'Confirmer la modification');
@@ -560,7 +561,7 @@ window.studioWizard = () => {
   } = current(), s = ctx.state, shop = ctx.role === 'magasin', products = s.products.map(x => ({
     ...x,
     vs: x.versions
-  })), stores = s.stores;
+  })), stores = participantsOf(s);
   const toIndex = map => Object.fromEntries(products.flatMap((p, i) => map && Object.hasOwn(map, p.id) ? [
     [i, map[p.id]]
   ] : []));
@@ -583,7 +584,10 @@ window.studioWizard = () => {
     eligibility: products.map(p => Object.fromEntries(s.config.versions.map(v => [v.id, p.versions.includes(v.id)])))
   };
   return {
-    shop,
+    pimLink:v=>location.pathname+location.search+route("produits",{v}),
+    shop, axes, matches, targetPlan, network: shop ? [] : s.stores, groups:s.targetGroups || [], legacy:!!s.legacyAssignments,
+    confirmed:shop ? [] : stores.filter(t=>s.replies[t.id]?.confirmed).map(t=>t.id),
+    applyGroups: async groups=>{await save('targeting',{groups}); notify('Proposition appliquée aux groupes de magasins.');},
     mode: page === 'configurer' && !shop ? 'admin' : 'shop',
     tab: page === 'configurer' && !shop ? 'rules' : 'entry',
     store: Math.max(0, stores.findIndex(t => t.id === q.get('id'))),
@@ -591,12 +595,6 @@ window.studioWizard = () => {
     products,
     data,
     title: s.op.title,
-    impact(a, b) {
-      const ps = v => eligible(s, v);
-      return 'Produits gagnés : ' + (ps(b).filter(x => !x.versions.includes(a)).map(x => x.name).join(', ') || 'aucun') + '. Perdus : ' + (ps(a).filter(x => !x
-        .versions.includes(b)).map(x => x.name).join(', ') || 'aucun') + '. Communs : ' + (ps(b).filter(x => x.versions.includes(a)).map(x => x.name).join(
-        ', ') || 'aucun') + '.'
-    },
     command(mode, i, d) {
       if (mode === 'shop') {
         const r = d.replies[i];
@@ -624,8 +622,10 @@ window.studioWizard = () => {
         action: 'config',
         payload: {
           config,
-          rules: Object.fromEntries(stores.map((x, i) => [x.id, rules[i]])),
-          assign: Object.fromEntries(stores.map((x, i) => [x.id, assigned[i]])),
+          ...(Array.isArray(s.targetGroups) ? {} : {
+            rules: Object.fromEntries(stores.map((x, i) => [x.id, rules[i]])),
+            assign: Object.fromEntries(stores.map((x, i) => [x.id, assigned[i]]))
+          }),
           eligibility: Object.fromEntries(products.map((x, i) => [x.id, Object.keys(eligibility[i]).filter(k => eligibility[i][k])]))
         }
       }

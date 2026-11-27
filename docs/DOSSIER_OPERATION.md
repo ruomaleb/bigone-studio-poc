@@ -10,7 +10,7 @@ Les six rubriques sont Informations, Participants et Supports en Préparation, P
 
 GitHub Pages sert l’interface. Le Worker `bigone-studio-operations` traite les demandes, valide les accès et enregistre les révisions dans la base dédiée `bigone-studio-operations-poc`. Le modèle Workers AI explique les données du dossier. Le service applique une limite de 35 demandes par dossier et 80 au total par jour, puis affiche une synthèse calculée. Une indisponibilité du modèle active le même mode de lecture.
 
-L’essai utilise les trois produits témoins, les deux supports, les deux flux et les dix participants de la maquette S49. Les responsables peuvent ouvrir un espace partagé par opération avec leur code Studio. Le serveur vérifie le rôle auprès du projet Supabase Studio existant à l’ouverture. Il importe l’opération lors du premier accès et conserve ensuite les évolutions du pilote dans D1. Les anciens écrans restent accessibles par l’option `?classique=1`. Les deux systèmes ne disposent pas d’une synchronisation bidirectionnelle.
+L’essai utilise les trois produits témoins, les deux supports, les deux flux et 900 points de vente fictifs Nanotera. Les responsables peuvent ouvrir un espace partagé par opération avec leur code Studio. Le serveur vérifie le rôle auprès du projet Supabase Studio existant à l’ouverture. Il importe l’opération lors du premier accès et conserve ensuite les évolutions du pilote dans D1. Les anciens écrans restent accessibles par l’option `?classique=1`. Les deux systèmes ne disposent pas d’une synchronisation bidirectionnelle.
 
 Les contrôles serveur vérifient la portée magasin, les versions éligibles, les quantités et les budgets. Chaque modification vérifie le numéro de révision. Une confirmation identique est idempotente. Les fichiers PDF, JPEG et PNG de 1 Mo maximum sont attachés aux révisions. Les décisions de BAT conservent les données relues. La remise d’un export repose sur la saisie d’un reçu externe. Les brouillons de relance restent dans le dossier.
 
@@ -18,7 +18,7 @@ Les contrôles serveur vérifient la portée magasin, les versions éligibles, l
 
 Lancer `node tests/design-smoke.mjs` puis `node tests/operation.mjs` avec Node 24. Le second contrôle utilise SQLite en mémoire et passe par le gestionnaire HTTP du Worker.
 
-Le schéma D1 est dans `server/schema.sql`. Les trois modules JavaScript du Worker se déploient avec la configuration `server/wrangler.toml`. Le code Responsable sert à la vérification par le service Studio et ne doit jamais être enregistré dans le dépôt ni journalisé. Le dépôt ne contient que l’identifiant et la clé publique de lecture déjà utilisés par le POC.
+Le schéma D1 est dans `server/schema.sql`. Les quatre modules JavaScript du Worker se déploient avec la configuration `server/wrangler.toml`. Le code Responsable sert à la vérification par le service Studio et ne doit jamais être enregistré dans le dépôt ni journalisé. Le dépôt ne contient que l’identifiant et la clé publique de lecture déjà utilisés par le POC.
 
 Publier depuis `main` vers `gh-pages`. Refaire le parcours sur l’URL publique dans un nouvel essai individuel. Vérifier une confirmation magasin, le changement du compteur d’affiches, la correction du prix de l’emmental et le téléchargement du flux. La base historique du Studio reste disponible en cas de retour au site précédent. Pour revenir à la version antérieure, révoquer le changement de publication par un commit de revert. Les écritures du pilote restent dans la base dédiée.
 
@@ -50,4 +50,11 @@ Un prix local confirmé différent du prix national produit une variante sur les
 
 Les tests métier s’exécutent avec `node tests/operation.mjs`. La recette d’interface s’exécute avec `node tests/operation-interface.cjs` dans un environnement équipé de Playwright et Chromium. La variable facultative `CHROMIUM_PATH` désigne un navigateur déjà installé. Ces suites utilisent des données et une base locales.
 
-Sur l’URL publique, la question sur l’emmental a ouvert directement la page 6 du BAT. Dans un essai individuel, la variante de Super U Démo 01 en V1 a affiché le café page 7 à 8,40 € TTC au niveau national et 6,75 € TTC pour le magasin. Après correction de l’emmental à 4,99 € et ouverture de R2, le lien vers R1 a retrouvé le prix d’origine à renseigner, y compris après rechargement. Les anciens liens vers un flux ou une révision ouvrent maintenant la pièce demandée.
+Sur l’URL publique, la question sur l’emmental a ouvert directement la page 6 du BAT. Dans un essai individuel, la variante de Nanotera Paris 001 en V1 a affiché le café page 7 à 8,40 € TTC au niveau national et 6,75 € TTC pour le magasin. Après correction de l’emmental à 4,99 € et ouverture de R2, le lien vers R1 a retrouvé le prix d’origine à renseigner, y compris après rechargement. Les anciens liens vers un flux ou une révision ouvrent maintenant la pièce demandée.
+
+
+## Proposition par groupe · version 2026-11-27.5
+
+Ouvrir Préparation → Participants → Proposer une version par groupe. La version donne l’assortiment du PIM. Le responsable compose le ciblage par format, région et type de zone, place ses groupes par ordre de priorité puis applique la proposition. Les recoupements comptent une fois. Les réponses confirmées affectées par une nouvelle version demandent une relecture. Les anciennes sessions des magasins sortis du ciblage perdent l’accès. Les autres confirmations restent acquises.
+
+Le dossier d’essai conserve les mêmes identifiants pour les dix magasins historiques, complète le réseau à 900 et utilise Nanotera dans les écrans du catalogue et du dossier. Les affectations historiques personnalisées restent disponibles jusqu’à la première application du ciblage.

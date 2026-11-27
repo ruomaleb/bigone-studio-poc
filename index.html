@@ -53,7 +53,7 @@
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-27.4';
+const VERSION='2026-11-27.5';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -125,7 +125,7 @@ const prixDe=(s,p)=>s.prixVar&&s.prixVar[p.id]!=null?s.prixVar[p.id]:p.prix;
 const nbBloqS=s=>offresDe(s).reduce((n,p)=>n+controles(p,prixDe(s,p)).b.length,0);
 const echeance=(s,o)=>s.remise||(typ(s).f==='imprime'?o.remise||decale(o.debut,-8):decale(o.debut,typ(s).f==='flux'?-2:-1));
 const resOp=o=>o.reseau||((o.enseignes||[]).some(e=>/(^|\s)U(\s|$)/.test(e))?'Magasins U':(o.enseignes||[])[0]||'Réseau à préciser');
-const magsDe=o=>S.magasins.filter(m=>(m.reseau||'Magasins U')===resOp(o));
+const magsDe=o=>S.magasins.filter(m=>(m.reseau||'Réseau à préciser')===resOp(o));
 const engDoc=o=>S.engagements.find(e=>e.id===o.id)||{};
 const eng=(o,m)=>{const d=S.engagements.find(e=>e.id===o.id+'__'+m.id);if(d)return {statut:d.statut,supports:d.supports??null,qte:d.qte||{},maj:d.maj||''};const v=engDoc(o)[m.id];return typeof v==='string'?{statut:v,supports:null}:v||{statut:'attente',supports:null}};
 let engQ=Promise.resolve();
@@ -194,10 +194,10 @@ async function w(path,data,mode){const [col,id]=path.split('/'),op=mode==='set'?
 const uid=p=>p+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const log=(op,texte,type)=>w('journal/'+uid('j'),Object.assign({op,date:new Date().toISOString().slice(0,19),texte},type?{type}:{}),'set');
 let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
-async function charger(){const e0=ecrits;try{const r=await fetch(SB+'/rest/v1/docs?select=col,id,data,version&order=col,id',{headers:HD});if(!r.ok)throw 0;const rows=await r.json(),N={},sig=JSON.stringify(rows);
+async function charger(){const e0=ecrits;try{const r=await fetch(SB+'/rest/v1/docs?select=col,id,data,version&order=col,id',{headers:HD});if(!r.ok)throw 0;const rows=await r.json(),N={},sig=Boolean(CODE)+'|'+JSON.stringify(rows);
     if(e0!==ecrits)return false;/* une écriture a eu lieu pendant la lecture : ce résultat est peut-être déjà dépassé */
     if(sig===charger.sig&&status==='ok')return true;charger.sig=sig;Object.keys(S).forEach(k=>N[k]=[]);
-    rows.forEach(x=>{if(N[x.col])N[x.col].push(Object.assign({id:x.id},x.data,{_v:x.version}))});Object.assign(S,N);status='ok';schedule();return true}catch(e){if(status!=='ok')status='err';schedule();return false}}
+    rows.forEach(x=>{if(N[x.col])N[x.col].push(Object.assign({id:x.id},x.data,{_v:x.version}))});const {projectCatalog}=await import('./server/targeting.mjs?v=5');Object.assign(S,projectCatalog(N,Boolean(CODE)));status='ok';schedule();return true}catch(e){if(status!=='ok')status='err';schedule();return false}}
 async function init(){lireVisuels().then(schedule).catch(()=>{});render();
   if(PUBLIC){await charger();if(CODE&&!ROLE)rpc({p_code:CODE,p_op:'check'}).then(r=>{if(r&&r.ok===true)retenirCode(CODE,r);else oublierCode();render()}).catch(()=>{});setInterval(()=>{if(!document.hidden&&!$('#dlg').open&&!$('#acces-dialog').open&&!$('#product-dialog').open)charger()},20000);return}
   let n=0;while(!(window.claude&&window.claude.use)&&n++<30)await new Promise(r=>setTimeout(r,100));
@@ -561,7 +561,9 @@ function tOffres(o,context){
   return `${nb||na?`<div class="row">${nu?`<span class="pill crit">${nu} anomalie(s) sur des offres utilisées</span>`:''}${nb>nu?`<span class="pill">${nb-nu} anomalie(s) hors dispositif</span>`:''}${na?`<span class="pill warn">${na} avertissement(s)</span>`:''}</div>`:''}
   <section class="card"><div class="row" style="justify-content:space-between"><h2>Produits et offres</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier toutes les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${list.toolbar}${list.count}${rows?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide(list.changed?'Aucune offre avec ces filtres.':'Aucune offre dans cette opération.')}</section>`}
 const varPour=(b,m)=>varsDe(b).find(v=>(v.magasinsVar||[]).includes(m.id));
-function tMagasins(o,context){const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m=>eng(o,m).statut==='engage'),choisi=(e,b)=>!e.supports||e.supports.includes(b.id);
+function tMagasins(o,context){
+ if(o.id==='u-2649-pbs')return '<section class="card"><h2>Proposition par groupe</h2><p>Choisissez une version commerciale et son assortiment, puis ciblez le groupe par format, région ou type de zone.</p><a class="btn pri" href="'+esc(dossierUrl(o,'magasins').replace('#participants','#configurer'))+'">Proposer une version par groupe</a></section>';
+ const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m=>eng(o,m).statut==='engage'),choisi=(e,b)=>!e.supports||e.supports.includes(b.id);
   const list=filterList(ms.map(m=>{
     const e=eng(o,m);
     return {record:m,name:m.nom,code:m.code,engagement:ENG.find(([id])=>id===e.statut)?.[1]||'Non renseigné',
@@ -745,9 +747,9 @@ function productionContent(o,supportKey,revisionKey){
 /* Administration : lecture des référentiels existants, sans simuler des connecteurs ou des droits. */
 const ADMIN_TABS=[['magasins','Magasins','Réseaux et identifiants magasins'],['modeles','Supports et modèles','Familles et jalons réutilisés'],['droits','Utilisateurs et droits','Accès et responsabilités'],['connexions','Connexions','Services et passage vers Media']];
 function vAdministration(tab){let content='';
- const stores=tab==='magasins'?filterList(S.magasins.map(m=>({record:m,name:m.nom,code:m.code,reseau:m.reseau||'Magasins U',identifiant:m.code?'Renseigné':'À renseigner'})),['reseau','identifiant'],['nom','nomDesc','code'],{ids:{reseau:'admin-reseau'}}):null;
+ const stores=tab==='magasins'?filterList(S.magasins.map(m=>({record:m,name:m.nom,code:m.code,reseau:m.reseau||'Réseau à préciser',identifiant:m.code?'Renseigné':'À renseigner'})),['reseau','identifiant'],['nom','nomDesc','code'],{ids:{reseau:'admin-reseau'}}):null;
  const ms=stores?stores.visible.map(r=>r.record):[];
- if(tab==='magasins')content=`<section class="card"><div class="card-heading"><div><span class="section-label">Référentiel permanent</span><h2>Magasins</h2></div></div>${stores.toolbar}<p class="muted small">${ms.length} magasin(s). Les engagements, supports retenus et quantités se gèrent dans la préparation de chaque opération.</p>${ms.length?`<div class="scroll"><table><thead><tr><th>Magasin</th><th>Code point de vente</th><th>Réseau</th></tr></thead><tbody>${ms.map(m=>`<tr><td><b>${esc(m.nom)}</b></td><td>${esc(m.code||'—')}</td><td>${esc(m.reseau||'Magasins U')}</td></tr>`).join('')}</tbody></table></div>`:vide('Aucun magasin avec ces critères.')}<p class="small muted">La fiche d’un magasin reste modifiable depuis l’onglet Magasins de son opération. Cet écran rassemble les référentiels en consultation.</p></section>`;
+ if(tab==='magasins')content=`<section class="card"><div class="card-heading"><div><span class="section-label">Référentiel permanent</span><h2>Magasins</h2></div></div>${stores.toolbar}<p class="muted small">${ms.length} magasin(s). Les engagements, supports retenus et quantités se gèrent dans la préparation de chaque opération.</p>${ms.length?`<div class="scroll"><table><thead><tr><th>Magasin</th><th>Code point de vente</th><th>Réseau</th></tr></thead><tbody>${ms.map(m=>`<tr><td><b>${esc(m.nom)}</b></td><td>${esc(m.code||'—')}</td><td>${esc(m.reseau||'Réseau à préciser')}</td></tr>`).join('')}</tbody></table></div>`:vide('Aucun magasin avec ces critères.')}<p class="small muted">La fiche d’un magasin reste modifiable depuis l’onglet Magasins de son opération. Cet écran rassemble les référentiels en consultation.</p></section>`;
  if(tab==='modeles'){
  const list=filterList(Object.entries(TYPES).map(([name,t])=>({name,t,famille:FAMILLES[t.f],composition:t.pagine?'Paginé':'Non paginé'})),['famille','composition'],['nom','nomDesc']);
  content=`<section class="card"><span class="section-label">Référentiel des supports</span><h2>Familles et calendriers</h2>${list.toolbar}${list.count}<p class="small muted">Modèles utilisés par Studio pour proposer les jalons. Les paramètres et dates s’ajustent dans le dispositif de chaque opération.</p><div class="scroll"><table><thead><tr><th>Support</th><th>Famille</th><th>Composition</th></tr></thead><tbody>${list.visible.map(({name:n,t})=>`<tr><td><b>${esc(n)}</b></td><td>${FAMILLES[t.f]}</td><td>${t.pagine?'Chemin de fer paginé':'Sélection d’offres ou création institutionnelle'}</td></tr>`).join('')}</tbody></table></div><div class="grid">${Object.entries(MODELES).filter(([k])=>list.visible.some(r=>r.t.f===k)).map(([k,rows])=>`<details><summary>Jalons ${FAMILLES[k].toLowerCase()}</summary><div class="list">${rows.map(([,n,d])=>`<div><span>${esc(n)}</span><span class="small muted">${d===0?'À l’échéance':Math.abs(d)+' jours ouvrés avant'}</span></div>`).join('')}</div></details>`).join('')}</div></section>`;

@@ -1,3 +1,4 @@
+import {participantsOf} from './targeting.mjs';
 import {
   pageFor,
   reviewChanges,
@@ -30,14 +31,20 @@ export function dossierFacts(s, shop, question) {
     link,
     label
   });
-  add(t.engage + ' magasins engagés, ' + t.attente + ' en attente, ' + t.non + ' non participant(s) sur ' + s.stores.length + '. ' + t.heritage +
+  const participants=participantsOf(s);
+  const examples = rows => rows.length ? rows.length+' magasin(s), dont '+rows.slice(0,3).map(t=>t.name).join(', ') : 'aucun';
+  for(const group of s.targetGroups || []) {
+    const n=participants.filter(t=>t.groupId===group.id).length;
+    add(group.name+' · '+group.version+' · '+n+' magasins, '+eligible(s,group.version).length+' références. Critères : '+(Object.values(group.criteria).flat().join(', ') || 'tout le réseau')+'.','configurer','Ouvrir la proposition par groupe', /group|cibla|hyper|supere|region|zone/.test(q));
+  }
+  add(t.engage + ' magasins engagés, ' + t.attente + ' en attente, ' + t.non + ' non participant(s) sur ' + participants.length + '. ' + t.heritage +
     ' sélections héritées restent à confirmer. ' + (t.confirmed ? t.quantity + ' affiches A1 confirmées.' : 'Le tirage confirmé est encore inconnu.'),
     'participants?filtre=heritage', 'Voir les sélections héritées');
-  const inherited = s.stores.filter(x => x.status === 'engage' && !s.replies[x.id]?.confirmed);
-  const waiting = s.stores.filter(x => x.status === 'attente' && !s.replies[x.id]?.confirmed);
-  add('Sélections héritées à confirmer : ' + (inherited.map(x => x.name).join(', ') || 'aucune') + '.', 'participants?filtre=heritage',
+  const inherited = participants.filter(x => x.status === 'engage' && !s.replies[x.id]?.confirmed);
+  const waiting = participants.filter(x => x.status === 'attente' && !s.replies[x.id]?.confirmed);
+  add('Sélections héritées à confirmer : ' + examples(inherited) + '.', 'participants?filtre=heritage',
     'Préparer une relance des engagés');
-  add('Participation en attente : ' + (waiting.map(x => x.name).join(', ') || 'aucune') + '.', 'participants?filtre=attente',
+  add('Participation en attente : ' + examples(waiting) + '.', 'participants?filtre=attente',
     'Ouvrir les participations en attente');
   for (const ver of s.config.versions.filter(x => !v || x.id === v)) {
     const ps = eligible(s, ver.id);
@@ -83,7 +90,8 @@ export function dossierFacts(s, shop, question) {
 export function relevant(f, q) {
   const a = normalize(q);
   let prefix = '';
-  if (/flux|bonial|tiendeo|export/.test(a)) prefix = 'flux';
+  if (/groupe|ciblage|hypermarche|superette/.test(a)) prefix='configurer';
+  else if (/flux|bonial|tiendeo|export/.test(a)) prefix = 'flux';
   else if (/bat|revision|reli|prospectus|page|correction/.test(a)) prefix = 'production';
   else if (/produit|offre|prix|version|reference|assortiment|pim/.test(a)) prefix = 'produits';
   else if (/magasin|particip|affiche|relanc|engag|quantit/.test(a)) prefix = 'participants';
