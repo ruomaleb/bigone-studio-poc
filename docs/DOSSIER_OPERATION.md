@@ -28,9 +28,9 @@ Publier depuis `main` vers `gh-pages`. Refaire le parcours sur l’URL publique 
 | --- | --- |
 | Assistant et PIM | Sur l’URL publique, une question sur V3 a renvoyé le champagne seul. Le lien de la réponse a ouvert le PIM avec le filtre V3. |
 | Participant et réseau | Sur deux sessions aux droits distincts, confirmation de 20 affiches A1 et relecture du total côté enseigne. Le test serveur couvre le double envoi et la limitation des accès. |
-| Offre et flux | Sur l’essai en ligne, correction du prix manquant de l’emmental, contrôle de Bonial puis génération et téléchargement du CSV. Le test serveur couvre la remise et les archives lors du changement de version. |
-| BAT | La recette serveur passe de la nouvelle révision à la revue puis à la validation. Elle relit l’historique après modification du prix et contrôle l’accès aux pièces jointes. |
+| Offre et flux | Sur l’essai en ligne, correction du prix manquant de l’emmental, contrôle de Bonial puis génération et téléchargement du CSV. Après saisie d’un reçu de test, le changement de V1 à V3 a conservé le reçu et permis de télécharger à nouveau le fichier V1 depuis l’historique. |
+| BAT | Sur le site publié, ouverture de R2 du prospectus, mise en revue, validation et relecture des trois décisions après rechargement. La recette serveur contrôle également l’accès aux pièces jointes. |
 | Réponse détaillée | En navigateur à 1 850 et 390 px, saisie de deux affiches et d’un kit, de 1 500 tracts, d’un budget local de 400 € et d’un café à 6,75 € TTC. Relecture après confirmation. Le kit porte le total à quatre affiches et la PLV à 27 € HT. |
 | Import | Lecture du dossier historique S49 et conversion de ses 14 produits, 10 participants, 4 supports et 2 flux. Le test de non-régression porte sur le prix source, la page de placement, le nombre de pages et le numéro de BAT. |
 
-Dans les dossiers historiques, les produits dont la version commerciale reste à renseigner apparaissent dans le PIM. Les liens vers des fichiers de l’ancien Studio dépendent de la disponibilité de leur URL d’origine.
+Dans les dossiers historiques, les produits dont la version commerciale reste à renseigner apparaissent dans le PIM. La création d’une référence V3 et d’une affiche A2 limitée à V3 a été vérifiée sur le site publié. La page d’accès au dossier partagé demande le code Responsable dans un navigateur neuf. La connexion avec un code réel reste à vérifier dans la session d’un responsable. Les liens vers des fichiers de l’ancien Studio dépendent de la disponibilité de leur URL d’origine.

@@ -13,3 +13,10 @@ body.dossier #main{display:block;min-width:0;gap:0}
 .suggest svg{width:17px;height:17px;display:block}
 .compose button[data-chat="send"]{border:1px solid #7869ff;border-radius:50%;width:32px;height:32px;flex:0 0 32px;color:#665dff;padding:6px}
 .compose button[data-chat="send"] svg{width:18px;height:18px}
+
+html:has(body.dossier),body.dossier {overflow:hidden}
+html:has(body.dossier) {scrollbar-gutter:auto}
+body.dossier #layout {height:100dvh;min-height:0;overflow:hidden}
+body.dossier #work {height:100%;overflow:auto;overscroll-behavior:contain}
+body.dossier #ai {height:100dvh}
+@media(min-width:901px) and (min-height:760px){.aifoot{min-height:194px}}
