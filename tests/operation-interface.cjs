@@ -83,6 +83,8 @@ const root = path.resolve(__dirname, '..'),
         body: await r.text()
       })
     });
+    await require('./pilot-interface.cjs')(c,url);
+    if(process.env.PILOT_ONLY)return;
     const p = await c.newPage();
     p.setDefaultTimeout(7000);
     const errors = [];

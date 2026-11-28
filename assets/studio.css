@@ -547,3 +547,26 @@ body:has(#product-dialog[open]){overflow:hidden}
 .ed-note-count{grid-column:1/-1;font-size:10px;color:#84480b}
 .ed-zoom{display:flex;gap:1px;margin-left:auto;align-items:center}.ed-zoom .ed-btn{padding:3px 6px;font-size:12px;min-height:28px}
 .ed-board{justify-content:safe center;align-items:safe center}.ed-paper{max-width:none;width:min(calc(96cqw * var(--ed-zoom,1)),calc(68cqh * var(--ed-zoom,1)))}
+
+/* Dossier de production : engagements, épreuves digitales et suivi de remise. */
+.kit-intro,.kit-tabs,.kit-proofs{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.kit-intro img{height:110px;width:92px;object-fit:cover;border-radius:8px}
+.kit-tabs{gap:8px;margin:10px 0 16px}
+.kit-stats{margin:12px 0}
+.kit-work,.kit-bat{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(210px,1fr);gap:16px;align-items:start}
+.kit-wall,.kit-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.kit-tile,.kit-gallery a{display:grid;gap:6px;padding:10px;background:white;border:1px solid var(--line);border-radius:8px;text-decoration:none;color:var(--ink)}
+.kit-tile.chosen{outline:2px solid var(--violet);outline-offset:-2px}
+.kit-stage{height:166px;background:var(--soft);display:grid;place-items:center;border-radius:5px}
+.kit-stage canvas{max-width:100%;max-height:154px;width:auto;height:auto}
+.kit-tile small,.kit-gallery small{color:var(--muted)}
+.kit-proof{margin:0;flex:1;min-width:95px;text-align:center;font-weight:700}
+.kit-proof img{width:100%;height:310px;object-fit:contain;background:var(--soft);border-radius:6px}
+.kit-response{display:grid;gap:12px;max-width:640px}
+.kit-response fieldset{border:1px solid var(--line);border-radius:7px;display:grid;gap:12px;padding:16px}
+.kit-year{border-left:3px solid var(--violet);padding:8px 14px;background:var(--violet-soft);margin:12px 0}
+.kit-gallery a{grid-template-columns:1.1fr 1fr;align-items:center;background:#e3eadb;overflow:hidden}
+.kit-gallery img{width:100%;height:135px;object-fit:contain}
+.kit-gallery strong,.kit-gallery small{display:block}.kit-thumb{width:48px;height:52px;object-fit:contain}
+@media(max-width:850px){.kit-work,.kit-bat{grid-template-columns:1fr}}
+@media(max-width:520px){.kit-stage{height:112px}.kit-stage canvas{max-height:104px}.kit-gallery{grid-template-columns:1fr}}

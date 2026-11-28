@@ -36,7 +36,7 @@ export const table = (hs, rows) => '<div class="listwrap"><table><thead><tr>' + 
 const tr = (...values) => '<tr>' + values.map(x => '<td>' + x + '</td>').join('') + '</tr>';
 export const field = (name, label, value, type = 'text', attrs = '') => '<label class="field">' + esc(label) + '<input type="' + type + '" name="' + esc(name) +
   '" value="' + esc(value) + '" ' + attrs + '></label>';
-export const sel = (name, label, options, selected) => '<label class="field">' + esc(label) + '<select name="' + name + '">' + options.map(([k, v]) =>
+export const sel = (name, label, options, selected) => '<label class="field">' + esc(label) + '<select aria-label="' + esc(label) + '" name="' + name + '">' + options.map(([k, v]) =>
   '<option value="' + esc(k) + '" ' + (k === selected ? 'selected' : '') + '>' + esc(v) + '</option>').join('') + '</select></label>';
 export const checks = (name, options, chosen) => options.map(([k, v]) => '<label class="pick"><input type="checkbox" name="' + esc(name) + '" value="' + esc(k) +
   '" ' + (chosen.includes(k) ? 'checked' : '') + '> ' + esc(v) + '</label>').join(' ');
@@ -81,6 +81,7 @@ export function info(s, q) {
     '<p>Édition Nanotera Levallois du 19 au 26 novembre 2022. Les pages 2 à 5 présentent les 21 références de l’offre d’origine.</p><div class="actions">' +
     link(route('production',{id:catalogueId,page:2}), 'Feuilleter le catalogue') + link(route('production',{id:catalogueId,atelier:'fer',page:2}),'Chemin de fer') + link(route('production',{id:catalogueId,atelier:'bat',page:2}),'BAT collaboratif') + link('#produits','Consulter les fiches produits') +
     '<a class="quiet" target="_blank" rel="noopener" href="' + cataloguePdf + '">Ouvrir le PDF original ↗</a></div></div></section>' : '';
+  if(s.kit)return summary+jal+source;
   return source + summary + jal + card('À préparer', row('Confirmer les choix de supports', t.heritage + ' sélections héritées · ' + t.attente +
       ' participations en attente.', link('#participants?filtre=heritage', 'Voir les participants')) + row(miss.length ? 'Compléter les produits utilisés' : 'Vérifier l’offre commerciale', miss.length ? miss.length + ' fiche(s) avec un prix manquant.' : s.products.length + ' références avec un prix renseigné.', link(route('produits', {
         id: miss[0]?.id
@@ -249,10 +250,11 @@ export function flows(s, q) {
   return card('Flux', none('Contrôler l’offre par version, générer un fichier et consigner sa remise.') + (id ? link('#flux', 'Tous les flux') : '') + (id && !
     selected.length ? none('Ce flux est indisponible dans le dossier.') : '') + selected.map(f => {
     const errors = anomalies(s, f.v);
+    const missingUnit = s.kit && f.id==='bd-bonial' && eligible(s,f.v).find(p=>p.id===s.kit.product && !p.pack?.trim());
     return '<section class="inset" style="margin:12px 0"><div class="hrow"><h3>' + esc(f.name) + '</h3>' + tag(f.stage, f.stage === 'À corriger' ? 'warn' :
         '') + '</div><div class="filters">' + sel('flow-' + f.id, 'Version commerciale', [
         ['', 'À affecter'], ...s.config.versions.map(v => [v.id, v.id + ' · ' + v.name])
-      ], f.v) + '</div>' + errors.map(p => row(p.name, 'Prix national manquant', link(route('produits', {
+      ], f.v) + '</div>' + (missingUnit?row(missingUnit.name,'Conditionnement à renseigner pour cet export de recette',link(route('produits',{id:missingUnit.id}),'Corriger dans le PIM')):'') + errors.map(p => row(p.name, 'Prix national manquant', link(route('produits', {
         v: f.v,
         id: p.id
       }), 'Corriger dans le PIM'))).join('') + (f.checked ? none('Dernier contrôle · ' + new Date(f.checked).toLocaleString('fr-FR')) : '') +
