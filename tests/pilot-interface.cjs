@@ -28,7 +28,11 @@ module.exports=async function pilot(context,url) {
   }
   try {
     await go('#participants');assert.equal(await p.locator('tbody tr').count(),6);
-    const a=await invite('A');await a.setViewportSize({width:390,height:844});
+    assert.equal(await p.getByRole('button',{name:'Importer une révision'}).count(),0);
+    await p.getByLabel('Réglages de l’opération',{exact:true}).click();
+    await p.getByRole('link',{name:'Administration de la mécanique'}).click();
+    await p.getByRole('button',{name:'Importer une révision'}).waitFor();
+    const a=await invite('A');assert(await a.locator('#operation-settings').isHidden());await a.setViewportSize({width:390,height:844});
     await a.locator('select[name=yn]').selectOption('yes');
     await a.getByLabel(/Kit digital Gaia/).check();await a.getByLabel(/Affiches A3/).fill('2');
     await a.getByRole('button',{name:'Confirmer ma participation'}).click();await a.getByText('Participation enregistrée.').waitFor();
@@ -82,7 +86,20 @@ module.exports=async function pilot(context,url) {
     await go('#flux?vue=enrichis&edition=NT-V1-SUD');assert.equal(await p.locator('tbody tr .tag').filter({hasText:'Actif'}).count(),2);
     await p.getByLabel('Simuler la date').fill('2027-01-25');await p.getByRole('button',{name:'Afficher'}).click();
     await p.waitForFunction(()=>[...document.querySelectorAll('tbody .tag')].filter(t=>t.textContent==='Actif').length===3);
-    await go('#flux?vue=reseau');await p.getByRole('heading',{name:'Mes flux · Brico-déco'}).waitFor();
+    await go('#flux?vue=reseau');await p.getByRole('heading',{name:'Mes flux',exact:true}).waitFor();
+    await p.getByLabel('Publication prévue',{exact:true}).fill('2027-01-18');
+    await p.waitForURL(/publication=2027-01-18/);
+    assert.equal(await p.locator('.flow-cell a').count(),3);
+    await p.getByRole('link',{name:'Réinitialiser'}).click();
+    await p.getByRole('link',{name:'Réinitialiser'}).waitFor({state:'detached'});
+    await p.locator('.flow-board').waitFor();
+    await p.setViewportSize({width:390,height:844});
+    assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await p.locator('[data-flow-toggle]').click();
+    await p.getByLabel('Version',{exact:true}).selectOption('V2');
+    await p.waitForURL(/version=V2/);
+    await p.getByRole('link',{name:/E-catalogue.*V2/}).click();
+    await p.getByText('NT-V2-EST',{exact:true}).waitFor();
     await p.setViewportSize({width:390,height:844});await go('#production?vue=kit');assert(await p.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
     assert.deepEqual(issues,[]);console.log('PASS pilote Nanotera · 6 magasins, 30 affiches, 4 vrais PNG, 6 affectations, révision locale, BAT à deux accès, ZIP de C et flux territoriaux');
     await Promise.all([rev.close(),c.close(),a.close()]);
