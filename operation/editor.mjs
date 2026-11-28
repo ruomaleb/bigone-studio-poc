@@ -1,6 +1,6 @@
 import {mountProof} from './proof-file.mjs';
 import {compose,proof,photo,visuals,isCatalogue} from '../server/edition.mjs';
-import {esc,euros,link,route,priorityNames} from './views.mjs?v=20261128.7';
+import {esc,euros,link,route,priorityNames} from './views.mjs?v=20261128.8';
 
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const round=v=>Math.round(v*100)/100;

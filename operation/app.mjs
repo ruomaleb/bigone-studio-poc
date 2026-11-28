@@ -1,7 +1,7 @@
-import {bricoId,isBricoDemo} from '../server/brico.mjs?v=20261128.7';
-import {pilotIntro,pilotParticipants,shopYear,shopView,shopPayload,pilotFrame,kitView,kitReviewView,mountKit,kitAction} from './kit.mjs?v=20261128.7';
-import {monitor} from './monitor.mjs?v=20261128.7';
-import {editorController} from './editor.mjs?v=20261128.7';
+import {bricoId,isBricoDemo,usesBricoVersions,versionLabel,versionOptions} from '../server/brico.mjs?v=20261128.8';
+import {pilotIntro,pilotParticipants,shopYear,shopView,shopPayload,pilotFrame,kitView,kitReviewView,mountKit,kitAction} from './kit.mjs?v=20261128.8';
+import {monitor} from './monitor.mjs?v=20261128.8';
+import {editorController} from './editor.mjs?v=20261128.8';
 import {axes, matches, targetPlan, participantsOf} from '../server/targeting.mjs';
 import {
   blank,
@@ -11,7 +11,7 @@ import {
   impactedVersions,
   commonPlan,
   localVariantPrices
-} from '../server/model.mjs?v=20261128.7';
+} from '../server/model.mjs?v=20261128.8';
 import {
   esc,
   info,
@@ -30,7 +30,7 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=20261128.7';
+} from './views.mjs?v=20261128.8';
 import {
   setupChat
 } from './chat.mjs?v=8';
@@ -131,7 +131,7 @@ function summaryFrame(pg, q) {
   const t = ctx.state.stores.find(x => x.id === q.get('id')) || participantsOf(ctx.state)[0];
   if ((!t || t.targeted === false) && pg === 'participation') return '<section class="sheet">Aucun participant affecté.</section>';
   return '<div class="hrow sectionhead"><h2>' + esc(names[pg]) + '</h2>' + (ctx.role === 'enseigne' ? link('#participants', 'Revenir aux participants') : '') +
-    '</div><label class="wizard-filter">Filtrer les étapes<input type="search" id="wizard-filter"></label><iframe src="participants/?v=11" class="wizard" title="Choix des participants"></iframe>'
+    '</div><label class="wizard-filter">Filtrer les étapes<input type="search" id="wizard-filter"></label><iframe src="participants/?v=20261128.8" class="wizard" title="Choix des participants"></iframe>'
 }
 
 function selectedProduct() {
@@ -160,7 +160,7 @@ function operationRecord() {
   if(s.op.id===bricoId && ['bd-03','bd-01','bd-06','bd-04'].includes(p.id) && p.versions.includes('V1'))pieces.push({name:'Accueil E-catalogue · Sud',detail:'Visuel de l’édition NT-V1-SUD',href:route('flux',{vue:'visuels',edition:'NT-V1-SUD'})});
   const exports = s.flows.filter(f => p.versions.includes(f.v)).map(f => ({
     name: f.name,
-    detail: 'Flux · assortiment ' + f.v + ' · ' + f.stage,
+    detail: 'Flux · ' + versionLabel(s,f.v) + ' · ' + f.stage,
     href: route('flux', {
       id: f.id
     })
@@ -178,7 +178,7 @@ function operationRecord() {
       ['Conditionnement', p.pack || 'À renseigner'],
       ['Prix national TTC', euros(p.price)],
       ['Priorité de l’offre', priorityNames[p.priority] || 'Standard'],
-      ['Versions commerciales', p.versions.join(' · ') || 'À affecter'],
+      ['Versions commerciales', p.versions.map(id=>versionLabel(s,id)).join(' · ') || 'À affecter'],
       ['Mentions', p.note]
     ],
     media: window.StudioProductSheet.mediaFor(p, s.op.id),
@@ -434,7 +434,7 @@ init();
     return notify('Réponses actualisées.')
   }
   if (a === 'new-product') {
-    const versions = s.config.versions.map(v => [v.id, v.id + ' · ' + v.name]);
+    const versions = versionOptions(s);
     return modal('Ajouter une référence', field('id', 'Référence', '', 'text', 'required maxlength="60" pattern="[A-Za-z0-9_-]+"') + field('name', 'Libellé', '',
       'text', 'required') + field('pack', 'Conditionnement', '') + field('rayon', 'Rayon', '') + field('price', 'Prix national TTC (€)', '', 'number',
       'min=".01" step=".01"') + '<fieldset><legend>Versions éligibles</legend>' + checks('versions', versions, []) + '</fieldset>', async d => {
@@ -474,7 +474,7 @@ init();
   }
   if (a === 'new-device') {
     const versions = [
-      ['Toutes', 'Toutes les versions'], ...s.config.versions.map(v => [v.id, v.id + ' · ' + v.name])
+      ['Toutes', 'Toutes les versions'], ...versionOptions(s)
     ];
     return modal('Ajouter un support', sel('kind', 'Famille', [
         ['prospectus', 'Prospectus'],
@@ -798,6 +798,7 @@ window.studioWizard = () => {
     eligibility: products.map(p => Object.fromEntries(s.config.versions.map(v => [v.id, p.versions.includes(v.id)])))
   };
   return {
+    namedVersions:usesBricoVersions(s),
     pimLink:v=>location.pathname+location.search+route("produits",{v}),
     consultVersion: shop ? v => save('consultVersion',{v},false) : null,
     shop, canConfigure:!shop && page==='configurer', axes, matches, targetPlan, network: shop ? [] : s.stores, groups:s.targetGroups || [], legacy:!!s.legacyAssignments,

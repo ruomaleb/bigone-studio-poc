@@ -10,10 +10,29 @@ export function missingBonialUnit(s,flow) {
 }
 export const catalogueUrl = 'https://ruomaleb.github.io/bigone-studio-poc/assets/brico-deco/catalogue.pdf';
 export const bricoVersions = [
-  {id:'V1', name:'Luminaires et miroirs', desc:'Les 17 luminaires et miroirs des pages 2 à 5.'},
-  {id:'V2', name:'Catalogue intégral', desc:'Les 21 références du catalogue Brico-déco.'},
-  {id:'V3', name:'Ampoules LED', desc:'Les quatre ampoules LED de la page 5.'}
+  {id:'V1', name:'Version classique', desc:'Les 17 luminaires et miroirs des pages 2 à 5.'},
+  {id:'V2', name:'Version large', desc:'Les 21 références du catalogue Brico-déco.'},
+  {id:'V3', name:'Version restreinte', desc:'Les quatre ampoules LED de la page 5.'}
 ];
+const oldBricoNames = {V1:'Luminaires et miroirs', V2:'Catalogue intégral', V3:'Ampoules LED'};
+export const usesBricoVersions = s => s.op.id === bricoId || isBricoDemo(s);
+export function updateBricoVersionNames(s) {
+  for (const version of s.config.versions) {
+    const reference = bricoVersions.find(v => v.id === version.id);
+    if (reference && version.name === oldBricoNames[version.id] && version.desc === reference.desc) version.name = reference.name;
+  }
+}
+export function displayVersions(s) {
+  const versions = s.config.versions;
+  return usesBricoVersions(s) ? ['V3', 'V1', 'V2'].flatMap(id => versions.filter(v => v.id === id)) : versions;
+}
+export function versionLabel(s, id) {
+  const version = s.config.versions.find(v => v.id === id);
+  return usesBricoVersions(s) && version ? version.name : id;
+}
+export function versionOptions(s) {
+  return displayVersions(s).map(v => [v.id, usesBricoVersions(s) ? v.name : v.id + ' · ' + v.name]);
+}
 const references = [
   ["bd-01","SUSPENSION ZÉLIE",39.99,2,"Forme conique en métal filaire peint et cannage. Pavillon en métal assorti. Coloris noir. Ø40 cm. H. 8,5 cm Fonctionne avec une ampoule de type E27, non fournie"],
   ["bd-02","LAMPADAIRE ZÉLIE",56.99,2,"Base ronde en métal. Abat-jour conique en métal filaire peint et cannage naturel. Coloris noir. L. 30 cm x P. 35 cm x H. 160,5 cm Fonctionne avec une ampoule de type E27, non fournie"],

@@ -56,3 +56,5 @@ Le Dashboard et l’écran Opérations de BigOne Media servent de référence au
 ## Panneaux de travail du 26 novembre 2026
 
 La barre horizontale donne accès aux espaces Studio. Le menu de gauche reprend le principe observé dans le Dashboard et la liste Opérations de BigOne Media. Il contient les raccourcis de pilotage ou les rubriques du dossier. Sur petit écran, les rubriques du dossier passent sous son titre. Les panneaux blancs se détachent du fond gris bleuté. La sélection est violette, les pictogrammes de section associent violet et cobalt et les actions principales restent sombres. Les trois illustrations de l’accueil représentent des familles de contenus. Les fichiers des opérations sont identifiés par leur nom et leur révision.
+
+Dans Mes flux, la matrice affiche le logo BigOne existant pour l’E-catalogue et les icônes d’application de [Bonial](https://apps.apple.com/fr/app/bonial-promos-catalogues/id468624567) et [Tiendeo](https://apps.apple.com/fr/app/tiendeo-offres-et-catalogues/id489822377). Le nom de la destination et le statut du flux restent lisibles indépendamment de l’icône.
