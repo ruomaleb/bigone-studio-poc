@@ -446,6 +446,13 @@ const pages = {
   summary
 };
 
+let stepQuery='';
+window.filterSteps=value=>{
+  stepQuery=value.trim().toLocaleLowerCase('fr');
+  document.querySelectorAll('.navItem').forEach(button=>{
+    button.hidden=!button.textContent.toLocaleLowerCase('fr').includes(stepQuery);
+  });
+};
 function render() {
   sanitize();
   const menu = tabs();
@@ -466,7 +473,8 @@ function render() {
   else action = btn('Revoir ma participation', 'go:entry', '', 'arrow');
   document.querySelector('#panel').innerHTML = pages[tab]() + '<div class="actions"><div>' + (prev ? btn('Précédent', 'go:' + prev[0]) : '<span class="subtle">' + (
     isSnapshot ? 'Essai temporaire de la planche' : persistOK ? 'Sauvegarde serveur' : 'Enregistrement à reprendre') + '</span>') + '</div>' + action + '</div>';
-  document.querySelector('#aside').innerHTML = right()
+  document.querySelector('#aside').innerHTML = right();
+  window.filterSteps(stepQuery)
 }
 let timer;
 
@@ -563,6 +571,7 @@ document.addEventListener('change', e => {
   update(el);
   if (el.matches('input[type=text],input[type=number]')) {
     document.querySelector('#aside').innerHTML = right();
+  window.filterSteps(stepQuery);
     if (tab === 'plv' && el.dataset.path.includes('.parts.')) {
       const i = Number(el.dataset.path.split('.')[1]);
       document.querySelector('input[data-path="kits.' + i + '.on"]').checked = data.kits[i].on
