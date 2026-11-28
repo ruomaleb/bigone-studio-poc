@@ -80,3 +80,19 @@ Le dossier d’essai conserve les mêmes identifiants pour les dix magasins hist
 Le catalogue en cartes ou en liste et le PIM du dossier emploient le même composant de consultation. L’onglet Caractéristiques s’ouvre systématiquement, y compris sur une opération clôturée et en suivant un lien depuis un support. L’onglet Supports associés ouvre chaque utilisation à sa page lorsque la pièce est paginée. La modification de la fiche et la gestion des médias respectent le droit d’écriture du dossier.
 
 Le packshot, son détail et la courte animation de l’ampoule LED sont des illustrations fictives de démonstration. Le beurre, le café, l’emmental, le champagne et une seconde ampoule disposent aussi d’une illustration. Les autres références indiquent les médias effectivement associés. L’éditeur peut associer par URL HTTPS des images, logos ou vidéos avec un libellé. La gestion du catalogue utilise le stockage existant du catalogue. L’essai individuel conserve ses propres associations.
+
+## Pilote de production Nanotera · version 2026-11-28.1
+
+Le dossier Brico-déco s’ouvre avec six invitations V1. B et C ont choisi le kit Gaia au prix commun de 12,50 €. B a engagé 150 € de diffusion. D a commandé dix affiches, E a décliné, A et F doivent répondre. La période commerciale de janvier 2027 et les dates du cadre PAC sont celles du scénario. Les écritures du dossier portent la date de leur exécution.
+
+1. Dans Participants, ouvrir l’accès magasin de A, confirmer le kit et deux lots d’affiches. Par support affiche trente affiches et trois destinataires du kit. Le filtre « Participants sans kit » retrouve D.
+2. Dans Production → Supports → Atelier digital, générer et valider les deux PNG communs. Puis confirmer 10,90 € depuis l’accès magasin de C. Les deux formats de C demandent un nouveau BAT.
+3. Depuis le vertical de C, inviter un relecteur, consigner une correction, la résoudre et valider. La relecture donne accès aux épreuves de comparaison et au commentaire de cette pièce.
+4. Dans Remises, mettre les quatre fichiers à disposition. L’archive de l’enseigne contient les quatre PNG et le bordereau de six affectations. C télécharge ses deux PNG et son bordereau depuis sa participation. Le reçu est saisi à partir d’une référence communiquée par le destinataire.
+5. Dans Flux, ouvrir les éditions puis les quatre visuels de l’édition Sud. Vérifier les trois enrichissements à la date simulée du 20 janvier. Le contrôle Bonial renvoie à l’unité de vente de Gaia dans le PIM.
+
+Le cadre JSON du pilote couvre l’origine, l’opération, la révision, les dates et la règle du kit. Un import identique conserve les réponses. La comparaison d’une nouvelle révision identifie les confirmations à revoir avant application. L’atelier génère les PNG dans le navigateur. Le service conserve les fichiers privés, leur empreinte SHA-256 et les BAT dans le stockage du dossier. La reprise génère les seules épreuves manquantes. Une image PIM distante doit autoriser sa lecture par le navigateur.
+
+La matrice réseau réunit les dossiers enseigne autorisés dans ce navigateur. La même règle limite « Mon année » aux invitations du magasin. Les quatre éditions et le reçu EC-001 sont des données de recette. Les API de publication PAC, Digital et diffuseurs font partie des raccordements ultérieurs.
+
+Recette locale du pilote avec `node tests/pilot-model.mjs` et `PILOT_ONLY=1 node tests/operation-interface.cjs`. La suite entière reprend aussi S49, la mise en page du catalogue, le BAT collaboratif et les parcours mobiles. La livraison utilise le service et la base existants. Pour revenir à la publication précédente, restaurer le déploiement Pages antérieur et la version Worker `e2ff1e01-3617-429b-9002-70fbd475fd35`. Les dossiers de recette restent isolés.

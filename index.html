@@ -465,7 +465,7 @@ function vAccueil(){
  operationQuery=directoryState().q;
  const ops=sorted().filter(o=>suivi(o)&&!o.cloture);
  const header=`<div class="hd" id="home-top" tabindex="-1"><div><h1>Plan d’action commerciale</h1></div>
- <div class="row"><a class="btn" href="operation/?op=bd-2704-deco&amp;assistant=1">✦ &nbsp; Ouvrir la démo Brico-déco</a><button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div></div>${banner()}`;
+ <div class="row"><a class="btn pri" href="operation/?op=bd-2704-deco&amp;parcours=production">Production Brico-déco</a><a class="btn" href="operation/?op=bd-2704-deco&amp;parcours=production#flux?vue=reseau">Mes flux</a><a class="btn" href="operation/?op=bd-2704-deco&amp;assistant=1">✦ &nbsp; Ouvrir la démo Brico-déco</a><button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div></div>${banner()}`;
  const covers={operations:'preparation',produits:'produits',assets:'production'};
  const nav=`<nav class="content-doors" aria-label="Accès aux contenus">${Object.entries(covers).map(([k,file])=>`<a href="${directoryLink(k)}"><img src="assets/${file}.webp" width="520" height="520" alt=""><span class="door-caption"><span><strong>${directories[k].label}</strong><small>${directories[k].hint}</small></span><span class="door-open" aria-hidden="true">${uiIcon('arrow')}</span></span></a>`).join('')}</nav>`;
  if(status!=='ok'&&!S.operations.length)return header+nav;

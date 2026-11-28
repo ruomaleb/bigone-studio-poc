@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {blank,bricoExample,mutate,forRole} from '../server/model.mjs';
+import {initPilot,kitDemand} from '../server/kit.mjs';
+const s=initPilot(bricoExample(),blank);
+const [a,b,c,d]=s.stores;
+function reply(shop,changes){mutate(s,'reply',{store:shop.id,confirm:true,reply:{...s.replies[shop.id],...changes}},null);}
+reply(a,{yn:'yes',picks:{'bd-03':true},kit:true,counts:{'lot-a3':2}});
+const demand=()=>kitDemand(s),content=()=>demand().outputs.map(o=>o.signature);
+assert.deepEqual(demand().counts,{invited:6,yes:4,no:1,waiting:1,shops:3,posters:30,budget:150});
+const common=content();reply(b,{budget:250});assert.deepEqual(content(),common);
+reply(c,{prices:{'bd-03':10.90}});assert.equal(content().length,4);
+assert.deepEqual(content().slice(0,2),common);assert.equal(s.products.find(p=>p.id==='bd-03').price,12.5);
+const previous=structuredClone(s.kitFrame),apply=frame=>mutate(s,'kit-frame',{frame},null);
+assert.equal(apply(previous),false);
+assert.throws(()=>apply({...previous,start:'2027-01-18'}),/même révision/);
+assert.throws(()=>apply({...previous,revision:0}),/antérieure/);
+assert.throws(()=>apply({...previous,revision:2,close:'2027-02-31'}),/Date PAC/);
+assert.equal(apply({...previous,revision:2,kit:'inclus'}),true);
+assert.equal(s.replies[d.id].review,true);assert.equal(s.replies[a.id].review,undefined);
+reply(d,{});assert.equal(demand().counts.shops,4);
+assert.equal(forRole(s,c.id).stores.length,1);assert(!forRole(s,c.id).kit);
+const gaia=s.products.find(p=>p.id==='bd-03');
+gaia.media=[];assert.equal(content().length,0);assert(demand().issues.every(m=>m.includes('visuel PIM manquant')));
+gaia.media=[{kind:'image',url:'https://example.org/gaia.webp'}];assert(demand().outputs.every(o=>o.spec.image===gaia.media[0].url));
+console.log('PASS PAC identique, obsolète, dates invalides, révision incluse ciblée, budget indépendant et visuel du PIM.');
