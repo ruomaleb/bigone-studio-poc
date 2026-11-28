@@ -71,7 +71,7 @@ Sur l’URL publique, la question sur l’emmental a ouvert directement la page 
 
 ## Proposition par groupe · version 2026-11-27.5
 
-Ouvrir Préparation → Participants → Proposer une version par groupe. La version donne l’assortiment du PIM. Le responsable compose le ciblage par format, région et type de zone, place ses groupes par ordre de priorité puis applique la proposition. Les recoupements comptent une fois. Les réponses confirmées affectées par une nouvelle version demandent une relecture. Les anciennes sessions des magasins sortis du ciblage perdent l’accès. Les autres confirmations restent acquises.
+Dans le dossier, ouvrir Réglages de l’opération (en haut à droite) → Administration de la mécanique. La version donne l’assortiment du PIM. Le responsable compose le ciblage par format, région et type de zone, place ses groupes par ordre de priorité puis applique la proposition. Les recoupements comptent une fois. Les réponses confirmées affectées par une nouvelle version demandent une relecture. Les anciennes sessions des magasins sortis du ciblage perdent l’accès. Les autres confirmations restent acquises.
 
 Le dossier d’essai conserve les mêmes identifiants pour les dix magasins historiques, complète le réseau à 900 et utilise Nanotera dans les écrans du catalogue et du dossier. Les affectations historiques personnalisées restent disponibles jusqu’à la première application du ciblage.
 
@@ -93,6 +93,6 @@ Le dossier Brico-déco s’ouvre avec six invitations V1. B et C ont choisi le k
 
 Le cadre JSON du pilote couvre l’origine, l’opération, la révision, les dates et la règle du kit. Un import identique conserve les réponses. La comparaison d’une nouvelle révision identifie les confirmations à revoir avant application. L’atelier génère les PNG dans le navigateur. Le service conserve les fichiers privés, leur empreinte SHA-256 et les BAT dans le stockage du dossier. La reprise génère les seules épreuves manquantes. Une image PIM distante doit autoriser sa lecture par le navigateur.
 
-Depuis le 28 novembre, « Mes flux » demande une opération et affiche les destinations de ce dossier. « Mon année » reste limitée aux invitations du magasin. Les quatre éditions et le reçu EC-001 sont des données de recette. Les API de publication PAC, Digital et diffuseurs font partie des raccordements ultérieurs.
+Depuis le 28 novembre, « Mes flux » demande une opération puis ouvre le même tableau que Production → Flux. Les lignes reprennent les versions commerciales du dossier. Les cellules donnent accès au contrôle du flux ou aux éditions de cette version. Le tableau se filtre par recherche, destination, version, état, validité et publication prévue. « Mon année » reste limitée aux invitations du magasin. Les quatre éditions et le reçu EC-001 sont des données de recette. Les API de publication PAC, Digital et diffuseurs font partie des raccordements ultérieurs.
 
 Recette locale du pilote avec `node tests/pilot-model.mjs` et `PILOT_ONLY=1 node tests/operation-interface.cjs`. La suite entière reprend aussi S49, la mise en page du catalogue, le BAT collaboratif et les parcours mobiles. La livraison utilise le service et la base existants. Pour revenir à la publication précédente, restaurer le déploiement Pages antérieur et la version Worker `e2ff1e01-3617-429b-9002-70fbd475fd35`. Les dossiers de recette restent isolés.

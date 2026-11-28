@@ -42,7 +42,7 @@ Le violet de texte présente un contraste de 5,97:1 sur blanc et 5,33:1 sur viol
 Cette correction reprend la précision explicite d’Arnaud du 16 novembre 2026. Les fichiers HTML de conception retrouvés ne montrent pas ce bloc ; ils ne permettent donc pas, à eux seuls, d’affirmer une correspondance exhaustive avec sa maquette de référence. Le planning reste ouvert ou fermé selon le choix de l’utilisateur pendant les actualisations et la navigation ; un chargement neuf de l’accueil le replie.
 - **Préparation** conserve Cadrage, Offres, Magasins, Dispositif, Calendrier. L'opération devient le titre principal ; le panneau de contexte reprend réseau, dates, responsable et volumes.
 - **Production** conserve listes, colonnes, filtres, créations, contrôles, révisions, paquet Media, bilan et journal. Le retour à Préparation conserve le même identifiant d'opération.
-- **Administration** revient à droite. Les magasins, familles et modèles de jalons sont lus depuis les référentiels existants. Les droits et connexions sont explicités sans simuler une gestion d'équipes ou une synchronisation inexistantes.
+- **Administration** est accessible dans la navigation de gauche. Les réglages de la mécanique de l’opération se trouvent en haut à droite du dossier. Les magasins, familles et modèles de jalons sont lus depuis les référentiels existants. Les droits et connexions sont explicités sans simuler une gestion d'équipes ou une synchronisation inexistantes.
 
 Les offres occupent toute la largeur pour les tableaux. Les autres onglets de préparation utilisent le panneau latéral. Sur mobile, le panneau passe après le contenu, les tableaux larges défilent dans leur conteneur et la liste de production devient verticale.
 

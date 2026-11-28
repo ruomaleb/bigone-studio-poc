@@ -16,6 +16,16 @@ const StudioNavigation = (() => {
   const spaces = urls => Object.entries(labels).filter(([key])=>urls[key]).map(([key,label])=>({key,label,href:urls[key]}));
   let content, filterControl;
   const rail = () => document.getElementById('studio-rail');
+  function settings(href,active=false) {
+    const menu=document.getElementById('operation-settings');
+    menu.hidden=!href;
+    if(!href){menu.open=false;menu.replaceChildren();return;}
+    if(!menu.firstElementChild)menu.innerHTML='<summary aria-label="Réglages de l’opération" title="Réglages de l’opération"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-.6 2.1-2 .9-2-.6-2 3.4 1.6 1.5v2.4L3.4 14l2 3.5 2-.5 2 .9.6 2.1h4l.6-2.1 2-.9 2 .5 2-3.5-1.6-1.3v-2.4l1.6-1.5-2-3.4-2 .6-2-.9L14 3z"/><circle cx="12" cy="11.5" r="3"/></svg></summary><div><a>Administration de la mécanique</a></div>';
+    const link=menu.querySelector('a');
+    if(link.getAttribute('href')!==href)menu.open=false;
+    link.setAttribute('href',href);
+    if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
+  }
   function expand(open) {
     rail().classList.toggle('expanded',open);
     const toggle=rail().querySelector('[data-rail-toggle]');
@@ -115,6 +125,8 @@ const StudioNavigation = (() => {
     return '<button type="button" class="ed-btn" data-studio-focus aria-pressed="'+on+'">'+(on?'Quitter le plein écran':'Plein écran')+'</button>';
   }
   document.addEventListener('click',e=>{
+    const menu=document.getElementById('operation-settings');
+    if(menu?.open&&(!menu.contains(e.target)||e.target.closest('a')))menu.open=false;
     const button=e.target.closest('[data-studio-focus]');
     if(button){focusMode(!document.body.classList.contains('studio-focus'));button.focus();return;}
     if(e.target.closest('[data-rail-toggle]'))return expand(!rail().classList.contains('expanded'));
@@ -123,8 +135,10 @@ const StudioNavigation = (() => {
   });
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape'||document.querySelector('dialog[open]'))return;
+    const menu=document.getElementById('operation-settings');
+    if(menu?.open){menu.open=false;menu.querySelector('summary').focus();return;}
     if(rail()?.classList.contains('expanded')){expand(false);rail().querySelector('[data-rail-toggle]').focus();}
     else if(document.body.classList.contains('studio-focus')){focusMode(false);document.querySelector('[data-studio-focus]')?.focus();}
   });
-  return {spaces,draw,filters,focusMode,focusButton};
+  return {spaces,draw,settings,filters,focusMode,focusButton};
 })();
