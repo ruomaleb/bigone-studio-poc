@@ -1,4 +1,4 @@
-import {bricoId, catalogueId} from '../server/brico.mjs';
+import {bricoId, catalogueId, missingBonialUnit} from '../server/brico.mjs?v=20261128.5';
 import {participantsOf} from '../server/targeting.mjs';
 import {
   pageFor,
@@ -259,11 +259,11 @@ export function flows(s, q) {
   return card('Flux', none('Contrôler l’offre par version, générer un fichier et consigner sa remise.') + (id ? link('#flux', 'Tous les flux') : '<div class="filters">'+viewFilter('statut','État du flux',[...new Set(s.flows.map(f=>f.stage))],stage)+'</div>') + (!id&&!selected.length?none('Aucun flux pour ces critères.'):'') + (id && !
     selected.length ? none('Ce flux est indisponible dans le dossier.') : '') + selected.map(f => {
     const errors = anomalies(s, f.v);
-    const missingUnit = s.kit && f.id==='bd-bonial' && eligible(s,f.v).find(p=>p.id===s.kit.product && !p.pack?.trim());
+    const missingUnit = missingBonialUnit(s,f);
     return '<section class="inset" style="margin:12px 0"><div class="hrow"><h3>' + esc(f.name) + '</h3>' + tag(f.stage, f.stage === 'À corriger' ? 'warn' :
         '') + '</div><div class="filters">' + sel('flow-' + f.id, 'Version commerciale', [
         ['', 'À affecter'], ...s.config.versions.map(v => [v.id, v.id + ' · ' + v.name])
-      ], f.v) + '</div>' + (missingUnit?row(missingUnit.name,'Conditionnement à renseigner pour cet export de recette',link(route('produits',{id:missingUnit.id}),'Corriger dans le PIM')):'') + errors.map(p => row(p.name, 'Prix national manquant', link(route('produits', {
+      ], f.v) + '</div>' + (missingUnit?row(missingUnit.name,'Conditionnement à renseigner pour le flux Bonial',link(route('produits',{id:missingUnit.id}),'Corriger dans le PIM')):'') + errors.map(p => row(p.name, 'Prix national manquant', link(route('produits', {
         v: f.v,
         id: p.id
       }), 'Corriger dans le PIM'))).join('') + (f.checked ? none('Dernier contrôle · ' + new Date(f.checked).toLocaleString('fr-FR')) : '') +
