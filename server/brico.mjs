@@ -1,10 +1,11 @@
 // Commercial references already present in the Studio PIM, keyed to the supplied catalogue.
 export const bricoId = 'bd-2704-deco';
+export const isBricoDemo = s => s.op.scenario === 'brico-demo';
 export const catalogueId = 'bd-ecatalogue';
 export const bonialId='bd-bonial';
 export const bricoBonial=s=>s.flows.find(f=>f.id===bonialId)||s.flows.find(f=>/\bbonial\b/i.test(f.name));
 export function missingBonialUnit(s,flow) {
-  if(s.op.id!==bricoId || !flow || bricoBonial(s)?.id!==flow.id)return null;
+  if((s.op.id!==bricoId && !isBricoDemo(s)) || !flow || bricoBonial(s)?.id!==flow.id)return null;
   return s.products.find(p=>p.id==='bd-03' && p.versions.includes(flow.v) && !p.pack?.trim());
 }
 export const catalogueUrl = 'https://ruomaleb.github.io/bigone-studio-poc/assets/brico-deco/catalogue.pdf';
