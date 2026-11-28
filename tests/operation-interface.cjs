@@ -89,7 +89,7 @@ const root = path.resolve(__dirname, '..'),
     p.setDefaultTimeout(7000);
     const errors = [];
     p.on('pageerror', err => errors.push(err.message));
-    await p.goto(url);
+    await p.goto(url+'?op=bd-2704-deco');
     await p.getByRole('heading',{level:1,name:'Brico-déco'}).waitFor();
     await p.getByRole('link',{name:'Feuilleter le catalogue',exact:true}).click();
     await p.locator('.catalogue-page img').waitFor();
@@ -108,7 +108,7 @@ const root = path.resolve(__dirname, '..'),
     await p.locator('.catalogue-page').waitFor();
     await p.setViewportSize({width:1850,height:914});
     console.log('PASS Brico-déco par défaut, catalogue, visuel produit, retour à la page et mobile');
-    await p.goto(url+'#production?id=bd-ecatalogue&atelier=fer&page=2');
+    await p.goto(url+'?op=bd-2704-deco#production?id=bd-ecatalogue&atelier=fer&page=2');
     const paper=p.locator('.ed-paper');
     await paper.waitFor();
     assert.equal(await p.locator('.ed-thumb').count(),6);
@@ -411,14 +411,51 @@ const root = path.resolve(__dirname, '..'),
     const rootUrl=url.replace('/operation/','/');
     const seed=[
       {col:'operations',id:'bd-2704-deco',version:1,data:{nom:'Brico-déco',debut:'2026-11-01',fin:'2026-11-30',source:'demo',enseignes:['Nanotera']}},
+      {col:'operations',id:'u-2649-pbs',version:1,data:{nom:'Offres S49',debut:'2026-12-01',fin:'2026-12-10',source:'demo'}},
+      {col:'produits',id:'s49-unique',version:1,data:{op:'u-2649-pbs',libelle:'Produit témoin S49',rayon:'Épicerie',prix:4}},
+      {col:'supports',id:'s49-unique-bat',version:1,data:{op:'u-2649-pbs',type:'Affiche A1',fichier:'BAT-exclusif-S49.pdf',prod:true}},
       {col:'produits',id:'bd-18',version:1,data:{op:'bd-2704-deco',libelle:'AMPOULE LED ÉDITION FANTASTIC COLORS',marque:'Nanotera',rayon:'Bricolage',prix:11.99,description:'5 W · E27'}},
       {col:'supports',id:'aff-demo',version:1,data:{op:'bd-2704-deco',type:'Affiche A1',produits:['bd-18'],statut:'amonter'}}
     ];
-    await c.route('**/rest/v1/docs?**',route=>route.fulfill({json:seed}));
+    const reads=[];
+    await c.route('**/rest/v1/docs?**',route=>{
+      const q=new URL(route.request().url()).searchParams,cols=q.get('col'),op=q.get('data->>op');
+      reads.push({cols,op});
+      const matches=cols?.startsWith('in.(')?cols.slice(4,-1).split(','):cols?[cols.slice(3)]:null;
+      return route.fulfill({json:seed.filter(r=>(!matches||matches.includes(r.col))&&(!op||r.data.op===op.slice(3)))});
+    });
     await c.route('**/rest/v1/rpc/studio_write2',route=>route.fulfill({json:{ok:true,version:2,role:'responsable'}}));
     await p.evaluate(()=>{localStorage.setItem('bos-code','fixture-test');localStorage.setItem('bos-role','responsable');});
     await p.setViewportSize({width:1850,height:914});
     await p.goto(rootUrl+'#contenus--produits?vue=liste');
+    await p.getByRole('heading',{name:'Choisir une opération'}).waitFor();
+    assert.equal(await p.locator('[data-product-id]').count(),0);
+    assert(reads.length && reads.every(r=>r.cols==='eq.operations'));
+    await p.getByRole('link',{name:/^Brico-déco/}).click();
+    await p.locator('.product-table').waitFor();
+    assert(reads.some(r=>r.op==='eq.bd-2704-deco'));
+    assert(!(await p.locator('#view').innerText()).includes('Produit témoin S49'));
+    await p.getByRole('navigation',{name:'Espaces Studio'}).getByRole('link',{name:'Production'}).click();
+    await p.getByRole('link',{name:'Production de l’opération'}).waitFor();
+    assert.equal(new URLSearchParams(p.url().split('?').at(-1)).get('op'),'bd-2704-deco');
+    assert(!(await p.locator('#view').innerText()).includes('BAT-exclusif-S49'));
+    await p.getByRole('link',{name:'Changer d’opération'}).click();
+    await p.getByRole('link',{name:/^Offres S49/}).click();
+    await p.reload();await p.getByRole('link',{name:/BAT-exclusif-S49/}).waitFor();
+    await p.getByRole('navigation',{name:'Espaces Studio'}).getByRole('link',{name:'Produits'}).click();
+    await p.getByRole('link',{name:/Produit témoin S49/}).waitFor();
+    assert(!(await p.locator('#view').innerText()).includes('FANTASTIC COLORS'));
+    await p.getByRole('link',{name:'Changer d’opération'}).click();
+    await p.setViewportSize({width:390,height:844});
+    await p.getByLabel('Rechercher une opération').fill('Brico');
+    assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await p.setViewportSize({width:1850,height:914});
+    assert.equal(await p.locator('.operation-choices a').count(),1);
+    await p.goto(url+'#produits?id=bd-18');await p.getByRole('heading',{name:'Choisir une opération'}).waitFor();
+    assert.equal(await p.locator('#product-dialog[open]').count(),0);
+    await p.getByRole('link',{name:/^Brico-déco/}).click();await p.locator('#product-dialog[open]').waitFor();
+    await p.goto(rootUrl+'#contenus--produits?vue=liste&op=bd-2704-deco');
+    console.log('PASS sélection obligatoire, liens directs, conservation entre rubriques, changement de dossier et isolation S49 / Brico-déco');
     const record=p.locator('#product-dialog');
     await p.getByRole('link',{name:'AMPOULE LED ÉDITION FANTASTIC COLORS',exact:true}).click();
     await record.getByRole('tab',{name:'Caractéristiques'}).waitFor();

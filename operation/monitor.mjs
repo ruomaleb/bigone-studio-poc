@@ -11,7 +11,7 @@ const content=[
 ];
 const tr=(...v)=>'<tr>'+v.map(s=>'<td>'+s+'</td>').join('')+'</tr>';
 const go=(vue,label,params={},cls='act')=>link(route('flux',{...params,vue}),label,cls);
-export function monitor(s,q,network=[]) {
+export function monitor(s,q) {
   const view=q.get('vue')||'suivi',source=q.get('depuis')==='reseau'?'reseau':'suivi';
   const doc=editions.find(d=>d[0]===q.get('edition'));
   const keep=Object.fromEntries(q);
@@ -38,35 +38,22 @@ export function monitor(s,q,network=[]) {
     return card('Contenus enrichis',nav+context+'<form class="filters" id="pilot-date">'+field('date','Simuler la date',day,'date','required')+'<button class="act">Afficher</button></form>'+table(['Nom','Statut','Catégorie','Type','Affichage','Insertion','Action','Validité','Média'],rows)+(rows.length?'':'<p>Aucun enrichissement associé.</p>')+'<p class="sub">Données éditoriales du scénario. Les vignettes vidéo illustrent leur emplacement.</p>');
   }
   if(view==='reseau'){
-    const term=(q.get('recherche')||'').trim().toLocaleLowerCase('fr-FR'),family=q.get('famille')||'',date=q.get('validite')||'',pub=q.get('publication')||'',type=q.get('type')||'',order=q.get('tri')||'nom';
-    const dossiers=[{state:s,href:'',pilot:true},...network];
-    const fixed=['É-catalogue','Bonial','Tiendeo'];
-    const families=[...new Set([...fixed,...network.flatMap(x=>x.state.flows.map(f=>f.name))])];
-    const columns=family?[family]:families;
-    const body=[];
-    for(const {state,href,pilot} of dossiers.sort((a,b)=>String(order==='date'?a.state.op.start:a.state.op.title).localeCompare(order==='date'?b.state.op.start:b.state.op.title,'fr'))){
-      const code=pilot?'BD-2704':state.op.id;
-      if(!(state.op.title+' '+state.op.id+' '+code).toLocaleLowerCase('fr-FR').includes(term) || (date&&(date<state.op.start||date>state.op.end)) || (type&&type!==state.op.scope))continue;
-      const cells=new Map();
-      if(pilot){
-        cells.set(fixed[0],{label:'Actif · reçu EC-001',url:route('flux',{...keep,vue:'editions',depuis:'reseau'}),planned:'2027-01-18',detail:'Suivi de recette du 20 janvier · publication à confirmer'});
-        const f=state.flows.find(x=>x.id==='bd-bonial'),missing=state.products.find(x=>x.id===state.kit.product && !x.pack?.trim());
-        cells.set('Bonial',{label:missing?'À vérifier':f?.stage,url:route('flux',{...keep,id:'bd-bonial',depuis:'reseau'}),detail:missing?'Gaia · unité de vente à renseigner':'Contrôle du dossier'});
-        cells.set('Tiendeo',{label:'Non prévu'});
-      }else for(const f of state.flows)cells.set(f.name,{label:f.stage,url:href+route('flux',{id:f.id}),detail:f.receipt||''});
-      if(family&&!cells.has(family) || pub&&!columns.some(k=>cells.get(k)?.planned===pub))continue;
-      body.push(tr(esc(state.op.title)+'<br><small>'+esc(code)+'</small>',esc(state.op.scope||'—'),esc(state.op.start)+' au '+esc(state.op.end),...columns.map(k=>{
-        const cell=cells.get(k);if(!cell)return '—';
-        return (cell.url?link(cell.url,cell.label||k,'quiet'):tag(cell.label))+(cell.detail?'<br><small>'+esc(cell.detail)+'</small>':'');
-      })));
-    }
-    const types=[...new Set(dossiers.map(d=>d.state.op.scope).filter(Boolean))];
-    return card('Mes flux','<p>Dossiers enseigne accessibles depuis ce navigateur.</p><form class="filters" id="pilot-network">'+field('recherche','Opération ou code',term,'search')+sel('famille','Destination',[['','Toutes'],...families.map(k=>[k,k])],family)+sel('type','Portée',[['','Toutes'],...types.map(k=>[k,k])],type)+field('validite','Valide le',date,'date')+field('publication','Publication prévue le',pub,'date')+sel('tri','Trier par',[['nom','Nom'],['date','Début de validité']],order)+'<button class="act">Filtrer</button></form>'+table(['Opération','Portée','Validité',...columns],body)+(body.length?'':'<p>Aucune opération pour ces critères.</p>')+go('suivi','Flux de Brico-déco'));
+    const family=q.get('famille')||'',date=q.get('validite')||'',pub=q.get('publication')||'';
+    const bonial=s.flows.find(f=>f.id==='bd-bonial');
+    const missing=s.products.find(x=>x.id===s.kit.product && !x.pack?.trim());
+    const cells=[
+      {name:'É-catalogue',label:'Actif · reçu EC-001',url:route('flux',{...keep,vue:'editions',depuis:'reseau'}),planned:'2027-01-18',detail:'Suivi de recette du 20 janvier · publication à confirmer'},
+      {name:'Bonial',label:missing?'À vérifier':bonial?.stage,url:route('flux',{...keep,id:'bd-bonial',depuis:'reseau'}),detail:missing?'Gaia · unité de vente à renseigner':'Contrôle du dossier'},
+      {name:'Tiendeo',label:'Non prévu'}
+    ];
+    const visible=cells.filter(c=>(!family||c.name===family)&&(!pub||c.planned===pub)&&(!date||(s.op.start<=date&&date<=s.op.end)));
+    const filters='<form class="filters" id="pilot-network">'+sel('famille','Destination',[['','Toutes'],...cells.map(c=>[c.name,c.name])],family)+field('validite','Valide le',date,'date')+field('publication','Publication prévue le',pub,'date')+'<button class="act">Filtrer</button></form>';
+    return card('Mes flux · '+s.op.title,filters+(visible.length?table(['Opération',...visible.map(c=>c.name)],[tr(esc(s.op.title),...visible.map(c=>(c.url?link(c.url,c.label,'quiet'):tag(c.label))+(c.detail?'<br><small>'+esc(c.detail)+'</small>':'')))]):'<p>Aucun flux pour ces critères.</p>')+go('suivi','Retour au suivi de l’opération'));
   }
   const bonial=s.flows.find(f=>f.id==='bd-bonial');
   return card('Flux de l’opération',table(['Destination','Configuration','Dernier contrôle','Remise','Publication'],[
     tr(go('editions','É-catalogue',{depuis:'suivi'}),tag('Actif','good'),'Aperçu de recette','EC-001 · exemple','À confirmer'),
     tr(link(route('flux',{id:'bd-bonial'}),'Bonial'),tag('Actif','good'),esc(s.products.some(p=>p.id===s.kit.product && !p.pack?.trim())?'À vérifier · unité de Gaia':bonial?.stage||'À contrôler'),esc(bonial?.receipt||'En attente'),'À confirmer'),
-    tr('Tiendeo',tag('Non prévu'),'—','—','—')])+go('reseau','Toutes les opérations'))+
+    tr('Tiendeo',tag('Non prévu'),'—','—','—')])+go('reseau','Vue par destination'))+
     (bonial?flows(s,new URLSearchParams({id:bonial.id})):'');
 }
