@@ -82,7 +82,7 @@ module.exports=async function pilot(context,url) {
     await go('#flux?vue=enrichis&edition=NT-V1-SUD');assert.equal(await p.locator('tbody tr .tag').filter({hasText:'Actif'}).count(),2);
     await p.getByLabel('Simuler la date').fill('2027-01-25');await p.getByRole('button',{name:'Afficher'}).click();
     await p.waitForFunction(()=>[...document.querySelectorAll('tbody .tag')].filter(t=>t.textContent==='Actif').length===3);
-    await go('#flux?vue=reseau');await p.getByRole('heading',{name:'Mes flux'}).waitFor();
+    await go('#flux?vue=reseau');await p.getByRole('heading',{name:'Mes flux · Brico-déco'}).waitFor();
     await p.setViewportSize({width:390,height:844});await go('#production?vue=kit');assert(await p.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
     assert.deepEqual(issues,[]);console.log('PASS pilote Nanotera · 6 magasins, 30 affiches, 4 vrais PNG, 6 affectations, révision locale, BAT à deux accès, ZIP de C et flux territoriaux');
     await Promise.all([rev.close(),c.close(),a.close()]);

@@ -122,12 +122,12 @@ run(`S.operations.push({id:'clos',nom:'Automne',cloture:true,debut:'2026-09-01',
   national.archives=[{rev:1,fichier:'https://example.org/Catalogue%20archive.pdf'}];
   national.rev=2;national.fichier='https://example.org/Affiche-final.pdf';
   S.supports.push({id:'prep',op:'op',type:'Prospectus',prod:false,remise:'2027-03-02'})`);
-assert.equal(run("contentItems('produits','').filter(r=>matchesContent(r,'jardiniere')).length"),2);
-assert.equal(run("contentItems('produits','').filter(r=>matchesContent(r,'arc-91'))[0].href"),'#preparation--clos--offres--autre');
+assert.equal(run("contentItems('produits','').length"),0);
+assert.equal(run("contentItems('produits','clos').filter(r=>matchesContent(r,'arc-91'))[0].href"),'#preparation--clos--offres--autre');
 assert.equal(run("contentItems('produits','op').filter(r=>matchesContent(r,'arc-91')).length"),0);
-assert.equal(run("contentItems('supports','').filter(r=>matchesContent(r,'Prospectus'))[0].href"),'#preparation--op--dispositif--prep');
-assert.equal(run("contentItems('assets','').filter(r=>matchesContent(r,'Prospectus')).length"),0);
-assert.equal(run("contentItems('assets','').filter(r=>matchesContent(r,'catalogue archive'))[0].href"),'#production--op--support-affiche--rev-1');
+assert.equal(run("contentItems('supports','op').filter(r=>matchesContent(r,'Prospectus'))[0].href"),'#preparation--op--dispositif--prep');
+assert.equal(run("contentItems('assets','op').filter(r=>matchesContent(r,'Prospectus')).length"),0);
+assert.equal(run("contentItems('assets','op').filter(r=>matchesContent(r,'catalogue archive'))[0].href"),'#production--op--support-affiche--rev-1');
 location.hash='#preparation--clos--offres--autre';
 assert.ok(run("vPreparation(route().tab,route().context)").includes('18,00 €'));
 location.hash='#preparation--op--offres--autre';
@@ -141,7 +141,7 @@ location.hash='#contenus--produits?q=ARC-91&op=clos';
 assert.equal(run('route().tab'),'produits');
 assert.ok(run('vDirectory(route().tab)').includes('#preparation--clos--offres--autre'));
 location.hash='#accueil?q=ARC-91';
-assert.ok(run('vAccueil()').includes('#preparation--clos--offres--autre'));
+assert.ok(!run('vAccueil()').includes('#preparation--clos--offres--autre'));
 // Les filtres sont propres à leur liste et se combinent avec la recherche et le tri.
 run(`const filterRows=[
   {name:'Lot 10',rayon:'Jardin',marque:'Atelier',prix:null,magasin:['a','b']},
@@ -157,8 +157,8 @@ location.hash='#accueil?plan-tri=nomDesc&magasin=b';
 assert.deepEqual(Array.from(run("filterList(filterRows,['magasin'],['nom','nomDesc']).visible"),r=>r.name),['Lot 10','Lot 15']);
 assert.equal(run("filterList(filterRows,[],['nom','nomDesc'],{prefix:'plan-'}).visible[0].name"),'Meuble');
 location.hash='#contenus--assets?version=Archivée';
-assert.equal(run("filterList(contentItems('assets'),contentFilters.assets,contentSorts.assets).visible[0].href"),'#production--op--support-affiche--rev-1');
-location.hash='#contenus--produits?rayon=Inexistant';
+assert.equal(run("filterList(contentItems('assets','op'),contentFilters.assets,contentSorts.assets).visible[0].href"),'#production--op--support-affiche--rev-1');
+location.hash='#contenus--produits?op=op&rayon=Inexistant';
 assert.match(run("vDirectory('produits')"),/Aucun résultat avec ces filtres/);
 // Le même ensemble filtré ouvre les mêmes fiches dans les deux affichages.
 location.hash='#contenus--produits?op=clos&tri=prix&vue=liste';
@@ -175,6 +175,18 @@ assert.match(run("vDirectory('produits')"),/data-product-id="autre" data-operati
 assert.ok(!run("productDetail(opById('clos'),'autre')").includes('data-prod="'));
 location.hash='#contenus--assets?vue=liste';
 assert.ok(!run("vDirectory('assets')").includes('data-product-view'));
+for(const [hash,section] of [['#contenus--produits','produits'],['#production','assets'],['#produits','produits'],['#contenus--assets?op=inconnue','assets'],['#contenus--supports','supports']]){
+  location.hash=hash;
+  assert.equal(run('route().tab'),section);
+  const screen=run('vDirectory(route().tab)');
+  assert.match(screen,/Choisir une opération/);assert.doesNotMatch(screen,/Atelier visuel|Filtres et tri|Jardinière|Affiche-final|data-product-view/);
+}
+location.hash='#contenus--produits?op=clos';
+assert.doesNotMatch(run("vDirectory('produits')"),/id="catalog-op"|data-reset-filters="op|#preparation--op--offres/);
+assert.equal(run("contentItems('assets').length"),0);
+location.hash='#contenus--assets?op=op';
+assert.doesNotMatch(run("vDirectory('assets')"),/La nuit des ateliers|Le marché des fleurs/);
+assert.match(run("galerieVisuelle(national)"),/La nuit des ateliers/);
 // Depuis le support, la fiche conserve la sélection et les prix de la variante.
 location.hash='#preparation--op--dispositif--locale';
 const variantProducts=run("supportProducts(local,opById('op'))");
