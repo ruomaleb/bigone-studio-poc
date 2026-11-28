@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-28.6">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-28.7">
 <link rel="stylesheet" href="assets/product-sheet.css?v=9">
 </head>
 <body>
@@ -49,7 +49,7 @@
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-28.6';
+const VERSION='2026-11-28.7';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -978,12 +978,15 @@ function fOp(o){
   const source=opById(contexteOperation), selected=source?resOp(source):'';
   const network=route().v==='administration'?(filterParams().get('reseau')||''):selected;
   const defaultNetwork=res.includes(network)?network:res.length===1?res[0]:'';
-  form(o?'Nom, réseau et dates':'Nouvelle opération',[{k:'nom',l:'Nom',v:o&&o.nom,req:1},{k:'reseau',l:'Réseau',choices:res,v:o?resOp(o):defaultNetwork,req:1},{k:'enseignes',l:'Enseignes (séparées par des virgules)',v:o?(o.enseignes||[]).join(', '):''},{k:'portee',l:'Portée',t:'select',o:['Nationale','Régionale','Locale'].map(x=>[x,x]),v:o&&o.portee},{k:'debut',l:'Début de la période commerciale',t:'date',v:o&&o.debut,req:1},{k:'fin',l:'Fin de la période commerciale',t:'date',v:o&&o.fin,req:1}],async r=>{
+  form(o?'Nom, réseau et dates':'Nouvelle opération',[{k:'nom',l:'Nom',v:o&&o.nom,req:1},{k:'reseau',l:'Réseau',choices:res,v:o?resOp(o):defaultNetwork,req:1},{k:'enseignes',l:'Enseignes (séparées par des virgules)',v:o?(o.enseignes||[]).join(', '):''},{k:'portee',l:'Portée',t:'select',o:['Nationale','Régionale','Locale'].map(x=>[x,x]),v:o&&o.portee},{k:'debut',l:'Début de la période commerciale',t:'date',v:o&&o.debut,req:1},{k:'fin',l:'Fin de la période commerciale',t:'date',v:o&&o.fin,req:1},...(!o ? [{k:'scenario',l:'Modèle de dossier',t:'select',o:[['','Dossier vierge'],['brico-demo','Brico-déco · démonstration Nanotera']]}] : [])],async r=>{
     if(r.fin<r.debut)return 'La date de fin précède la date de début.';
+    if(r.scenario && r.reseau!=='Nanotera')return 'Sélectionnez le réseau Nanotera pour utiliser ce modèle.';
     const data={nom:r.nom,reseau:r.reseau,enseignes:r.enseignes.split(',').map(x=>x.trim()).filter(Boolean),portee:r.portee,debut:r.debut,fin:r.fin};
     if(o){const bad=supsOf(o.id).map(s=>refusEch(s,data,echeance(s,o))&&s.type).filter(Boolean);if(bad.length)return 'Ces dates rendent incohérente l\'échéance de : '+bad.join(', ')+'. Déplacez d\'abord ces échéances.';
       if(!await w('operations/'+o.id,data))return false;if(r.debut!==o.debut||r.fin!==o.fin)await perimer(o,'Période commerciale modifiée ('+periode(o)+' → '+periode(data)+').',()=>true,true);return true}
-    const id=uid('op');if(!await w('operations/'+id,Object.assign(data,{suivi:true,brief:{},source:null}),'set'))return false;await log(id,'Dossier créé.');aller('preparation',id,'cadrage');return true})}
+    const id=uid('op');if(!await w('operations/'+id,{...data,suivi:true,brief:{},source:null,...(r.scenario ? {scenario:r.scenario} : {})},'set'))return false;await log(id,'Dossier créé.');
+    if(r.scenario)location.assign('operation/?mode=partage&arrivee=creation&op='+encodeURIComponent(id)+'#informations');
+    else aller('preparation',id,'cadrage');return true})}
 function fBrief(o){const b=o.brief||{};form('Brief de l\'opération',[{k:'objectif',l:'Objectif commercial',t:'area',v:b.objectif,req:1},{k:'contacts',t:'info',l:'Renseignez au moins un contact pour le suivi du dossier.'},{k:'client',l:'Pilote côté enseigne',v:b.client},{k:'responsable',l:'Contact agence (Nanotera)',v:b.responsable},{k:'notes',l:'Contraintes et décisions à retenir',t:'area',v:b.notes}],async r=>{if(!briefComplet(r))return 'Indiquez le pilote côté enseigne ou le contact agence.';if(JSON.stringify([b.objectif||'',b.responsable||'',b.client||'',b.notes||''])===JSON.stringify([r.objectif,r.responsable,r.client,r.notes]))return true;if(!await w('operations/'+o.id,{brief:r}))return false;if(!b.objectif)await log(o.id,'Brief renseigné (responsable : '+(r.client||r.responsable)+').');else await log(o.id,'Brief modifié.',supsOf(o.id).some(enProd)?'modif':'');return true})}
 const usageAuto=s=>{const b=baseDe(s);return !typ(b).pagine&&!b.produits&&!b.institutionnel};
 function fProd(p,o=curOp(),embedded){

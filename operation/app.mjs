@@ -1,7 +1,7 @@
-import {bricoId} from '../server/brico.mjs?v=20261128.5';
-import {pilotIntro,pilotParticipants,shopYear,shopView,shopPayload,pilotFrame,kitView,kitReviewView,mountKit,kitAction} from './kit.mjs?v=20261128.6';
-import {monitor} from './monitor.mjs?v=20261128.6';
-import {editorController} from './editor.mjs?v=20261128.3';
+import {bricoId,isBricoDemo} from '../server/brico.mjs?v=20261128.7';
+import {pilotIntro,pilotParticipants,shopYear,shopView,shopPayload,pilotFrame,kitView,kitReviewView,mountKit,kitAction} from './kit.mjs?v=20261128.7';
+import {monitor} from './monitor.mjs?v=20261128.7';
+import {editorController} from './editor.mjs?v=20261128.7';
 import {axes, matches, targetPlan, participantsOf} from '../server/targeting.mjs';
 import {
   blank,
@@ -11,13 +11,14 @@ import {
   impactedVersions,
   commonPlan,
   localVariantPrices
-} from '../server/model.mjs?v=20261128.1';
+} from '../server/model.mjs?v=20261128.7';
 import {
   esc,
   info,
   participants,
   pim,
   productForm,
+  priorityNames,
   supports,
   route,
   link,
@@ -29,7 +30,7 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=20261128.6';
+} from './views.mjs?v=20261128.7';
 import {
   setupChat
 } from './chat.mjs?v=8';
@@ -130,7 +131,7 @@ function summaryFrame(pg, q) {
   const t = ctx.state.stores.find(x => x.id === q.get('id')) || participantsOf(ctx.state)[0];
   if ((!t || t.targeted === false) && pg === 'participation') return '<section class="sheet">Aucun participant affecté.</section>';
   return '<div class="hrow sectionhead"><h2>' + esc(names[pg]) + '</h2>' + (ctx.role === 'enseigne' ? link('#participants', 'Revenir aux participants') : '') +
-    '</div><label class="wizard-filter">Filtrer les étapes<input type="search" id="wizard-filter"></label><iframe src="participants/?v=10" class="wizard" title="Choix des participants"></iframe>'
+    '</div><label class="wizard-filter">Filtrer les étapes<input type="search" id="wizard-filter"></label><iframe src="participants/?v=11" class="wizard" title="Choix des participants"></iframe>'
 }
 
 function selectedProduct() {
@@ -176,6 +177,7 @@ function operationRecord() {
       ['Rayon', p.rayon || 'À renseigner'],
       ['Conditionnement', p.pack || 'À renseigner'],
       ['Prix national TTC', euros(p.price)],
+      ['Priorité de l’offre', priorityNames[p.priority] || 'Standard'],
       ['Versions commerciales', p.versions.join(' · ') || 'À affecter'],
       ['Mentions', p.note]
     ],
@@ -272,7 +274,7 @@ function render() {
   if(atelier){
     if(ctx.role==='enseigne')$('#bar').innerHTML+=link(operationChoice(page),'Changer d’opération','toplink');
     if(ctx.role==='relecteur'){$('#bar').innerHTML='';$('#open-ai').hidden=true;$('#ai').hidden=true;}
-    document.title=(atelier.mode==='fer'?'Chemin de fer':'BAT collaboratif')+' · '+atelier.x.name+' · BigOne Studio';
+    document.title=(atelier.mode==='fer'?'Chemin de fer':atelier.mode==='apercu'?'Aperçu E-catalogue':'BAT collaboratif')+' · '+atelier.x.name+' · BigOne Studio';
     $('#main').innerHTML=editor.html(atelier);editor.mounted(atelier);StudioNavigation.filters($('#main'));
     if(productDialog.open)productDialog.close();
     if(ctx.role!=='relecteur')chat.render();
@@ -286,14 +288,14 @@ function render() {
     production: () => s.kit && q.has('vue') ? kitView(s,q) : (s.kit?pilotIntro(s):'')+supports(s,q,true),
     flux: () => monitor(s,q),
     configurer: () => summaryFrame(page, q)+(s.kit?pilotFrame(s,true):''),
-    participation: () => s.config.productionPilot && shop && q.get('vue')==='annee' ? shopYear(s,shopDossiers) : s.config.productionPilot ? shopView(s,q.get('id'),shop) : summaryFrame(page,q)
+    participation: () => shop && isBricoDemo(s) && !s.engagementsOpened ? '<section class="sheet">Les engagements ne sont pas encore ouverts.</section>' : s.config.productionPilot && shop && q.get('vue')==='annee' ? shopYear(s,shopDossiers) : s.config.productionPilot ? shopView(s,q.get('id'),shop) : summaryFrame(page,q)
   } [page]();
   $('#main').innerHTML = '<div class="crumb">' + (shop ? 'Studio' : link('../#accueil', 'Studio', 'toplink')) + ' &nbsp; › &nbsp; ' + esc(shop ? 'Participation' :
       page==='configurer'?'Réglages de l’opération':sections[g][0]) + ' &nbsp; › &nbsp; ' + esc(s.op.id === 'u-2649-pbs' ? 'S49' : s.op.title) + '</div><div class="ophead"><div><h1>' + esc(s.op.title) +
     '</h1><div class="meta"><span>' + esc(shop ? s.stores[0].name : s.op.network) + '</span> · <span>' + esc(s.op.start) + ' au ' + esc(s.op.end) +
-    '</span> · <span>' + esc(s.op.scope) + '</span>'+(shop?'':' · '+link(operationChoice(page),'Changer d’opération','quiet'))+'</div></div>' + tag(ctx.workspace.startsWith('shared:') ? 'Dossier partagé' : 'Dossier de démonstration',
+    '</span> · <span>' + esc(s.op.scope) + '</span>'+(shop?'':' · '+link(operationChoice(page),'Changer d’opération','quiet'))+'</div></div>' + tag(ctx.workspace.startsWith('shared:') && !isBricoDemo(s) ? 'Dossier partagé' : 'Dossier de démonstration',
       'violet') + '</div><div><div id="content">' + content + (!shop &&
-      ctx.workspace.startsWith('shared:') ? '<p>' + link('../?classique=1#preparation--' + encodeURIComponent(s.op.id) + '--cadrage', 'Outils du dossier d’origine',
+      ctx.workspace.startsWith('shared:') && !isBricoDemo(s) ? '<p>' + link('../?classique=1#preparation--' + encodeURIComponent(s.op.id) + '--cadrage', 'Outils du dossier d’origine',
         'quiet') + '</p>' : '') + '</div></div>';
   if(s.kit && page==='production' && q.has('vue'))mountKit(s,api);
   if(digitalBat)$('#content .sectionhead')?.insertAdjacentHTML('beforeend',StudioNavigation.focusButton());
@@ -414,6 +416,19 @@ async function perform(a, id) {
   if (a === 'retry') return dossierMenu(current().page);
 init();
   if (a === 'edit-info') return formInfo();
+  if (a === 'open-engagements') {
+    await save('openEngagements',{});
+    return notify('Engagements ouverts.');
+  }
+  if (a === 'demo-replies') {
+    await save('demoReplies',{});
+    location.hash=route('participants',{filtre:'engagements'});
+    return notify('Réponses des magasins témoins chargées.');
+  }
+  if (a === 'test-deposit') {
+    await save('flow',{id,step:'test-deposit'});
+    return notify('CSV déposé en recette.');
+  }
   if (a === 'refresh') {
     await refresh();
     return notify('Réponses actualisées.')
@@ -784,6 +799,7 @@ window.studioWizard = () => {
   };
   return {
     pimLink:v=>location.pathname+location.search+route("produits",{v}),
+    consultVersion: shop ? v => save('consultVersion',{v},false) : null,
     shop, canConfigure:!shop && page==='configurer', axes, matches, targetPlan, network: shop ? [] : s.stores, groups:s.targetGroups || [], legacy:!!s.legacyAssignments,
     confirmed:shop ? [] : stores.filter(t=>s.replies[t.id]?.confirmed).map(t=>t.id),
     applyGroups: async groups=>{await save('targeting',{groups}); notify('Proposition appliquée aux groupes de magasins.');},
@@ -934,7 +950,16 @@ async function init() {
     }
     if (reviewerSlot || kitSlot) throw Error('Lien de relecture incomplet ou expiré. Demandez un nouveau lien.');
     if (slot) throw Error('Ce lien magasin a expiré. Demandez un nouvel accès depuis Participants.');
-    if (shared) return login();
+    if (shared) {
+      if (params.get('arrivee')==='creation' && readStore('bos-code')) {
+        const url=new URL(location.href);
+        url.searchParams.delete('arrivee');
+        history.replaceState(null,'',url);
+        try {await start(readStore('bos-code')); return;}
+        catch (error) {login(); $('#login .issue').textContent=error.message; return;}
+      }
+      return login();
+    }
     await start();
   } catch (e) {
     $('#main').innerHTML = '<section class="sheet"><h2>Ouverture du dossier</h2><p role="alert">' + esc(e.message) + '</p>' + btn('retry', 'Réessayer') +

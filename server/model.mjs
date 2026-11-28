@@ -1,6 +1,6 @@
 import {storeKits,changeKit} from './kit.mjs';
 import {editLayout, submitLayout, annotate, preserveProof} from './edition.mjs';
-import {bricoId, catalogueId, catalogueUrl, bricoProducts, bricoVersions, bonialId, bricoBonial, missingBonialUnit} from './brico.mjs';
+import {bricoId, isBricoDemo, catalogueId, catalogueUrl, bricoProducts, bricoVersions, bonialId, bricoBonial, missingBonialUnit} from './brico.mjs';
 import {axes, demoNetwork, demoGroups, participantsOf, targetPlan, networkText, demoId, demoFields} from './targeting.mjs';
 const MODELES = {
   imprime: [
@@ -291,6 +291,48 @@ function enrichBrico(s) {
   return s;
 }
 
+const demoChoices = [
+  [['V1', 'V2'], 'V1'], [['V1', 'V2', 'V3'], 'V2'], [['V1'], 'V1'],
+  [['V2', 'V3'], 'V3'], [['V1', 'V2'], 'V2'], [['V1', 'V3'], 'V1']
+];
+function bricoRecording(op) {
+  const s = bricoExample();
+  s.op = {...op, scenario:'brico-demo', objective:'Préparer et diffuser l’offre Brico-déco du réseau Nanotera.'};
+  s.config.localVersion = true;
+  delete s.targetGroups;
+  s.stores = s.stores.slice(0, demoChoices.length).map((store, i) => ({
+    ...store, status:'attente', rule:'free', assigned:demoChoices[i][1]
+  }));
+  s.products = s.products.map(product => ({
+    ...product, priority:product.id==='bd-03'?'star':'standard',
+    pack:product.id==='bd-03'?'':'À l’unité',
+    media:[{kind:'image', label:product.name, url:catalogueUrl.replace('catalogue.pdf',product.id+'.webp')}]
+  }));
+  const support = {
+    ...piece(catalogueId, 'E-catalogue Brico-déco', 'Numérique · 3 pages', 'En préparation', 3, ['bd-01', 'bd-06']),
+    family:'numerique', scope:'V1',
+    layout:{'bd-01':{page:2,x:53,y:17,w:40,h:46}, 'bd-06':{page:3,x:18,y:14,w:64,h:60}},
+    textBlocks:[
+      {id:'couverture',kind:'text',name:'Brico-déco',page:1,x:8,y:20,w:84,h:18},
+      {id:'titre',kind:'text',name:'Luminaires et miroirs',page:2,x:7,y:4,w:86,h:10}
+    ]
+  };
+  s.supports = [support];
+  s.flows = [initialBonial(s.config.versions),{id:'bd-tiendeo',name:'Tiendeo',v:'V3',stage:'À contrôler'}];
+  s.tasks = [];
+  return s;
+}
+
+function recordConsultation(s, store, version) {
+  required(store && store.targeted !== false && codes.includes(version) &&
+    (s.config.localVersion || version === store.assigned) && s.config.offer && eligible(s, version).length,
+    'Cette version est indisponible pour ce point de vente.',403);
+  const history = (s.consultations ??= {})[store.id] ??= [];
+  if (history.includes(version)) return false;
+  history.push(version);
+  return true;
+}
+
 // Upgrade only the S49 demonstration. Existing store IDs, replies and custom assignments survive.
 export function upgradeDemo(s) {
   if (s.op.id === bricoId) {
@@ -375,6 +417,7 @@ export function importRows(rows, opId) {
     owner: o.brief?.responsable || '',
     contact: o.brief?.client || ''
   };
+  if (o.scenario === 'brico-demo' && s.op.network === 'Nanotera') return bricoRecording(s.op);
   const sourceProducts = own('produits');
   s.products = sourceProducts.map(x => {
     const witness = demo?.products.find(p => p.id === x.id);
@@ -495,6 +538,8 @@ export function forRole(s, storeId) {
     ...(s.kit ? {kitFrame:s.kitFrame,deliveredKits:storeKits(s,storeId)} : {}),
     products: c.offer ? s.products.filter(p => c.localVersion ? p.versions.length : p.versions.includes(v)) : [],
     stores: [t],
+    consultations: {[t.id]:s.consultations?.[t.id] || []},
+    engagementsOpened:s.engagementsOpened,
     replies: {
       [t.id]: s.replies[t.id] || blank(t.assigned)
     }
@@ -715,7 +760,7 @@ function affect(s, ids, versions) {
   }
   for (const f of s.flows) {
     if (!versions.includes(f.v)) continue;
-    if (f.stage === 'Remis') {
+    if (['Remis','Déposé en recette'].includes(f.stage)) {
       f.review = true;
       continue;
     }
@@ -742,7 +787,7 @@ export const anomalies = (s, v) => eligible(s, v).filter(p => !money(p.price, fa
 export function mutate(s, action, p, scope) {
   required(!s.op.closed, 'Ce dossier est clôturé.', 409);
   const t = s.stores.find(x => x.id === (scope || p.store));
-  if (scope) required(action === 'reply', 'Cet accès est réservé au participant.', 403);
+  if (scope) required(['reply','consultVersion'].includes(action), 'Cet accès est réservé au participant.', 403);
   for (const support of s.supports) {
     if (reviewDecisions.includes(support.state) && !previousReview(support)) support.reviewBaseline = {
       revision: support.revision,
@@ -752,7 +797,27 @@ export function mutate(s, action, p, scope) {
       ...reviewSnapshot(s, support)
     };
   }
-  if (action.startsWith('kit-')) {
+  if (action === 'openEngagements') {
+    required(isBricoDemo(s) && s.stores.some(t=>t.targeted!==false) && codes.every(v=>eligible(s,v).length),
+      'Préparez les assortiments et les magasins avant d’ouvrir les engagements.');
+    if (s.engagementsOpened) return false;
+    s.engagementsOpened = date();
+  } else if (action === 'demoReplies') {
+    required(isBricoDemo(s) && s.engagementsOpened, 'Ouvrez les engagements dans le dossier de démonstration.');
+    const pending = s.stores.filter(t=>t.targeted!==false && !s.replies[t.id]);
+    if (!pending.length) return false;
+    for (const store of pending) {
+      const [viewed, choice] = demoChoices[s.stores.indexOf(store)];
+      const version = s.config.localVersion ? choice : store.assigned;
+      for (const v of s.config.localVersion ? viewed : [version]) {
+        if (eligible(s,v).length) recordConsultation(s,store,v);
+      }
+      s.replies[store.id] = {...normalize(s,store,{yn:'yes',v:version},true), demo:true};
+    }
+  } else if (action === 'consultVersion') {
+    required(scope && (!isBricoDemo(s) || s.engagementsOpened), 'La consultation requiert un accès magasin et des engagements ouverts.',403);
+    if (!recordConsultation(s,t,p.v)) return false;
+  } else if (action.startsWith('kit-')) {
     if (!changeKit(s,action,{...p,author:'Studio'},required)) return false;
   } else if (['layout','submitLayout','annotation'].includes(action)) {
     const x=s.supports.find(v=>v.id===p.id);
@@ -767,6 +832,7 @@ export function mutate(s, action, p, scope) {
     }
   } else if (action === 'reply') {
     required(t && t.targeted !== false, 'Ce point de vente ne fait pas partie du ciblage.', 403);
+    required(!isBricoDemo(s) || s.engagementsOpened, 'Les engagements ne sont pas encore ouverts.',409);
     const r = normalize(s, t, p.reply || {}, p.confirm === true);
     if (JSON.stringify(r) === JSON.stringify(s.replies[t.id])) return false;
     if(s.kit && s.replies[t.id]?.confirmed){
@@ -876,6 +942,7 @@ export function mutate(s, action, p, scope) {
       brand: clean(p.brand),
       rayon: clean(p.rayon)
     };
+    const priority = ['star','top','standard'].includes(p.priority) ? p.priority : x.priority;
     const nextVersions = codes.filter(v => p.versions.includes(v));
     for (const v of prior.versions.filter(v=>!nextVersions.includes(v))) {
       required(!s.targetGroups?.some(g=>g.version===v) || eligible(s,v).length>1, 'Conservez au moins une référence dans l’assortiment proposé en '+v+'.');
@@ -885,11 +952,11 @@ export function mutate(s, action, p, scope) {
       ...values,
       versions: nextVersions
     });
-    if (!affected.length) return false;
-    Object.assign(x, values, {
+    if (!affected.length && priority === x.priority) return false;
+    Object.assign(x, values, {priority,
       versions: nextVersions
     });
-    affect(s, [x.id], affected);
+    if (affected.length) affect(s, [x.id], affected);
     for (const store of s.stores) {
       const r = s.replies[store.id];
       if (store.targeted === false || !r || r.yn !== 'yes' || !s.config.offer || !changedVersions.includes(r.v)) continue;
@@ -1060,7 +1127,15 @@ export function mutate(s, action, p, scope) {
       }));
       f.stage = 'Généré';
       f.generated = date()
+    } else if (p.step === 'test-deposit') {
+      required(isBricoDemo(s), 'Ce dépôt est réservé au dossier de recette.',403);
+      if (f.stage === 'Déposé en recette') return false;
+      required(f.stage === 'Généré' && f.rows?.length, 'Générez le fichier avant le dépôt.');
+      f.receipt = 'REC-' + crypto.randomUUID().slice(0,8).toUpperCase();
+      f.stage = 'Déposé en recette';
+      f.delivered = date();
     } else if (p.step === 'deliver') {
+      required(!isBricoDemo(s), 'Utilisez le dépôt de recette pour cette opération.');
       required(f.stage === 'Généré' && clean(p.receipt), 'Renseignez le reçu de remise du fichier généré.');
       f.stage = 'Remis';
       f.receipt = clean(p.receipt, 250);

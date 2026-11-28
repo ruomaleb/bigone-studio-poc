@@ -734,3 +734,5 @@ body:has(#product-dialog[open]){overflow:hidden}
   .flow-badge,.flow-off {flex-direction:row;align-items:center}
   .flow-badge {gap:6px}
 }
+
+.ed-desk.ed-preview { grid-template-columns: clamp(85px, 15vw, 220px) minmax(0, 1fr); }

@@ -3,6 +3,7 @@
 Prototype Nanotera : Pilotage, Préparation, Production et Administration.
 
 - Application : https://ruomaleb.github.io/bigone-studio-poc/
+- Version **2026-11-28.7**. Dans Pilotage → Créer une opération, sélectionner le réseau Nanotera et le modèle **Brico-déco · démonstration Nanotera**. Le nouveau dossier contient les assortiments V1/V2/V3 et six magasins fictifs. Dans Participants, ouvrir les engagements puis charger les réponses de démonstration. Les consultations effectuées depuis un accès magasin sont conservées. Pour le parcours V1, compléter le conditionnement de Gaia, placer la lampe dans l’E-catalogue, valider le BAT et déposer le CSV Bonial en recette. Studio affiche le reçu de test dans la fiche du flux.
 - Version **2026-11-28.6**. La matrice de flux par version et destination ouvre les contrôles et les éditions territoriales. L’administration réseau se trouve dans le menu latéral. Les réglages de la mécanique sont accessibles en haut à droite du dossier.
 - Version **2026-11-28.5**. Production → Flux ouvre le suivi E-catalogue, Bonial et Tiendeo dans le dossier partagé Brico-déco, avec les contrôles et reçus du dossier.
 - Version **2026-11-28.4**. Les pages du catalogue et des dossiers s’alignent sous le bandeau. Le menu latéral reprend le panneau compact de BigOne Media.
