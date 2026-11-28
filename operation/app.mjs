@@ -1,3 +1,5 @@
+import {pilotIntro,pilotParticipants,shopYear,shopView,shopPayload,kitView,kitReviewView,mountKit,kitAction} from './kit.mjs';
+import {monitor} from './monitor.mjs';
 import {editorController} from './editor.mjs?v=8';
 import {axes, matches, targetPlan, participantsOf} from '../server/targeting.mjs';
 import {
@@ -8,7 +10,7 @@ import {
   impactedVersions,
   commonPlan,
   localVariantPrices
-} from '../server/model.mjs?v=8';
+} from '../server/model.mjs?v=20261128.1';
 import {
   esc,
   info,
@@ -27,7 +29,7 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=8';
+} from './views.mjs?v=20261128.1';
 import {
   setupChat
 } from './chat.mjs?v=8';
@@ -35,9 +37,12 @@ const apiRoot = 'https://bigone-studio-operations.github-46e.workers.dev';
 const $ = s => document.querySelector(s),
   params = new URLSearchParams(location.search);
 const opId = params.get('op') || (/\bid=s49-/.test(location.hash) ? 'u-2649-pbs' : 'bd-2704-deco'),
-  slot = params.get('participant'), reviewerSlot=params.get('relecture'),
+  slot = params.get('participant'), reviewerSlot=params.get('relecture'), kitSlot=params.get('epreuve'),
   shared = params.get('mode') === 'partage' || !['bd-2704-deco','u-2649-pbs'].includes(opId);
-const storageKey = 'studio.operations.v1.' + (reviewerSlot ? 'relecture.'+opId+'.'+reviewerSlot : slot ? 'magasin.' + slot + (opId === 'u-2649-pbs' ? '' : '.' + opId) : shared ? 'partage.' + opId : opId === 'u-2649-pbs' ? 'essai' : 'essai.' + opId);
+const storageKey = 'studio.operations.v1.' + (kitSlot ? 'epreuve.'+opId+'.'+kitSlot : reviewerSlot ? 'relecture.'+opId+'.'+reviewerSlot : slot ? 'magasin.' + slot + (opId === 'u-2649-pbs' ? '' : '.' + opId) : shared ? 'partage.' + opId : opId === 'u-2649-pbs' ? 'essai' : 'essai.' + opId);
+const pilotRequest=params.get('parcours')==='production' && !slot && !reviewerSlot && !kitSlot && !shared;
+const sessionKey=storageKey+(params.get('parcours')==='production'?'.production':'');
+let networkDossiers=[], networkLoaded=false;
 const sections = [
   ['Préparation', [
     ['informations', 'Informations'],
@@ -159,6 +164,8 @@ function operationRecord() {
       } : {})
     })
   }));
+  if(s.kit?.product===p.id)pieces.push({name:'Kit digital Gaia',detail:'Carré et vertical',href:route('production',{vue:'kit'})});
+  if(s.kit && ['bd-03','bd-01','bd-06','bd-04'].includes(p.id) && p.versions.includes('V1'))pieces.push({name:'Accueil É-catalogue · Sud',detail:'Visuel de l’édition NT-V1-SUD',href:route('flux',{vue:'visuels',edition:'NT-V1-SUD'})});
   const exports = s.flows.filter(f => p.versions.includes(f.v)).map(f => ({
     name: f.name,
     detail: 'Flux · assortiment ' + f.v + ' · ' + f.stage,
@@ -214,6 +221,11 @@ const operationSheet = window.StudioProductSheet.create(productDialog, {
 
 function render() {
   if (!ctx) return;
+  if(ctx.role==='relecteur-kit'){
+    $('#bar').innerHTML='';$('#ai').hidden=true;$('#open-ai').hidden=true;
+    $('#main').innerHTML=kitReviewView(ctx.state);mountKit(ctx.state,api);
+    document.title='BAT digital · '+ctx.state.op.title;return;
+  }
   const s = ctx.state,
     {
       page,
@@ -237,14 +249,14 @@ function render() {
     return;
   }
   const content = {
-    informations: () => info(s, q),
-    participants: () => participants(s, q),
+    informations: () => (s.kit?pilotIntro(s):'')+info(s,q),
+    participants: () => s.kit ? pilotParticipants(s,q):participants(s,q),
     supports: () => supports(s, q),
     produits: () => pim(s, q),
-    production: () => supports(s, q, true),
-    flux: () => flows(s, q),
+    production: () => s.kit && q.has('vue') ? kitView(s,q) : (s.kit?pilotIntro(s):'')+supports(s,q,true),
+    flux: () => s.kit && !q.has('id') ? monitor(s,q,networkDossiers) : (s.kit?link(q.get('depuis')==='reseau'?route('flux',{...Object.fromEntries(q),id:null,vue:'reseau'}):'#flux',q.get('depuis')==='reseau'?'← Mes flux':'← Flux de l’opération'):'')+flows(s,q),
     configurer: () => summaryFrame(page, q),
-    participation: () => summaryFrame(page, q)
+    participation: () => s.config.productionPilot && shop && q.get('vue')==='annee' ? shopYear(s,shopDossiers) : s.config.productionPilot ? shopView(s,q.get('id'),shop) : summaryFrame(page,q)
   } [page]();
   $('#main').innerHTML = '<div class="crumb">' + (shop ? 'Studio' : link('../#accueil', 'Studio', 'toplink')) + ' &nbsp; › &nbsp; ' + esc(shop ? 'Participation' :
       sections[g][0]) + ' &nbsp; › &nbsp; ' + esc(s.op.id === 'u-2649-pbs' ? 'S49' : s.op.title) + '</div><div class="ophead"><div><h1>' + esc(s.op.title) +
@@ -253,10 +265,46 @@ function render() {
       'violet') + '</div><div class="' + (shop ? 'shop-grid' : 'shell-grid') + '">' + (shop ? '' : sectionMenu(page)) + '<div id="content">' + content + (!shop &&
       ctx.workspace.startsWith('shared:') ? '<p>' + link('../?classique=1#preparation--' + encodeURIComponent(s.op.id) + '--cadrage', 'Outils du dossier d’origine',
         'quiet') + '</p>' : '') + '</div></div>';
+  if(s.kit && page==='production' && q.has('vue'))mountKit(s,api);
+  if(s.kit && page==='flux' && q.get('vue')==='reseau' && !networkLoaded)loadNetwork();
+  if(shop && s.config.productionPilot && q.get('vue')==='annee' && !shopLoaded)loadShopYear();
   chat.render();
   const record=shop?null:operationRecord();
   if(record)operationSheet.open(record);
   else if(productDialog.open)productDialog.close();
+}
+let shopLoaded=false,shopDossiers=[];
+async function loadShopYear(){
+  shopLoaded=true;
+  const t=ctx.state.stores[0];
+  const candidates=Object.keys(localStorage).filter(k=>k!==sessionKey && (k==='studio.operations.v1.magasin.'+t.id || k.startsWith('studio.operations.v1.magasin.'+t.id+'.')));
+  const accepted=await Promise.all(candidates.map(async k=>{
+    try{
+      const r=await fetch(apiRoot+'/read',{method:'POST',headers:{Authorization:'Bearer '+readStore(k),'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(5000)});
+      if(!r.ok)return null;
+      const other=await r.json(),op=other.state;
+      if(other.role!=='magasin'||op.op.id===ctx.state.op.id||op.op.network!==ctx.state.op.network||op.stores[0]?.id!==t.id||op.stores[0].name!==t.name)return null;
+      return {s:op,href:'?participant='+encodeURIComponent(t.id)+'&op='+encodeURIComponent(op.op.id)+(op.config.productionPilot?'&parcours=production':'')+'#participation'};
+    }catch{return null;}
+  }));
+  shopDossiers=accepted.filter(Boolean);
+  if(current().q.get('vue')==='annee')render();
+}
+async function loadNetwork(){
+  networkLoaded=true;
+  const contexts=Object.keys(localStorage).filter(k=>k!==sessionKey && k.startsWith('studio.operations.v1.') && (k.includes('.essai') || k.includes('.partage.')));
+  const result=await Promise.all(contexts.map(async k=>{
+    try {
+      const r=await fetch(apiRoot+'/read',{method:'POST',headers:{Authorization:'Bearer '+readStore(k),'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(5000)});
+      if(!r.ok)return null;
+      const other=await r.json();
+      if(other.role!=='enseigne' || other.workspace===ctx.workspace || other.state.op.id===ctx.state.op.id)return null;
+      const href='?op='+encodeURIComponent(other.state.op.id)+(k.includes('.partage.')?'&mode=partage':'');
+      return {state:other.state,href};
+    }catch{return null;}
+  }));
+  networkDossiers=result.filter(Boolean);
+  if(current().page==='flux' && current().q.get('vue')==='reseau')render();
 }
 async function refresh() {
   ctx = await api('/read');
@@ -339,6 +387,8 @@ function download(f) {
 }
 async function perform(a, id) {
   const s = ctx?.state;
+  if(a==='pilot-copy'){const url=new URL(location.href);url.hash=id;await navigator.clipboard.writeText(url.href);return notify('Lien Studio copié.');}
+  if(a.startsWith('kit-'))return kitAction(a,id,{context:()=>ctx,api,save,modal,notify,refresh,adopt:v=>{ctx=v;}});
   if (a === 'close') return $('#modal').close();
   if (a === 'retry') return init();
   if (a === 'edit-info') return formInfo();
@@ -431,7 +481,7 @@ async function perform(a, id) {
       store: id
     });
     const u = new URL('./', location.href);
-    u.search = '?participant=' + encodeURIComponent(id) + '&op=' + encodeURIComponent(s.op.id);
+    u.search = '?participant=' + encodeURIComponent(id) + '&op=' + encodeURIComponent(s.op.id)+(s.kit?'&parcours=production':'');
     u.hash = 'acces=' + r.key;
     return modal('Accès de ' + s.stores.find(t => t.id === id).name, '<p>Ce lien privé ouvre la réponse de ce seul point de vente pendant 60 jours.</p>' + field(
         'url', 'Lien du magasin', u.href, 'url', 'readonly') + '<div class="actions">' + btn('copy-invite', 'Copier le lien') +
@@ -593,6 +643,15 @@ document.addEventListener('toggle', e => {
   }
 }, true);
 document.addEventListener('submit', async e => {
+  if(['kit-response','kit-filter','pilot-date','pilot-network'].includes(e.target.id)){
+    e.preventDefault();const form=e.target, data=Object.fromEntries(new FormData(form));
+    if(form.id==='kit-response'){
+      const button=e.submitter;if(button)button.disabled=true;
+      try{await save('reply',shopPayload(form,true));notify('Participation enregistrée.');}catch(err){notify(err.message);}finally{if(button)button.disabled=false;}
+    }else if(form.id==='kit-filter'){location.hash=route('production',{vue:'kit',...data});}
+    else{location.hash=route('flux',{...Object.fromEntries(current().q),...data});}
+    return;
+  }
   if (!['support', 'product'].includes(e.target.id)) return;
   e.preventDefault();
   const d = new FormData(e.target),
@@ -783,9 +842,10 @@ function login() {
 }
 async function start(code) {
   key = key || newKey();
-  writeStore(storageKey, key);
+  writeStore(sessionKey, key);
   await api('/session', {
     operation: opId,
+    ...(pilotRequest?{scenario:'production'}:{}),
     ...(code ? {
       code
     } : {})
@@ -796,19 +856,19 @@ async function start(code) {
 
 function ready() {
   render();
-  $('#open-ai').disabled = ctx.role==='relecteur';
-  if (params.get('assistant') === '1') chat.open()
+  $('#open-ai').disabled = ['relecteur','relecteur-kit'].includes(ctx.role);
+  if (!$('#open-ai').disabled && params.get('assistant') === '1') chat.open()
 }
 async function init() {
   try {
     $('#open-ai').disabled = true;
     const invite = location.hash.match(/^#acces=([a-f0-9]{64})$/);
-    if ((slot || reviewerSlot) && invite) {
+    if ((slot || reviewerSlot || kitSlot) && invite) {
       key = invite[1];
-      writeStore(storageKey, key);
-      history.replaceState(null, '', location.pathname + location.search + (reviewerSlot?route('production',{id:reviewerSlot,atelier:'bat',page:1}):'#participation'))
+      writeStore(sessionKey, key);
+      history.replaceState(null, '', location.pathname + location.search + (kitSlot?'#bat':reviewerSlot?route('production',{id:reviewerSlot,atelier:'bat',page:1}):'#participation'))
     }
-    key = readStore(storageKey) || '';
+    key = readStore(sessionKey) || '';
     if (key) {
       try {
         ctx = await api('/read');
@@ -819,7 +879,7 @@ async function init() {
         key = '';
       }
     }
-    if (reviewerSlot) throw Error('Lien de relecture incomplet ou expiré. Demandez un nouveau lien.');
+    if (reviewerSlot || kitSlot) throw Error('Lien de relecture incomplet ou expiré. Demandez un nouveau lien.');
     if (slot) throw Error('Ce lien magasin a expiré. Demandez un nouvel accès depuis Participants.');
     if (shared) return login();
     await start();

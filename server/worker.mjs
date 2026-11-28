@@ -1,7 +1,10 @@
+import {initPilot,changeKit} from './kit.mjs';
+import {storeRender,readRender} from './kit-files.mjs';
 import {reviewerState, annotate} from './edition.mjs';
 import {
   example,
   bricoExample,
+  blank,
   importRows,
   upgradeDemo,
   forRole,
@@ -79,6 +82,7 @@ async function openSession(req, env, p) {
   } else {
     required(!p.operation || ['bd-2704-deco','u-2649-pbs'].includes(p.operation), 'Ouvrez cette opération avec votre accès enseigne.', 403);
     s = p.operation === 'u-2649-pbs' ? example() : bricoExample();
+    if(p.scenario==='production' && s.op.id==='bd-2704-deco') initPilot(s,blank);
     w = crypto.randomUUID()
   }
   const stmt = [];
@@ -93,12 +97,12 @@ async function dispatch(req, env) {
   const url = new URL(req.url),
     path = url.pathname;
   if (path === '/health') return {
-    version: '2026-11-27.8',
+    version: '2026-11-28.1',
     ok: true
   };
   required(req.method === 'POST', 'Méthode indisponible.', 405);
   const body = await req.text();
-  required(body.length < (path === '/upload' ? 1420000 : 120000), 'Demande trop volumineuse.', 413);
+  required(body.length < ((path === '/upload' || path === '/kit-render') ? 1420000 : 120000), 'Demande trop volumineuse.', 413);
   let p;
   try {
     p = JSON.parse(body || '{}')
@@ -121,6 +125,23 @@ async function dispatch(req, env) {
     scope = row.store_id;
   const reviewId=scope?.startsWith('@bat:') ? scope.slice(5) : null;
   const reviewSupport=reviewId && s.supports.find(x=>x.id===reviewId);
+  const kitReviewId=scope?.startsWith('@kit:') ? scope.slice(5) : null;
+  if(kitReviewId){
+    const proof=s.kit?.proofs.find(f=>f.id===kitReviewId);
+    required(proof,'Épreuve introuvable.',404);
+    const previous=s.kit.proofs.filter(f=>f.spec.format===proof.spec.format && f.at<proof.at && f.shops.some(t=>proof.shops.includes(t))).at(-1);
+    const allowed=[previous,proof].filter(Boolean);
+    const view=()=>({role:'relecteur-kit',workspace:row.id,revision:row.revision,state:{op:{id:s.op.id,title:s.op.title},proofs:allowed.map(({id,revision,spec,notes,approved})=>({id,revision,format:spec.format,cents:spec.cents,notes,approved}))}});
+    if(path==='/read')return view();
+    if(path==='/kit-file' && allowed.some(f=>f.id===p.id))return readRender(env.DB,row,s,p.id,null);
+    required(path==='/change' && p.action==='kit-note' && p.payload?.id===kitReviewId,'Cet accès est réservé à la relecture de cette épreuve.',403);
+    required(!s.op.closed && p.revision===row.revision,'Actualisez cette épreuve avant de commenter.',409);
+    changeKit(s,'kit-note',{...p.payload,author:'Relecteur'},required);
+    const write=await env.DB.prepare('UPDATE workspaces SET document=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(s),row.id,row.revision).run();
+    required(write.meta.changes===1,'Modification simultanée. Actualisez cette épreuve.',409);
+    row.revision++;
+    return view();
+  }
   if(reviewId) required(reviewSupport,'Ce BAT est indisponible.',404);
   if (scope && !reviewId) required(s.stores.some(t=>t.id===scope && t.targeted!==false), 'Ce point de vente ne fait pas partie du ciblage.', 403);
   const view = () => ({
@@ -139,6 +160,18 @@ async function dispatch(req, env) {
     const k=token();
     await sessionStmt(env.DB,await hash(k),row.id,'@bat:'+p.id).run();
     return {key:k};
+  }
+  if(path==='/kit-review-invite'){
+    required(!scope && s.kit?.proofs.some(f=>f.id===p.id),'Accès enseigne et épreuve requis.',403);
+    const k=token();
+    await sessionStmt(env.DB,await hash(k),row.id,'@kit:'+p.id).run();
+    return {key:k};
+  }
+  if (path === '/kit-file') return readRender(env.DB,row,s,p.id,scope);
+  if (path === '/kit-render') {
+    required(!scope && s.kit && !s.op.closed,'Accès de production requis.',403);
+    await storeRender(env.DB,row,s,p);
+    return view();
   }
   if (path === '/invite') {
     required(!scope, 'Accès enseigne requis.', 403);

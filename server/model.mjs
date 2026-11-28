@@ -1,3 +1,4 @@
+import {storeKits,changeKit} from './kit.mjs';
 import {editLayout, submitLayout, annotate, preserveProof} from './edition.mjs';
 import {bricoId, catalogueId, catalogueUrl, bricoProducts, bricoVersions} from './brico.mjs';
 import {axes, demoNetwork, demoGroups, participantsOf, targetPlan, networkText, demoId, demoFields} from './targeting.mjs';
@@ -484,6 +485,7 @@ export function forRole(s, storeId) {
   return {
     op: s.op,
     config: c,
+    ...(s.kit ? {kitFrame:s.kitFrame,deliveredKits:storeKits(s,storeId)} : {}),
     products: c.offer ? s.products.filter(p => c.localVersion ? p.versions.length : p.versions.includes(v)) : [],
     stores: [t],
     replies: {
@@ -518,6 +520,7 @@ function normalize(s, t, raw, confirm) {
   r.v = c.localVersion && codes.includes(raw.v) ? raw.v : t.assigned;
   if (confirm) required(r.yn && (!(r.yn === 'yes') || codes.includes(r.v)), 'Complétez la participation et la version.');
   if (r.yn === 'yes') {
+    if (s.kit) r.kit = raw.kit === true;
     for (const x of [...c.items, ...c.kits].filter(x => x.on)) {
       const n = raw.counts?.[x.id] ?? 0;
       required(qty(n), 'Quantité invalide.');
@@ -742,7 +745,9 @@ export function mutate(s, action, p, scope) {
       ...reviewSnapshot(s, support)
     };
   }
-  if (['layout','submitLayout','annotation'].includes(action)) {
+  if (action.startsWith('kit-')) {
+    if (!changeKit(s,action,{...p,author:'Studio'},required)) return false;
+  } else if (['layout','submitLayout','annotation'].includes(action)) {
     const x=s.supports.find(v=>v.id===p.id);
     required(x,'Support absent.');
     if(action==='layout') editLayout(s,x,p);
@@ -757,6 +762,10 @@ export function mutate(s, action, p, scope) {
     required(t && t.targeted !== false, 'Ce point de vente ne fait pas partie du ciblage.', 403);
     const r = normalize(s, t, p.reply || {}, p.confirm === true);
     if (JSON.stringify(r) === JSON.stringify(s.replies[t.id])) return false;
+    if(s.kit && s.replies[t.id]?.confirmed){
+      s.kit.replyHistory??={};
+      (s.kit.replyHistory[t.id]??=[]).push({at:new Date().toISOString(),reply:s.replies[t.id]});
+    }
     s.replies[t.id] = r
   } else if (action === 'targeting') {
     required(Array.isArray(p.groups) && p.groups.length <= 100, 'Ciblage incorrect (100 groupes maximum).');
@@ -794,7 +803,7 @@ export function mutate(s, action, p, scope) {
     validateConfig(p.config);
     required(Array.isArray(s.targetGroups) || s.stores.every(x => ['free', 'must'].includes(p.rules[x.id]) && (codes.includes(p.assign[x.id]) || (!x.assigned && p.assign[x.id] === ''))),
       'Affectation incorrecte.');
-    s.config = {...p.config, localVersion:s.targetGroups && !s.legacyAssignments ? false : p.config.localVersion};
+    s.config = {...p.config, ...(s.kit?{productionPilot:true}:{}), localVersion:s.targetGroups && !s.legacyAssignments ? false : p.config.localVersion};
 
     for(const v of new Set(s.targetGroups?.map(g=>g.version))) {
       required(!eligible(s,v).length || s.products.some(x=>p.eligibility[x.id]?.includes(v)), 'Conservez au moins une référence dans l’assortiment proposé en '+v+'.');
@@ -1029,7 +1038,7 @@ export function mutate(s, action, p, scope) {
       delete f.validated
     } else if (p.step === 'check') {
       archiveFlow(f);
-      const ok = eligible(s, f.v).length && !anomalies(s, f.v).length;
+      const ok = eligible(s, f.v).length && !anomalies(s, f.v).length && !(s.kit && f.id==='bd-bonial' && eligible(s,f.v).some(p=>p.id===s.kit.product && !p.pack?.trim()));
       f.stage = ok ? 'Contrôlé' : 'À corriger';
       f.validated = !!ok;
       f.checked = date()
