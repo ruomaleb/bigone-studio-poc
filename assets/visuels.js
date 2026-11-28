@@ -68,13 +68,13 @@ function lireSelection(raw){
   });
 }
 async function importerSelection(input){
-  const file=input.files[0];if(!file)return;
+  const file=input.files[0],op=input.dataset.artPack;if(!file||!op)return;
   try{
     if(file.size>55*1024*1024)throw Error();
     const refs=lireSelection(await file.text());
-    for(const r of refs){const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([r.nom,r.pages.map(p=>p.image)])));r.id='import-'+Array.from(new Uint8Array(hash),x=>x.toString(16).padStart(2,'0')).join('')}
+    for(const r of refs){const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([op,r.nom,r.pages.map(p=>p.image)])));r.id='import-'+Array.from(new Uint8Array(hash),x=>x.toString(16).padStart(2,'0')).join('')}
     const db=await stockageVisuel(),tx=db.transaction('references','readwrite');
-    for(const r of refs)tx.objectStore('references').put(r);
+    for(const r of refs)tx.objectStore('references').put({...r,op});
     await new Promise((ok,fail)=>{tx.oncomplete=ok;tx.onabort=tx.onerror=()=>fail(tx.error)});
     await lireVisuels();render();toast(refs.length+' supports importés dans ce navigateur.');
   }catch{toast('Import impossible. Choisissez la sélection Studio (.json) et vérifiez l’espace disponible.')}
@@ -88,15 +88,21 @@ function miniatureVisuelle(v){
     (v.texte?'<span style="background:'+couleurVisuelle(v.couleur)+'" class="'+(v.position==='haut'?'en-haut':'')+'">'+esc(v.texte)+'</span>':'')+'</span>';
 }
 function couleurVisuelle(c){return /^#[0-9a-f]{6}$/i.test(c)?c:'#183852'}
-function galerieVisuelle(s){
+function galerieVisuelle(s,op=s?.op){
+  if(!op)return '';
+  const legacy=new Set();
+  for(const [key,draft] of affectationsVisuelles){
+    if(JSON.parse(key)[0]===op)legacy.add(draft.ref);
+  }
+  const available=MODELES_VISUELS.filter(r=>r.op===op||(s&&VISUELS_DEPART.includes(r))||(!r.op&&legacy.has(r.id)));
   const current=visuelDe(s), saved=sourceVisuelle(current);
-  const cards=MODELES_VISUELS.map(r=>`<button class="ref-card" data-reference="${esc(r.id)}" data-vsupport="${esc(s?.id||'')}" aria-haspopup="dialog">
+  const cards=available.map(r=>`<button class="ref-card" data-reference="${esc(r.id)}" data-vsupport="${esc(s?.id||'')}" aria-haspopup="dialog">
     <img src="${imgVisuelle(r.pages[0],true)}" alt="" loading="lazy">
     <span><strong>${esc(r.nom)}</strong><small>${esc(r.pages.length>1?r.pages.length+' pages · '+r.source:r.source)}</small></span></button>`).join('');
   return `<section class="card visual-shelf" aria-label="Atelier visuel">
-    <div class="visual-shelf-head"><div><h2>${saved?'Maquette du support':'Atelier visuel'}</h2>
-    <p class="small muted">${saved?'Maquette de travail enregistrée dans ce navigateur.':'Feuilletez le catalogue ou ouvrez un modèle avant de l’utiliser.'}</p></div>
-    <div class="art-sources"><label class="btn sm pack-label">Importer une sélection<input type="file" data-art-pack accept=".json,application/json" aria-label="Importer une sélection de supports"></label><button class="btn sm" data-reference="import" data-vsupport="${esc(s?.id||'')}">Importer une image</button></div></div>
+    <div class="visual-shelf-head"><div><h2>${saved?'Maquette du support':s?'Atelier visuel':'Visuels de l’opération'}</h2>
+    <p class="small muted">${saved?'Maquette de travail enregistrée dans ce navigateur.':s?'Feuilletez le catalogue ou ouvrez un modèle avant de l’utiliser.':'Les sélections importées ici sont rattachées à cette opération.'}</p></div>
+    <div class="art-sources"><label class="btn sm pack-label">Importer une sélection<input type="file" data-art-pack="${esc(op)}" accept=".json,application/json" aria-label="Importer une sélection de supports"></label><button class="btn sm" data-reference="import" data-vsupport="${esc(s?.id||'')}">Importer une image</button></div></div>
     ${saved?`<button class="saved-art" data-reference="actuel" data-vsupport="${esc(s.id)}">${miniatureVisuelle(current)}<span><strong>${esc(current.nom||'Maquette')}</strong><small>Ouvrir et personnaliser</small></span></button><h3>Références disponibles</h3>`:''}
     <div class="ref-grid">${cards}</div></section>`;
 }

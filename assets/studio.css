@@ -570,3 +570,11 @@ body:has(#product-dialog[open]){overflow:hidden}
 .kit-gallery strong,.kit-gallery small{display:block}.kit-thumb{width:48px;height:52px;object-fit:contain}
 @media(max-width:850px){.kit-work,.kit-bat{grid-template-columns:1fr}}
 @media(max-width:520px){.kit-stage{height:112px}.kit-stage canvas{max-height:104px}.kit-gallery{grid-template-columns:1fr}}
+
+.operation-choice{max-width:960px;margin-inline:auto}
+.operation-choice .home-search{margin:16px 0}
+.operation-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:10px}
+.operation-choices .content-row{min-width:0;border:1px solid var(--line);border-radius:6px}
+.current-operation{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-right:auto}
+.current-operation>.icon{color:var(--violet-text)}
+.current-operation a{font-size:13px}

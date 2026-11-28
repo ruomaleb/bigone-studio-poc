@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-26.8">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-28.2">
 <link rel="stylesheet" href="assets/product-sheet.css?v=8">
 </head>
 <body>
@@ -40,14 +40,14 @@
 </dialog>
 <div id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="assets/visuels.js?v=2026-11-26.8"></script>
+<script src="assets/visuels.js?v=2026-11-28.2"></script>
 <script src="assets/product-sheet.js?v=8"></script>
 <script src="assets/list-filters.js?v=2026-11-26.8"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-27.8';
+const VERSION='2026-11-28.2';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -65,7 +65,7 @@ const S={operations:[],produits:[],magasins:[],supports:[],taches:[],journal:[],
 let db=null,status='loading',cur=null,timer=null;
 let planningOpen=false,suiviOpen=false;
 let operationQuery='';
-try{cur=localStorage.getItem('bos-op')||'bd-2704-deco'}catch(e){}
+try{cur=localStorage.getItem('bos-op')||null}catch(e){}
 let contexteOperation=cur;
 
 /* ---------- dates ---------- */
@@ -104,9 +104,9 @@ const prodsOf=id=>S.produits.filter(p=>p.op===id);
 const supsOf=id=>S.supports.filter(s=>s.op===id).sort((a,b)=>a.id.localeCompare(b.id));
 const typ=s=>TYPES[s.type]||{f:'numerique'};
 const enProd=s=>s.prod??true;
-const baseDe=s=>s.groupe?S.supports.find(x=>x.id===s.groupe)||s:s;
+const baseDe=s=>s.groupe?S.supports.find(x=>x.id===s.groupe&&x.op===s.op)||s:s;
 const basesOf=id=>supsOf(id).filter(s=>!s.groupe);
-const varsDe=b=>S.supports.filter(s=>s.groupe===b.id);
+const varsDe=b=>S.supports.filter(s=>s.op===b.op&&s.groupe===b.id);
 const nomVar=s=>s.groupe?s.variante||'Variante':varsDe(s).length?'Nationale':'';
 const titre=s=>s.type+(nomVar(s)?' · '+nomVar(s):'');
 const premierPagine=s=>{const l=basesOf(s.op).filter(x=>typ(x).pagine),f=l.find(x=>typ(x).f==='imprime')||l[0];return !!f&&f.id===s.id};
@@ -188,10 +188,60 @@ async function w(path,data,mode){const [col,id]=path.split('/'),op=mode==='set'?
 const uid=p=>p+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const log=(op,texte,type)=>w('journal/'+uid('j'),Object.assign({op,date:new Date().toISOString().slice(0,19),texte},type?{type}:{}),'set');
 let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
-async function charger(){const e0=ecrits;try{const r=await fetch(SB+'/rest/v1/docs?select=col,id,data,version&order=col,id',{headers:HD});if(!r.ok)throw 0;const rows=await r.json(),N={},sig=Boolean(CODE)+'|'+JSON.stringify(rows);
-    if(e0!==ecrits)return false;/* une écriture a eu lieu pendant la lecture : ce résultat est peut-être déjà dépassé */
-    if(sig===charger.sig&&status==='ok')return true;charger.sig=sig;Object.keys(S).forEach(k=>N[k]=[]);
-    rows.forEach(x=>{if(N[x.col])N[x.col].push(Object.assign({id:x.id},x.data,{_v:x.version}))});const {projectCatalog}=await import('./server/targeting.mjs?v=5');Object.assign(S,projectCatalog(N,Boolean(CODE)));status='ok';schedule();return true}catch(e){if(status!=='ok')status='err';schedule();return false}}
+// An unscoped content entry only needs the list of operations.
+function catalogReadScope(){
+  const [section,kind]=location.hash.slice(1).split('?')[0].split('--');
+  if(section==='contenus' && (needsOperation(kind)||kind==='operations'&&filterParams().has('destination')))return directoryState().op;
+  if(!kind && ['produits','assets','production','flux'].includes(section))return directoryState().op;
+  return null;
+}
+async function readDocs(filters={}){
+  const query=new URLSearchParams({select:'col,id,data,version',order:'col,id',...filters});
+  const response=await fetch(SB+'/rest/v1/docs?'+query,{headers:HD});
+  if(!response.ok)throw Error('Catalogue indisponible.');
+  return response.json();
+}
+async function catalogRows(scope){
+  if(scope===null)return readDocs();
+  const ops=await readDocs({col:'eq.operations'});
+  if(!scope || !ops.some(x=>x.id===scope&&suivi(x.data)))return ops;
+  if(!CODE){
+    const {demoId}=await import('./server/targeting.mjs?v=5');
+    if(!demoId(scope))return ops;
+  }
+  const [related,engagements,stores]=await Promise.all([
+    readDocs({col:'in.(produits,supports,taches,journal,engagements)','data->>op':'eq.'+scope}),
+    readDocs({col:'eq.engagements',id:'eq.'+scope}),readDocs({col:'eq.magasins'})
+  ]);
+  const ids=[scope,...related.filter(r=>r.col==='supports').map(r=>r.id)],plans=[];
+  for(let i=0;i<ids.length;i+=64){
+    const quoted=ids.slice(i,i+64).map(id=>JSON.stringify(id)).join(',');
+    plans.push(readDocs({col:'eq.chemins',id:'in.('+quoted+')'}));
+  }
+  return [...ops,...related,...engagements,...stores,...(await Promise.all(plans)).flat()];
+}
+let requestedScope,readNumber=0;
+async function charger(){
+  const scope=catalogReadScope(),n=++readNumber,e0=ecrits,access=Boolean(CODE);
+  if(requestedScope!==scope){
+    requestedScope=scope;status='loading';
+    for(const col of Object.keys(S))if(col!=='operations')S[col]=[];
+    charger.sig=null;
+  }
+  try{
+    const rows=await catalogRows(scope);
+    const {projectCatalog}=await import('./server/targeting.mjs?v=5');
+    if(n!==readNumber || scope!==catalogReadScope() || access!==Boolean(CODE) || e0!==ecrits)return false;
+    const sig=access+'|'+JSON.stringify(rows);
+    if(sig===charger.sig&&status==='ok')return true;
+    const next=Object.fromEntries(Object.keys(S).map(k=>[k,[]]));
+    for(const x of rows)if(next[x.col])next[x.col].push({...x.data,id:x.id,_v:x.version});
+    Object.assign(S,projectCatalog(next,access));charger.sig=sig;status='ok';schedule();return true;
+  }catch{
+    if(n===readNumber&&scope===catalogReadScope()&&status!=='ok'){status='err';schedule();}
+    return false;
+  }
+}
 async function init(){lireVisuels().then(schedule).catch(()=>{});render();
   if(PUBLIC){await charger();if(CODE&&!ROLE)rpc({p_code:CODE,p_op:'check'}).then(r=>{if(r&&r.ok===true)retenirCode(CODE,r);else oublierCode();render()}).catch(()=>{});setInterval(()=>{if(!document.hidden&&!$('#dlg').open&&!$('#acces-dialog').open&&!$('#product-dialog').open)charger()},20000);return}
   let n=0;while(!(window.claude&&window.claude.use)&&n++<30)await new Promise(r=>setTimeout(r,100));
@@ -207,7 +257,14 @@ async function init(){lireVisuels().then(schedule).catch(()=>{});render();
 const lien=(v,id,tab)=>'#'+v+(id?'--'+id+(tab?'--'+tab:''):'');
 function route(){let [v,oid,tab,context]=(location.hash.slice(1).split('?')[0]||'accueil').split('--');
   if(v==='pilotage'){planningOpen=true;v='accueil';window.history.replaceState(null,'','#accueil')}
-  if(v==='contenus'){return {v,tab:Object.hasOwn(directories,oid)?oid:'operations'}}
+  if(v==='contenus'){
+    const tab=Object.hasOwn(directories,oid)?oid:'operations';
+    const op=needsOperation(tab)&&opById(filterParams().get('op'));
+    if(op&&suivi(op)){cur=op.id;contexteOperation=op.id;}
+    return {v,tab};
+  }
+  const section={produits:'produits',production:'assets',assets:'assets',preparation:'operations',flux:'assets'}[v];
+  if(section&&!oid)return {v:'contenus',tab:section};
   const dossier=v==='preparation'||v==='production';
   if(dossier&&oid&&(!opById(oid)||!suivi(opById(oid))))return {v:'absent',tab:v};
   if(dossier&&oid)contexteOperation=oid;
@@ -215,7 +272,7 @@ function route(){let [v,oid,tab,context]=(location.hash.slice(1).split('?')[0]||
   if(v==='production')return {v,tab:tab?.startsWith(SUPPORT_PREFIX) ? tab.slice(SUPPORT_PREFIX.length) : null,context};
   return {v:Object.hasOwn(VUES,v)?v:'accueil',context:v==='preparation'?context:null,tab:v==='administration'?(ADMIN_TABS.some(t=>t[0]===oid)?oid:'magasins'):TABS.some(t=>t[0]===tab)?tab:'cadrage'}}
 function aller(v,id,tab){const h=lien(v,id,tab);if(location.hash===h)render();else location.hash=h}
-function curOp(){if(status==='loading'&&!S.operations.length)return null;let o=opById(cur);if(!o||!suivi(o)){o=sorted().find(x=>suivi(x)&&!x.cloture)||sorted().find(suivi);cur=o?o.id:null}return o}
+function curOp(){if(status==='loading'&&!S.operations.length)return null;let o=opById(cur);return o&&suivi(o)?o:null}
 
 /* ---------- composants ---------- */
 const src=s=>s==='public'?'<span class="pill src" title="Relevé sur les sites publics le 14/11/2026">Relevé public</span>':s==='matrice'?'<span class="pill src">Matrice</span>':'';
@@ -304,18 +361,19 @@ const directories={
   produits:{label:'Contenus produits',nav:'produits',hint:'Références, prix et offres',item:'Produits'},
   assets:{label:'Production des assets',nav:'production',hint:'Fichiers, versions et BAT',item:'Assets et BAT'}
 };
-const directoryLink=key=>'#contenus--'+key;
+const directoryLink=(key,op)=>'#contenus--'+key+(op?'?'+new URLSearchParams({op}):'');
+const needsOperation=kind=>['produits','assets','supports'].includes(kind);
 const innerLink=(op,tab,id)=>lien('preparation',op,tab)+'--'+encodeURIComponent(id);
 const normalized=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr');
-const operationTerms=o=>[o.nom,resOp(o),...(o.enseignes||[]),o.brief?.client,o.brief?.responsable].filter(Boolean).join(' ');
+const operationTerms=o=>[o.nom,o.id,resOp(o),...(o.enseignes||[]),o.brief?.client,o.brief?.responsable].filter(Boolean).join(' ');
 function matchesOperation(o,query){return normalized(operationTerms(o)).includes(normalized(query.trim()))}
 function fileName(value){
   if(!value)return '';
   try{const url=new URL(value);const name=url.pathname.split('/').filter(Boolean).pop();return name?decodeURIComponent(name):url.hostname}catch{return value}
 }
 const contentFilters={
-  operations:['reseau','phase','periode'],produits:['op','rayon','marque','mecanique','qualite'],
-  supports:['op','famille','type','zone','magasin','etat'],assets:['op','type','magasin','etat','version','fichier']
+  operations:['reseau','phase','periode'],produits:['rayon','marque','mecanique','qualite'],
+  supports:['famille','type','zone','magasin','etat'],assets:['type','magasin','etat','version','fichier']
 };
 const contentSorts={operations:['nom','nomDesc','debutDesc','debut'],produits:['nom','nomDesc','prix','prixDesc'],supports:['nom','nomDesc','date','dateDesc'],assets:['nom','nomDesc','revDesc','date']};
 function commercialPeriod(o){return !o.debut||!o.fin?'Non renseignée':o.debut>today()?'À venir':o.fin<today()?'Terminée':'En cours'}
@@ -330,6 +388,7 @@ function supportFacets(s,o,stores){
     date:s.remise||o.debut&&echeance(s,o),etat:enProd(s)?libStat(s.statut):'En préparation'};
 }
 function contentItems(kind,operation){
+  if(needsOperation(kind)&&!operation)return [];
   const ops=sorted().filter(o=>suivi(o)&&(!operation||operation===o.id));
   const byId=new Map(ops.map(o=>[o.id,o]));
   if(kind==='operations')return ops.map(o=>({o,...opFacets(o),phase:phase(o),name:o.nom,meta:[resOp(o),periode(o),o.cloture?'Clôturée':''],href:lien('preparation',o.id,'cadrage')}));
@@ -382,16 +441,11 @@ function rowsBlock(rows,kind,limit=24,cards=false){
   return renderRows(rows.slice(0,limit))+(rest.length?`<details class="more-results"><summary>Afficher les ${rest.length} autres résultats</summary>${renderRows(rest)}</details>`:'');
 }
 function operationResults(){
-  const kind=filterParams().get('contenu'),query=operationQuery.trim();
-  const allKinds=Object.keys(directories),categories=kind?allKinds.filter(k=>k===kind):query?allKinds:['operations'];
-  const rows=categories.flatMap(k=>contentItems(k).filter(r=>query||kind||!r.o.cloture).map(r=>({...r,...opFacets(r.o),contenu:k})));
-  const list=filterList(rows,['contenu','reseau','periode'],['debut','debutDesc','nom','nomDesc'],{searchKey:'q',query,matches:matchesContent,options:{contenu:allKinds}});
-  if(!query&&!kind)return list.toolbar+`<div class="result-heading">${iconBadge('operations')}<h2>Opérations ouvertes</h2><span class="count">${list.visible.length}</span></div>`+
-    (rowsBlock(list.visible,'operations',5)||vide(list.changed?'Aucune opération avec ces filtres.':'Aucun dossier ouvert.'));
-  const count=list.visible.length;
-  return list.toolbar+`<p class="result-count" role="status">${count?count+' résultat'+(count>1?'s':''):'Aucun résultat avec ces critères.'}</p>`+
-    categories.map(k=>{const group=list.visible.filter(r=>r.contenu===k);
-      return group.length?`<section class="result-group"><div class="result-heading">${iconBadge(k)}<h2>${directories[k].item}</h2><span class="count">${group.length}</span></div>${rowsBlock(group,k,5)}</section>`:''}).join('');
+  const query=operationQuery.trim();
+  const rows=contentItems('operations').filter(r=>query||!r.o.cloture);
+  const list=filterList(rows,['reseau','periode'],['debut','debutDesc','nom','nomDesc'],{searchKey:'q',query,matches:(r,q)=>matchesOperation(r.o,q)});
+  return list.toolbar+`<div class="result-heading">${iconBadge('operations')}<h2>${query?'Opérations':'Opérations ouvertes'}</h2><span class="count">${list.visible.length}</span></div>`+
+    (rowsBlock(list.visible,'operations',5)||vide(list.changed?'Aucune opération avec ces critères.':'Aucun dossier ouvert.'));
 }
 let preferredProductView='cartes';
 try{if(localStorage.getItem('bos-produits-vue')==='liste')preferredProductView='liste'}catch{}
@@ -421,24 +475,52 @@ function directoryResults(kind,operation,list,mode){
   const opLink=o&&suivi(o)?`<a class="directory-operation" href="${esc(kind==='assets'?lien('production',o.id):lien('preparation',o.id,kind==='produits'?'offres':'dispositif'))}">${kind==='assets'?'Production de l’opération':kind==='produits'?'Gérer les produits de l’opération':'Gérer les supports de l’opération'} →</a>`:'';
   if(rows.length)return opLink+ `<p class="result-count" role="status">${rows.length} résultat${rows.length>1?'s':''}</p>${kind==='produits'&&mode==='liste'?productTable(rows):rowsBlock(rows,kind,24,kind==='produits'||kind==='assets')}`;
   if(list.changed)return opLink+'<p role="status">Aucun résultat avec ces filtres.</p>';
-  const texts={operations:'Aucune opération suivie.',supports:'Aucun support préparé.',produits:'Aucun produit dans les opérations suivies.',assets:'Aucun support ouvert en production.'};
-  return vide(texts[kind])+(kind==='operations'?'<button class="btn pri" data-act="new-op">Créer une opération</button>':`<a href="${directoryLink(kind==='assets'?'supports':'operations')}">${kind==='assets'?'Ouvrir les supports en préparation':'Ouvrir les opérations'}</a>`);
+  const texts={operations:'Aucune opération suivie.',supports:'Aucun support préparé.',produits:'Aucun produit dans cette opération.',assets:'Aucun support ouvert en production pour cette opération.'};
+  return opLink+vide(texts[kind])+(kind==='operations'?'<button class="btn pri" data-act="new-op">Créer une opération</button>':`<a href="${directoryLink(kind==='assets'?'supports':'operations',kind==='assets'?operation:null)}">${kind==='assets'?'Ouvrir les supports en préparation':'Ouvrir les opérations'}</a>`);
 }
 function directoryState(){
   const params=filterParams();
   return {q:params.get('q')||'',op:params.get('op')||''};
 }
+function choiceTarget(kind,o) {
+  const params=filterParams(),target=params.get('destination')||'';
+  const [page]=target.split('?');
+  if(['informations','participants','supports','configurer','produits','production','flux'].includes(page)){
+    const demo=['bd-2704-deco','u-2649-pbs'].includes(o.id);
+    if(!o.cloture && (demo || ROLE==='responsable')){
+      const args=new URLSearchParams({op:o.id});
+      if(params.get('mode')==='partage'||!demo)args.set('mode','partage');
+      if(o.id==='bd-2704-deco' && params.get('parcours')==='production')args.set('parcours','production');
+      return 'operation/?'+args+'#'+target;
+    }
+    if(kind==='operations')return lien('preparation',o.id,'cadrage');
+  }
+  const url=directoryLink(kind,o.id);
+  return kind==='produits'&&params.get('vue')==='liste'?url+'&vue=liste':url;
+}
+function operationChooser(kind,unavailable=false){
+  const query=filterParams().get('choix')||'',d=directories[kind];
+  const ops=sorted().filter(o=>suivi(o)&&matchesOperation(o,query)).sort((a,b)=>Number(!!a.cloture)-Number(!!b.cloture)||compareFrench.compare(a.nom,b.nom));
+  return `<div class="hd icon-heading">${iconBadge(kind)}<h1>${d.label}</h1></div>${banner()}<section class="card operation-choice" aria-labelledby="choice-title">
+    <h2 id="choice-title">Choisir une opération</h2>${unavailable&&status==='ok'?'<p role="status">L’opération demandée est indisponible. Sélectionnez un autre dossier.</p>':''}
+    <label class="home-search" for="scope-query">${uiIcon('search')}<span class="visually-hidden">Rechercher une opération</span><input id="scope-query" type="search" data-facet="choix" value="${esc(query)}" placeholder="Rechercher par nom, code ou enseigne"></label>
+    <div class="operation-choices">${ops.map(o=>contentRow({o,name:o.nom,meta:[resOp(o),periode(o),o.cloture?'Clôturée':''],href:choiceTarget(kind,o)},'operations')).join('')||
+    (status==='ok'?vide(query?'Aucune opération ne correspond à votre recherche.':'Aucune opération disponible.'):'')}</div></section>`;
+}
 function vDirectory(kind){
   const d=directories[kind],{q,op}=directoryState(),ops=sorted().filter(suivi);
-  const list=filterList(contentItems(kind),contentFilters[kind],contentSorts[kind],{query:q,searchKey:'q',matches:matchesContent,ids:{op:'catalog-op'},options:{op:ops.map(o=>o.id)}});
+  const scoped=needsOperation(kind),selected=op&&ops.find(o=>o.id===op);
+  if((scoped&&!selected)||(kind==='operations'&&filterParams().has('destination')))return operationChooser(kind,!!op&&!selected);
+  if(scoped&&PUBLIC&&status!=='ok')return `<div class="hd"><h1>${esc(selected.nom)}</h1><a href="${directoryLink(kind)}">Changer d’opération</a></div>${banner()}`;
+  const list=filterList(contentItems(kind,scoped?op:null),contentFilters[kind],contentSorts[kind],{query:q,searchKey:'q',matches:matchesContent});
   const prep=d.nav==='preparation',mode=kind==='produits'?productView():null;
-  const heading=`<div class="hd"><div class="icon-heading">${iconBadge(kind)}<h1>${d.label}</h1></div>${mode?productViewSwitch(mode):''}${prep?'<button class="btn pri" data-act="new-op">Créer une opération</button>':''}</div>${banner()}`;
+  const heading=`<div class="hd"><div class="icon-heading">${iconBadge(kind)}<h1>${d.label}</h1></div>${scoped?`<div class="current-operation">${uiIcon('operations')}<strong>${esc(selected.nom)}</strong><a href="${directoryLink(kind)}">Changer d’opération</a></div>`:''}${mode?productViewSwitch(mode):''}${prep?'<button class="btn pri" data-act="new-op">Créer une opération</button>':''}</div>${banner()}`;
   const navigation=`<aside class="catalog-sidebar">
-    ${prep?`<nav class="workspace-menu" aria-label="Contenus de préparation"><p>Préparation</p>${['operations','supports'].map(k=>`<a href="${directoryLink(k)}"${k===kind?' aria-current="page"':''}>${uiIcon(k)}${directories[k].item}</a>`).join('')}</nav>`:''}
+    ${prep?`<nav class="workspace-menu" aria-label="Contenus de préparation"><p>Préparation</p>${['operations','supports'].map(k=>`<a href="${directoryLink(k,scoped&&needsOperation(k)?op:null)}"${k===kind?' aria-current="page"':''}>${uiIcon(k)}${directories[k].item}</a>`).join('')}</nav>`:''}
     ${list.toolbar}</aside>`;
   const placeholders={operations:'Rechercher une opération, une enseigne ou un pilote…',supports:'Rechercher un support, un format ou un magasin…',produits:'Rechercher un libellé, une référence ou un rayon…',assets:'Rechercher un fichier, un support, un BAT ou un magasin…'};
   const search=`<label class="home-search" for="catalog-query">${uiIcon('search')}<span class="visually-hidden">Rechercher</span><input type="search" id="catalog-query" value="${esc(q)}" placeholder="${placeholders[kind]}"></label>`;
-  return workspace(navigation,(kind==='assets'?galerieVisuelle(null):'')+search+`<section class="result-panel" id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,op,list,mode):''}</section>`,heading);
+  return workspace(navigation,search+`<section class="result-panel" id="catalog-results" data-kind="${kind}">${status==='ok'||ops.length?directoryResults(kind,op,list,mode):''}</section>`+(kind==='assets'?galerieVisuelle(null,op):''),heading);
 }
 function suiviContent(ops){
  const rank={crit:0,warn:1,ok:2};
@@ -465,11 +547,11 @@ function vAccueil(){
  operationQuery=directoryState().q;
  const ops=sorted().filter(o=>suivi(o)&&!o.cloture);
  const header=`<div class="hd" id="home-top" tabindex="-1"><div><h1>Plan d’action commerciale</h1></div>
- <div class="row"><a class="btn pri" href="operation/?op=bd-2704-deco&amp;parcours=production">Production Brico-déco</a><a class="btn" href="operation/?op=bd-2704-deco&amp;parcours=production#flux?vue=reseau">Mes flux</a><a class="btn" href="operation/?op=bd-2704-deco&amp;assistant=1">✦ &nbsp; Ouvrir la démo Brico-déco</a><button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div></div>${banner()}`;
+ <div class="row"><a class="btn pri" href="operation/?op=bd-2704-deco&amp;parcours=production">Production Brico-déco</a><a class="btn" href="#contenus--assets?destination=flux&amp;parcours=production">Mes flux</a><a class="btn" href="operation/?op=bd-2704-deco&amp;assistant=1">✦ &nbsp; Ouvrir la démo Brico-déco</a><button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div></div>${banner()}`;
  const covers={operations:'preparation',produits:'produits',assets:'production'};
  const nav=`<nav class="content-doors" aria-label="Accès aux contenus">${Object.entries(covers).map(([k,file])=>`<a href="${directoryLink(k)}"><img src="assets/${file}.webp" width="520" height="520" alt=""><span class="door-caption"><span><strong>${directories[k].label}</strong><small>${directories[k].hint}</small></span><span class="door-open" aria-hidden="true">${uiIcon('arrow')}</span></span></a>`).join('')}</nav>`;
  if(status!=='ok'&&!S.operations.length)return header+nav;
- const search=`<label class="home-search" for="operation-query">${uiIcon('search')}<span class="visually-hidden">Rechercher dans Studio</span><input id="operation-query" type="search" placeholder="Rechercher une opération, un produit, un fichier…" value="${esc(operationQuery)}"></label>`;
+ const search=`<label class="home-search" for="operation-query">${uiIcon('search')}<span class="visually-hidden">Rechercher dans Studio</span><input id="operation-query" type="search" placeholder="Rechercher une opération, un code ou une enseigne…" value="${esc(operationQuery)}"></label>`;
  return workspace(homeMenu(),`${header}${search}${nav}
  <section class="result-panel" id="operation-results" aria-label="Opérations et résultats de recherche">${operationResults()}</section>
  <details class="quiet-panel" id="pac-suivi"${suiviOpen?' open':''}><summary>${uiIcon('priorities')}Actions prioritaires et indicateurs</summary><div id="pac-chiffres">${suiviOpen?suiviContent(ops):''}</div></details>
@@ -758,9 +840,12 @@ function render(){
  }
  const dir=r.v==='contenus'?r.tab:r.v==='production'?'assets':r.v==='preparation'?(r.tab==='offres'?'produits':r.tab==='dispositif'?'supports':'operations'):null;
  const active=dir?directories[dir].nav:r.v==='accueil'?'pilotage':r.v;
- document.querySelectorAll('.global-nav a[data-v]').forEach(a=>{if(a.dataset.v===active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+ const scopedId=inOp?o?.id:r.v==='contenus'&&needsOperation(dir)?sorted().find(x=>suivi(x)&&x.id===directoryState().op)?.id:null;
+ document.querySelectorAll('.global-nav a[data-v]').forEach(a=>{
+   if(a.dataset.v==='produits'||a.dataset.v==='production')a.href=directoryLink(a.dataset.v==='produits'?'produits':'assets',scopedId);
+   if(a.dataset.v===active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
  const label=dir?directories[dir].label:r.v==='administration'?'Administration':'Pilotage';
- const trail=r.v==='accueil'?'':`<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="#accueil">Studio</a><span aria-hidden="true">›</span>${inOp?`<a href="${directoryLink(dir)}">${label}</a>`:`<span>${label}</span>`}</nav>`;
+ const trail=r.v==='accueil'?'':`<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="#accueil">Studio</a><span aria-hidden="true">›</span>${inOp?`<a href="${directoryLink(dir,needsOperation(dir)?scopedId:null)}">${label}</a>`:`<span>${label}</span>`}</nav>`;
  $('#view').innerHTML=trail+VUES[r.v](r.tab,r.context)+`<footer class="app-footer"><span><strong>BigOne Studio</strong> · Nanotera</span><span>Version ${VERSION}</span></footer>`;
  const access=$('#acces-studio');
  access.hidden=!PUBLIC;
@@ -1262,7 +1347,7 @@ document.addEventListener('toggle',e=>{
   }
 },true);
 document.addEventListener('input',e=>{
-  if(['catalog-query','operation-query','q-prod','support-query'].includes(e.target.id))return refreshFilteredView(e.target);
+  if(['scope-query','catalog-query','operation-query','q-prod','support-query'].includes(e.target.id))return refreshFilteredView(e.target);
 });
 document.addEventListener('change',async e=>{const t=e.target,d=t.dataset,o=curOp();
   if(d.facet)return refreshFilteredView(t);
@@ -1278,7 +1363,7 @@ document.addEventListener('dragover',e=>{const p=e.target.closest&&e.target.clos
 document.addEventListener('dragleave',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p)p.classList.remove('over')});
 document.addEventListener('drop',e=>{const p=e.target.closest&&e.target.closest('[data-page]');if(p){e.preventDefault();if(peutEcrire()&&!curOp().cloture)placer(S.supports.find(s=>s.id===p.dataset.sup),e.dataTransfer.getData('text/plain'),+p.dataset.page)}});
 document.querySelector('.skip-link').addEventListener('click',e=>{e.preventDefault();$('#view').focus();$('#view').scrollIntoView({block:'start'})});
-window.addEventListener('hashchange',()=>{if(productDialog.open)productDialog.close();if($('#atelier-dialog').open)$('#atelier-dialog').close();render();$('#view').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'})});
+window.addEventListener('hashchange',()=>{if(productDialog.open)productDialog.close();if($('#atelier-dialog').open)$('#atelier-dialog').close();if(PUBLIC&&catalogReadScope()!==requestedScope)charger();render();$('#view').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'})});
 init();
 </script>
 </body>
