@@ -1,6 +1,6 @@
-import {esc,route} from './views.mjs?v=20261128.6';
+import {esc,route} from './views.mjs?v=20261128.7';
 import {eligible} from '../server/model.mjs';
-import {bricoId,missingBonialUnit} from '../server/brico.mjs?v=20261128.5';
+import {bricoId,missingBonialUnit} from '../server/brico.mjs?v=20261128.7';
 
 const icons={
   catalogue:'<path d="M3 5c3-1 6 0 9 2 3-2 6-3 9-2v13c-3-1-6 0-9 2-3-2-6-3-9-2zM12 7v13"/>',
@@ -51,7 +51,7 @@ function entries(s,editions,p){
 }
 function statusTone(stage){
   if(['À corriger','À vérifier','En corrections'].includes(stage))return 'alert';
-  if(['Validé','Contrôlé','Remis','Généré'].includes(stage))return 'good';
+  if(['Validé','Contrôlé','Remis','Généré','Déposé en recette'].includes(stage))return 'good';
   return 'pending';
 }
 function badge(record,version,duplicate){

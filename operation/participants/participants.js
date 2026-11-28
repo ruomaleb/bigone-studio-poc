@@ -49,6 +49,7 @@ const shopTabs = [
 const isSnapshot = false;
 let persistOK = true,
   data = core.data;
+let consultedVersion = '';
 let mode = core.mode,
   tab = core.tab,
   store = core.store;
@@ -280,12 +281,13 @@ function offer() {
 function entry() {
   const reply = R();
   const version = V(reply.v || data.assigned[store]);
+  const preview = v => core.consultVersion ? btn('Consulter '+v.id,'consult:'+v.id) + (consultedVersion===v.id ? assortment(v.id) : '') : assortment(v.id);
   const versionCard = '<div class="tile">' + tag(version.id) + ' <b>' + esc(version.name) +
-    '</b><span>' + esc(version.desc) + '</span>' + assortment(version.id) + '</div>';
-  const choices = data.localVersion && yes() ? '<div class="threecol">' + data.versions.map(v =>
-    '<label class="choice"><input type="radio" name="ver" data-path="reply.v" value="' + esc(v.id) + '" ' +
+    '</b><span>' + esc(version.desc) + '</span>' + (version.id ? preview(version) : '') + '</div>';
+  const choices = data.localVersion && (yes() || core.consultVersion) ? '<div class="threecol">' + data.versions.map(v =>
+    '<div class="tile"><label class="choice"><input type="radio" name="ver" data-path="reply.v" value="' + esc(v.id) + '" ' +
     (reply.v === v.id ? 'checked' : '') + '><span><b>' + esc(v.id + ' · ' + v.name) + '</b><small>' + esc(v.desc) +
-    '</small>' + assortment(v.id) + '</span></label>').join('') + '</div>' : versionCard;
+    '</small></span></label>' + preview(v) + '</div>').join('') + '</div>' : versionCard;
   const participation = must() ? '<div class="rows">' + row('<b>Participation obligatoire</b><span class="hint">Votre enseigne a inscrit ce magasin à l’opération.</span>', tag('Obligatoire', 'green')) + '</div>' :
     '<div class="pills">' + radio('reply.yn', 'yes', reply.yn, 'Oui, je participe') +
     radio('reply.yn', 'no', reply.yn, 'Non, je décline') + '</div>';
@@ -589,6 +591,21 @@ document.addEventListener('click', async e => {
   if (!el) return;
   flushFields();
   const [a, arg] = el.dataset.action.split(':');
+  if (a==='consult' && core.consultVersion) {
+    el.disabled=true;
+    try {
+      await chain;
+      await core.consultVersion(arg);
+      consultedVersion=arg;
+      render();
+      document.querySelector('[data-action="consult:'+arg+'"]')?.focus();
+    } catch (error) {
+      toast(error.message);
+    } finally {
+      el.disabled=false;
+    }
+    return;
+  }
   if(a.startsWith('draft-')) {
     const i=groups.findIndex(g=>g.id===arg);
     if(a==='draft-add' || a==='draft-only') {

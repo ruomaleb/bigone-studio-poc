@@ -18,6 +18,127 @@ async function checkWorkspaceStart(page) {
   assert(layout.offset<=1,'Le menu et le contenu démarrent au même niveau.');
   assert(layout.inset>0,'Le menu est détaché du bord de la fenêtre.');
 }
+async function testBricoDemo(p,c,rootUrl,record,env) {
+    const catalogFetch = global.fetch;
+    env.CATALOG = 'https://catalogue-test.invalid';
+    const records = new Map();
+    global.fetch = async (url, options) => {
+      if (!String(url).startsWith(env.CATALOG)) return catalogFetch(url,options);
+      const address = new URL(url);
+      if (address.pathname.endsWith('/studio_write2')) return Response.json({ok:true,role:'responsable'});
+      return Response.json([...records.values()].filter(row =>
+        address.searchParams.get('id') === 'eq.'+row.id && row.col==='operations'));
+    };
+    await c.route('**/rest/v1/rpc/studio_write2',route=>{
+      const {p_op,p_col,p_id,p_data}=route.request().postDataJSON();
+      if (p_op==='set') records.set(p_id,{col:p_col,id:p_id,data:p_data});
+      return route.fulfill({json:{ok:true,version:1,role:'responsable'}});
+    });
+    await c.route('**/assets/brico-deco/*.webp',route=>route.fulfill({
+      path:path.join(root,'assets/brico-deco',path.basename(new URL(route.request().url()).pathname)),
+      contentType:'image/webp'
+    }));
+    try {
+      await p.setViewportSize({width:1440,height:900});
+      await p.goto(rootUrl+'#accueil');
+      await p.getByRole('button',{name:'Créer une opération',exact:true}).click();
+      const creation=p.getByRole('dialog');
+      await creation.getByLabel('Nom',{exact:true}).fill('Brico-déco · Recette');
+      await creation.getByLabel('Réseau',{exact:true}).fill('Nanotera');
+      await creation.getByLabel('Début de la période commerciale').fill('2027-01-19');
+      await creation.getByLabel('Fin de la période commerciale').fill('2027-02-01');
+      await creation.getByLabel('Modèle de dossier').selectOption('brico-demo');
+      await creation.getByRole('button',{name:'Enregistrer'}).click();
+      await p.getByRole('heading',{name:'Brico-déco · Recette',exact:true}).waitFor();
+      const operation=new URL(p.url()).searchParams.get('op');
+      assert(operation && operation!=='bd-2704-deco');
+      assert.equal(records.get(operation).data.scenario,'brico-demo');
+      await p.getByRole('link',{name:'Participants',exact:true}).click();
+      await p.getByRole('heading',{name:'Versions de l’offre'}).waitFor();
+      for (const count of [17,21,4]) assert(await p.getByRole('link',{name:count+' référence(s)',exact:true}).isVisible());
+      await p.getByRole('button',{name:'Ouvrir les engagements'}).click();
+      await p.getByRole('link',{name:'Tous',exact:true}).click();
+      const firstRow=p.locator('#content tbody tr').first();
+      await firstRow.getByRole('button',{name:'Accès magasin'}).click();
+      const shop=await c.newPage();
+      await shop.goto(await p.getByLabel('Lien du magasin').inputValue());
+      const wizard=shop.frameLocator('.wizard');
+      await wizard.getByRole('button',{name:'Consulter V2',exact:true}).click();
+      await wizard.getByText(/SUSPENSION ZÉLIE · LAMPADAIRE ZÉLIE/).waitFor();
+      await shop.close();
+      await p.getByRole('button',{name:'Fermer',exact:true}).click();
+      await p.getByRole('button',{name:'Actualiser les réponses'}).click();
+      await firstRow.locator('td').nth(3).getByText('V2',{exact:true}).waitFor();
+      assert.equal(await firstRow.locator('td').nth(4).innerText(),'—');
+      await p.getByRole('button',{name:'Charger les réponses de démonstration'}).click();
+      await p.waitForURL(/filtre=engagements/);
+      assert.equal(await p.locator('#content tbody tr').count(),6);
+      assert.match(await firstRow.locator('td').nth(3).innerText(),/V1/);
+      assert.equal(await firstRow.locator('td').nth(4).innerText(),'V1');
+      await p.setViewportSize({width:390,height:844});
+      assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      await p.setViewportSize({width:1440,height:900});
+      await p.getByRole('navigation',{name:'Espaces Studio'}).getByRole('link',{name:'Produits'}).click();
+      await p.getByRole('link',{name:'V1 · Luminaires et miroirs',exact:true}).click();
+      await p.getByRole('link',{name:'LAMPE À POSER GAIA',exact:true}).click();
+      await record.getByText('Star',{exact:true}).waitFor();
+      await record.locator('.ps-stage img').evaluate(img=>img.decode());
+      await record.getByRole('button',{name:'Modifier le produit'}).click();
+      await record.getByLabel('Conditionnement').fill('1 pièce');
+      await record.getByRole('button',{name:'Enregistrer la fiche'}).click();
+      await record.getByText('1 pièce',{exact:true}).waitFor();
+      await record.getByRole('button',{name:'Fermer la fiche produit'}).click();
+      await p.getByRole('navigation',{name:'Espaces Studio'}).getByRole('link',{name:'Production'}).click();
+      await p.getByRole('link',{name:'Chemin de fer',exact:true}).click();
+      await p.getByRole('link',{name:/^Page 2/}).click();
+      const gaia=p.locator('.ed-paper [data-block="bd-03"]');
+      assert.equal(await gaia.count(),0);
+      await p.locator('.ed-item[data-from="bd-03"]').dragTo(p.locator('.ed-paper'),{targetPosition:{x:50,y:110}});
+      await gaia.waitFor();
+      await p.getByRole('link',{name:'Aperçu E-catalogue'}).click();
+      await p.getByRole('region',{name:'Aperçu E-catalogue'}).locator('.ed-paper [data-block="bd-03"]').waitFor();
+      await p.getByRole('link',{name:'Chemin de fer',exact:true}).click();
+      await p.getByRole('button',{name:'Transmettre au BAT'}).click();
+      await gaia.click();
+      await p.getByLabel('Signature').fill('Centrale Nanotera');
+      await p.getByLabel('Correction demandée').fill('Agrandir le bloc Gaia.');
+      await p.getByRole('button',{name:'Publier le commentaire'}).click();
+      await p.getByText('Agrandir le bloc Gaia.',{exact:true}).waitFor();
+      await p.getByRole('link',{name:'Chemin de fer',exact:true}).click();
+      await gaia.click();
+      const width=p.getByLabel('Largeur (%)');
+      await width.fill('40');
+      await p.getByRole('button',{name:'Appliquer',exact:true}).click();
+      await p.waitForFunction(()=>document.querySelector('.ed-paper [data-block="bd-03"]').style.width==='40%');
+      await p.getByRole('link',{name:'BAT collaboratif',exact:true}).click();
+      await p.getByRole('button',{name:'Marquer résolu'}).click();
+      await p.getByRole('link',{name:'Chemin de fer',exact:true}).click();
+      await p.getByRole('button',{name:'Transmettre au BAT'}).click();
+      await p.getByRole('button',{name:'Valider le BAT'}).click();
+      await p.getByRole('button',{name:'Confirmer la décision'}).click();
+      await p.locator('.ed-header').getByText(/Validé/).waitFor();
+      await p.getByRole('link',{name:'Flux',exact:true}).click();
+      await p.getByRole('link',{name:/^Bonial · V1/}).click();
+      await p.getByRole('button',{name:'Contrôler',exact:true}).click();
+      await p.getByRole('button',{name:'Générer le CSV'}).click();
+      await p.getByText('Aperçu du CSV · 17 offres').click();
+      await p.getByRole('row',{name:/GAIA.*1 pièce.*12,50.*V1/}).waitFor();
+      const download = p.waitForEvent('download');
+      await p.getByRole('button',{name:'Télécharger le fichier généré'}).click();
+      const csv = fs.readFileSync(await (await download).path(),'utf8');
+      assert.match(csv,/"bd-03";"LAMPE À POSER GAIA";"1 pièce";"12.5";"V1"/);
+      await p.getByRole('button',{name:'Déposer le CSV en recette'}).click();
+      await p.getByText(/Reçu de dépôt en recette · REC-/).waitFor();
+      await p.reload();
+      await p.getByText(/Reçu de dépôt en recette · REC-/).waitFor();
+      await p.getByRole('link',{name:'← Mes flux'}).click();
+      await p.getByRole('link',{name:/Bonial · V1 · Déposé en recette/}).waitFor();
+      assert.equal(new URL(p.url()).searchParams.get('op'),operation);
+      console.log('PASS création Brico-déco, consultation magasin et engagements, Gaia, aperçu et BAT, CSV Bonial et reçu de recette persistant');
+    } finally {
+      global.fetch = catalogFetch;
+    }
+}
 (async () => {
   const mod = (await import(pathToFileURL(root + '/server/worker.mjs'))).default,
     db = new DatabaseSync(':memory:');
@@ -94,6 +215,14 @@ async function checkWorkspaceStart(page) {
         body: await r.text()
       })
     });
+    if(process.env.BRICO_ONLY){
+      const p=await c.newPage(),rootUrl=url.replace('/operation/','/');
+      p.setDefaultTimeout(7000);
+      await c.route('**/rest/v1/docs?**',route=>route.fulfill({json:[]}));
+      await c.addInitScript(()=>{localStorage.setItem('bos-code','fixture-test');localStorage.setItem('bos-role','responsable');});
+      await testBricoDemo(p,c,rootUrl,p.locator('#product-dialog'),env);
+      return;
+    }
     await require('./pilot-interface.cjs')(c,url);
     if(process.env.PILOT_ONLY)return;
     const p = await c.newPage();
@@ -591,6 +720,8 @@ async function checkWorkspaceStart(page) {
     await p.setViewportSize({width:390,height:844});
     assert((await record.boundingBox()).width<=390);
     console.log('PASS fiche large catalogue + PIM, onglet par défaut, édition sans double fenêtre, photos, logo, vidéo et associations');
+
+    await testBricoDemo(p,c,rootUrl,record,env);
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();

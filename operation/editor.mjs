@@ -1,6 +1,6 @@
 import {mountProof} from './proof-file.mjs';
 import {compose,proof,photo,visuals,isCatalogue} from '../server/edition.mjs';
-import {esc,euros,link,route} from './views.mjs?v=8';
+import {esc,euros,link,route,priorityNames} from './views.mjs?v=20261128.7';
 
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const round=v=>Math.round(v*100)/100;
@@ -37,13 +37,13 @@ export function editorController({context,save,api,notify,render}) {
   try{author=localStorage.getItem('studio.bat.signature')||'';}catch{}
   function current(){
     const ctx=context(),q=new URLSearchParams(location.hash.split('?')[1]),reviewer=ctx?.role==='relecteur';
-    if(!ctx||(!reviewer&&!['fer','bat'].includes(q.get('atelier'))))return null;
+    if(!ctx||(!reviewer&&!['fer','bat','apercu'].includes(q.get('atelier'))))return null;
     const s=ctx.state,x=reviewer?s.supports[0]:s.supports?.find(y=>y.id===q.get('id'));
     if(!x)return null;
     const mode=reviewer?'bat':q.get('atelier'),rev=mode==='bat'?Number(q.get('revision'))||x.revision:x.revision;
-    const plan=mode==='fer'?compose(s,x):proof(s,x,rev)||proof(s,x);
+    const plan=mode==='bat'?proof(s,x,rev)||proof(s,x):compose(s,x);
     const page=clamp(Math.trunc(Number(q.get('page')))||1,1,plan.pages);
-    return {s,x,mode,plan,page,rev:mode==='bat'?plan.revision:rev,reviewer,locked:!!s.op.closed||['Validé','Remis'].includes(x.state)||rev!==x.revision};
+    return {s,x,mode,plan,page,rev:mode==='bat'?plan.revision:rev,reviewer,locked:mode==='apercu'||!!s.op.closed||['Validé','Remis'].includes(x.state)||rev!==x.revision};
   }
   const url=(v,mode,page,revision)=>route('production',{id:v.x.id,atelier:mode,page,revision});
   function panel(v) {
@@ -54,6 +54,8 @@ export function editorController({context,save,api,notify,render}) {
       const families=[...new Set(eligible.filter(p=>!rayon||p.rayon===rayon).map(p=>department(s,p)))].sort();
       const selected=plan.blocks.find(b=>b.id===selection&&b.page===page);
       const products=eligible.filter(p=>(!rayon||(p.rayon||'Sans rayon')===rayon)&&(!category||department(s,p)===category)&&(bank==='images'||!available||!x.products.includes(p.id))&&norm([p.name,p.ref,p.id,p.rayon].join(' ')).includes(norm(filter)));
+      const rank = {star:0,top:1,standard:2};
+      products.sort((a,b) => (rank[a.priority]??2)-(rank[b.priority]??2));
       const assets=[],seen=new Set();
       for(const p of products)visuals(s,p).forEach((a,i)=>{if(!seen.has(a.url)){seen.add(a.url);assets.push({...a,product:p.id,index:i});}});
       return '<h3>Chutier</h3><div class="ed-bank-switch">'+[['products','Produits'],['images','Visuels']].map(([k,l])=>action('bank',l,'aria-pressed="'+(bank===k)+'" data-bank="'+k+'"')).join('')+'</div>'+field('Rayon','<select data-filter="rayon">'+option('','Tous les rayons',rayon)+depts.map(d=>option(d,d,rayon)).join('')+'</select>')+
@@ -62,7 +64,7 @@ export function editorController({context,save,api,notify,render}) {
         (bank==='images'?'<div class="ed-count">'+assets.length+' visuels</div><div class="ed-bin">'+assets.map(a=>'<div class="ed-item" draggable="'+!locked+'" data-from="'+esc(a.product)+'" data-index="'+a.index+'"><img draggable="false" src="'+esc(a.url)+'" alt=""><div><b>'+esc(a.label)+'</b></div>'+(locked?'':action('image','+','data-product="'+esc(a.product)+'" data-index="'+a.index+'" aria-label="Placer le visuel '+esc(a.label)+'"'))+'</div>').join('')+'</div>':
         '<label class="ed-check"><input type="checkbox" data-filter="free" '+(available?'checked':'')+'> Non placés uniquement</label><div class="ed-count">'+products.length+' produit'+(products.length>1?'s':'')+'</div>'+
         '<div class="ed-bin">'+products.map(p=>{const b=plan.blocks.find(a=>a.id===p.id),im=photo(s,p);return '<div class="ed-item" draggable="'+!locked+'" data-from="'+esc(p.id)+'">'+
-          (im?'<img draggable="false" src="'+esc(im)+'" alt="">':'<span class="ed-icon">◇</span>')+'<div><b>'+esc(p.name)+'</b><small>'+esc(euros(p.price))+' · '+(b?'Page '+b.page:'Non placé')+'</small></div>'+
+          (im?'<img draggable="false" src="'+esc(im)+'" alt="">':'<span class="ed-icon">◇</span>')+'<div><b>'+esc(p.name)+'</b><small>'+esc(euros(p.price))+(p.priority && p.priority!=='standard'?' · '+priorityNames[p.priority]:'')+' · '+(b?'Page '+b.page:'Non placé')+'</small></div>'+
           (locked?'':action('place','+','data-product="'+esc(p.id)+'" title="Placer sur la page '+page+'" aria-label="Placer '+esc(p.name)+' sur la page '+page+'"'))+'</div>'}).join('')+(products.length?'':'<p>Aucun produit pour ces filtres.</p>')+'</div>')+
         (!locked?action('text','Ajouter un bloc texte'):'')+
         (selected&&!locked?'<form class="ed-properties" data-edform="box"><h3>Bloc sélectionné</h3><p>'+esc(selected.name)+'</p>'+
@@ -92,25 +94,26 @@ export function editorController({context,save,api,notify,render}) {
       const rayons=[...new Set(s.products.filter(p=>ids.has(p.id)).map(p=>p.rayon||'Sans rayon'))];
       rayon=rayons.length===1?rayons[0]:'';category='';filter='';
     }selection='';note='';reply='';anchor=null;activeThread='';invite='';draftId='';replyId='';last=id;}
-    const known=isCatalogue(s,x), editing=mode==='fer';
+    const known=isCatalogue(s,x), editing=mode==='fer', preview=mode==='apercu';
+    const modes=[['fer','Chemin de fer'],...(/^e-catalogue\b/i.test(x.name)||preview?[['apercu','Aperçu E-catalogue']]:[]),['bat','BAT collaboratif']];
     const revisions=[...new Set([x.revision,...(x.proofs||[]).map(p=>p.revision)])].sort((a,b)=>b-a);
     const threads=(x.comments||[]).filter(c=>c.revision===rev);
-    const pins=editing?'':threads.filter(c=>c.page===page).map(c=>'<button class="ed-pin '+(c.resolved?'resolved ':'')+(activeThread===c.id?'active':'')+'" style="left:'+c.x+'%;top:'+c.y+'%" data-ed="focus" data-id="'+esc(c.id)+'" aria-label="Commentaire '+((x.comments||[]).indexOf(c)+1)+'">'+((x.comments||[]).indexOf(c)+1)+'</button>').join('');
+    const pins=editing||preview?'':threads.filter(c=>c.page===page).map(c=>'<button class="ed-pin '+(c.resolved?'resolved ':'')+(activeThread===c.id?'active':'')+'" style="left:'+c.x+'%;top:'+c.y+'%" data-ed="focus" data-id="'+esc(c.id)+'" aria-label="Commentaire '+((x.comments||[]).indexOf(c)+1)+'">'+((x.comments||[]).indexOf(c)+1)+'</button>').join('');
     const sourceLabel=plan.mode==='catalogue'?'Catalogue original':plan.sent?'Mise en page transmise':plan.mode==='file'?'Fichier de production':'Composition Studio';
-    return '<section class="ed-work" aria-label="'+(editing?'Chemin de fer':'BAT collaboratif')+'"><header class="ed-header"><div>'+
+    return '<section class="ed-work" aria-label="'+(editing?'Chemin de fer':preview?'Aperçu E-catalogue':'BAT collaboratif')+'"><header class="ed-header"><div>'+
       (!reviewer?link(route('production',{id:x.id,page}),'← Dossier du support','quiet'):'<small>Accès relecteur</small>')+
       '<h1>'+esc(x.name)+'</h1><p>'+esc(s.op.title)+' · '+plan.pages+' page'+(plan.pages>1?'s':'')+' · '+esc(x.state)+(editing&&x.layoutDirty?' · Mise en page modifiée':'')+'</p></div><div class="ed-tools">'+
-      StudioNavigation.focusButton()+(!reviewer?'<nav aria-label="Modes du support">'+[['fer','Chemin de fer'],['bat','BAT collaboratif']].map(([m,l])=>'<a href="'+esc(url(v,m,page))+'" '+(m===mode?'aria-current="page"':'')+'>'+l+'</a>').join('')+'</nav>':'')+
-      (editing&&!locked?action('submit','Transmettre au BAT'):!editing&&!reviewer?action('invite','Inviter un relecteur'):'')+(!editing&&!reviewer&&!locked&&x.state==='En revue'?['En corrections','Validé'].map((step,i)=>'<button type="button" class="ed-btn" data-do="decision" data-id="'+esc(x.id+'|'+step)+'">'+(i?'Valider le BAT':'Demander des corrections')+'</button>').join(''):'')+'</div></header>'+
+      StudioNavigation.focusButton()+(!reviewer?'<nav aria-label="Modes du support">'+modes.map(([m,l])=>'<a href="'+esc(url(v,m,page))+'" '+(m===mode?'aria-current="page"':'')+'>'+l+'</a>').join('')+'</nav>':'')+
+      (editing&&!locked?action('submit','Transmettre au BAT'):!editing&&!preview&&!reviewer?action('invite','Inviter un relecteur'):'')+(!editing&&!preview&&!reviewer&&!locked&&x.state==='En revue'?['En corrections','Validé'].map((step,i)=>'<button type="button" class="ed-btn" data-do="decision" data-id="'+esc(x.id+'|'+step)+'">'+(i?'Valider le BAT':'Demander des corrections')+'</button>').join(''):'')+'</div></header>'+
       (invite?'<div class="ed-share">'+field('Lien de relecture de ce support','<input readonly data-invite value="'+esc(invite)+'">')+action('copy','Copier le lien')+'</div>':'')+
-      '<div class="ed-desk"><aside class="ed-pages"><h3>Pages</h3><nav aria-label="Pages du support">'+Array.from({length:plan.pages},(_,i)=>{const n=i+1;return '<a class="ed-thumb" href="'+esc(url(v,mode,n,editing?null:rev))+'" '+(n===page?'aria-current="page"':'')+' aria-label="Page '+n+' · '+esc(pageLabel(known,n))+'"><span class="ed-mini" aria-hidden="true">'+visual(plan,n,'',true)+'</span><b>'+String(n).padStart(2,'0')+'</b><small>'+esc(pageLabel(known,n))+'</small>'+(!editing&&threads.some(c=>c.page===n&&!c.resolved)?'<span class="ed-note-count">'+threads.filter(c=>c.page===n&&!c.resolved).length+' à corriger</span>':'')+'</a>'}).join('')+'</nav>'+(editing&&!locked?action('page','Ajouter une page'):'')+'</aside>'+
+      '<div class="ed-desk'+(preview?' ed-preview':'')+'"><aside class="ed-pages"><h3>Pages</h3><nav aria-label="Pages du support">'+Array.from({length:plan.pages},(_,i)=>{const n=i+1;return '<a class="ed-thumb" href="'+esc(url(v,mode,n,editing?null:rev))+'" '+(n===page?'aria-current="page"':'')+' aria-label="Page '+n+' · '+esc(pageLabel(known,n))+'"><span class="ed-mini" aria-hidden="true">'+visual(plan,n,'',true)+'</span><b>'+String(n).padStart(2,'0')+'</b><small>'+esc(pageLabel(known,n))+'</small>'+(mode==='bat'&&threads.some(c=>c.page===n&&!c.resolved)?'<span class="ed-note-count">'+threads.filter(c=>c.page===n&&!c.resolved).length+' à corriger</span>':'')+'</a>'}).join('')+'</nav>'+(editing&&!locked?action('page','Ajouter une page'):'')+'</aside>'+
       '<section class="ed-stage"><div class="ed-stagebar"><strong>Page '+page+' <small>/ '+plan.pages+'</small></strong><span>'+esc(pageLabel(known,page))+'</span>'+
-      (!editing?'<select aria-label="Révision du BAT" data-filter="revision">'+revisions.map(r=>option(r,'BAT R'+r,rev)).join('')+'</select>':'')+'<div class="ed-zoom">'+action('zoom-out','−','aria-label="Réduire le zoom"')+action('fit',Math.round(zoom*100)+' %','aria-label="Ajuster à la page"')+action('zoom-in','+','aria-label="Agrandir le zoom"')+'</div></div>'+
-      '<div class="ed-board" style="--ed-zoom:'+zoom+'"><div class="ed-paper '+(editing?'editing':'reviewing')+'" aria-label="Page de travail '+page+'" tabindex="0">'+visual(plan,page,editing?selection:'',false,editing&&!locked)+pins+
-      (anchor&&!editing?'<span class="ed-pin draft" style="left:'+anchor.x+'%;top:'+anchor.y+'%">+</span>':'')+'</div></div>'+
-      '<footer>'+ (editing?'Glissez un produit sur la page. Sélectionnez un bloc pour le déplacer ou le redimensionner.':esc(sourceLabel)+' · '+(locked?'Consultation':'Cliquez sur la page pour ancrer une correction.'))+
+      (mode==='bat'?'<select aria-label="Révision du BAT" data-filter="revision">'+revisions.map(r=>option(r,'BAT R'+r,rev)).join('')+'</select>':'')+'<div class="ed-zoom">'+action('zoom-out','−','aria-label="Réduire le zoom"')+action('fit',Math.round(zoom*100)+' %','aria-label="Ajuster à la page"')+action('zoom-in','+','aria-label="Agrandir le zoom"')+'</div></div>'+
+      '<div class="ed-board" style="--ed-zoom:'+zoom+'"><div class="ed-paper '+(editing?'editing':preview?'previewing':'reviewing')+'" aria-label="Page de travail '+page+'" tabindex="0">'+visual(plan,page,editing?selection:'',false,editing&&!locked)+pins+
+      (anchor&&mode==='bat'?'<span class="ed-pin draft" style="left:'+anchor.x+'%;top:'+anchor.y+'%">+</span>':'')+'</div></div>'+
+      '<footer>'+ (editing?'Glissez un produit sur la page. Sélectionnez un bloc pour le déplacer ou le redimensionner.':preview?'Aperçu de la composition':esc(sourceLabel)+' · '+(locked?'Consultation':'Cliquez sur la page pour ancrer une correction.'))+
       (plan.mode==='file'&&plan.file?' <a target="_blank" rel="noopener" href="'+esc(plan.file)+'">Ouvrir le fichier ↗</a>':'')+(known&&page<=6?' <a href="../assets/brico-deco/catalogue.pdf#page='+page+'" target="_blank" rel="noopener">PDF source ↗</a>':'')+'</footer></section>'+
-      '<aside class="ed-side">'+panel(v)+'</aside></div></section>';
+      (preview?'':'<aside class="ed-side">'+panel(v)+'</aside>')+'</div></section>';
   }
   function mounted(v){
     if(v.plan.mode==='file')mountProof(v.plan,v.page,document.querySelector('.ed-paper'),api);
