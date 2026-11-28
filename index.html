@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-28.4">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-28.6">
 <link rel="stylesheet" href="assets/product-sheet.css?v=8">
 </head>
 <body>
@@ -15,13 +15,14 @@
 <div class="app">
   <header class="app-header">
     <a class="brand" href="#accueil" aria-label="BigOne Studio — vue d’ensemble"><img src="assets/bigone-logo.png" alt="BigOne" width="36" height="36"><span>Studio</span></a>
-    <nav class="global-nav" aria-label="Espaces Studio"><a href="#accueil" data-v="pilotage"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Pilotage</span></a><a href="#contenus--operations" data-v="preparation"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3" fill="white"/><circle cx="16" cy="17" r="3" fill="white"/></svg><span>Préparation</span></a><a href="#contenus--produits" data-v="produits"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h9l9 9-8 8-10-10Z"/><circle cx="8" cy="9" r="1.4"/></svg><span>Produits</span></a><a href="#contenus--assets" data-v="production"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><span>Production</span></a><a href="#administration" data-v="administration" class="admin-link"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="16" cy="7" r="3" fill="white"/><circle cx="8" cy="17" r="3" fill="white"/></svg><span>Administration</span></a></nav><div class="suite-signature"><strong>BigOne</strong>par Nanotera</div>
+    <nav class="global-nav" aria-label="Espaces Studio"><a href="#accueil" data-v="pilotage"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Pilotage</span></a><a href="#contenus--operations" data-v="preparation"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3" fill="white"/><circle cx="16" cy="17" r="3" fill="white"/></svg><span>Préparation</span></a><a href="#contenus--produits" data-v="produits"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h9l9 9-8 8-10-10Z"/><circle cx="8" cy="9" r="1.4"/></svg><span>Produits</span></a><a href="#contenus--assets" data-v="production"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><span>Production</span></a></nav><div class="suite-signature"><strong>BigOne</strong>par Nanotera</div>
     <button type="button" id="acces-studio" class="access-button" data-act="code" aria-haspopup="dialog" aria-controls="acces-dialog" aria-label="Saisir un code d’accès" title="Saisir un code d’accès" hidden>
       <svg width="24" height="24" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 25c3.6-3.1 14.8-11 14.8-16 0-2.5-1.5-4.2-3.6-4.2-2 0-3.5 1.2-4.2 3.3-.9-2.1-2.3-3.3-4.2-3.3-2.1 0-3.6 1.7-3.6 4.2 0 5 11.2 12.9 14.8 16"/>
         <path d="M9 6.6C5.7 9.5 2.5 15 2.5 18.7c0 4.3 3.3 6.3 8.3 4.9l5.2-1.5 5.2 1.5c5 1.4 8.3-.6 8.3-4.9 0-3.7-3.2-9.2-6.5-12.1"/>
       </svg>
     </button>
+    <details class="operation-settings" id="operation-settings" hidden></details>
   </header>
   <div class="studio-frame"><aside class="studio-rail" id="studio-rail" aria-label="Menu Studio"></aside><main id="view" tabindex="-1"></main></div>
 </div>
@@ -42,13 +43,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="assets/visuels.js?v=2026-11-28.2"></script>
 <script src="assets/product-sheet.js?v=8"></script>
-<script src="assets/studio-navigation.js?v=20261128.3"></script>
-<script src="assets/list-filters.js?v=20261128.3"></script>
+<script src="assets/studio-navigation.js?v=20261128.6"></script>
+<script src="assets/list-filters.js?v=20261128.6"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-28.5';
+const VERSION='2026-11-28.6';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -488,7 +489,7 @@ function choiceTarget(kind,o) {
   const [page]=target.split('?');
   if(['informations','participants','supports','configurer','produits','production','flux'].includes(page)){
     const demo=['bd-2704-deco','u-2649-pbs'].includes(o.id);
-    if(!o.cloture && (demo || ROLE==='responsable')){
+    if(!o.cloture && (demo || ROLE==='responsable'||page==='flux')){
       const args=new URLSearchParams({op:o.id});
       if(params.get('mode')==='partage'||!demo)args.set('mode','partage');
       if(o.id==='bd-2704-deco' && params.get('parcours')==='production')args.set('parcours','production');
@@ -500,15 +501,16 @@ function choiceTarget(kind,o) {
   return kind==='produits'&&params.get('vue')==='liste'?url+'&vue=liste':url;
 }
 function operationChooser(kind,unavailable=false){
-  const query=filterParams().get('choix')||'',d=directories[kind];
-  const rows=sorted().filter(suivi).map(o=>({o,name:o.nom,reseau:resOp(o),etat:o.cloture?'Clôturé':'Ouvert'}))
+  const query=filterParams().get('choix')||'',d=directories[kind],flux=filterParams().get('destination')?.split('?')[0]==='flux';
+  const rows=sorted().filter(o=>suivi(o)&&(!flux||!o.cloture)).map(o=>({o,name:o.nom,reseau:resOp(o),portee:o.portee||'',debut:o.debut||'',etat:o.cloture?'Clôturé':'Ouvert'}))
     .sort((a,b)=>Number(!!a.o.cloture)-Number(!!b.o.cloture)||compareFrench.compare(a.name,b.name));
-  const list=filterList(rows,['reseau','etat'],['dossier','nom','nomDesc'],{prefix:'choix-',query,searchKey:'choix',matches:(row,term)=>matchesOperation(row.o,term)});
+  const list=filterList(rows,flux?['reseau','portee']:['reseau','etat'],flux?['nom','debut','debutDesc','nomDesc']:['dossier','nom','nomDesc'],{prefix:'choix-',query,searchKey:'choix',matches:(row,term)=>matchesOperation(row.o,term)});
   const ops=list.visible.map(row=>row.o);
-  return `<div class="icon-heading scope-heading">${iconBadge(kind)}<h1>${d.label}</h1></div>${banner()}<section class="card operation-choice" aria-labelledby="choice-title">
+  const flowRows=flux&&ops.length?`<div class="scroll"><table><thead><tr><th scope="col">Code</th><th scope="col">Opération</th><th scope="col">Enseigne</th><th scope="col">Validité</th><th scope="col">Portée</th></tr></thead><tbody>${ops.map(o=>`<tr><td>${esc(o.code||o.id)}</td><td><a href="${esc(choiceTarget(kind,o))}">${esc(o.nom)}</a></td><td>${esc(resOp(o))}</td><td>${esc(periode(o))}</td><td>${esc(o.portee||'—')}</td></tr>`).join('')}</tbody></table></div>`:'';
+  return `<div class="icon-heading scope-heading">${iconBadge(kind)}<h1>${flux?'Mes flux':d.label}</h1></div>${banner()}<section class="card operation-choice" aria-labelledby="choice-title">
     <h2 id="choice-title">Choisir une opération</h2>${unavailable&&status==='ok'?'<p role="status">L’opération demandée est indisponible. Sélectionnez un autre dossier.</p>':''}
     <label class="home-search" for="scope-query">${uiIcon('search')}<span class="visually-hidden">Rechercher une opération</span><input id="scope-query" type="search" data-facet="choix" value="${esc(query)}" placeholder="Rechercher par nom, code ou enseigne"></label>
-    ${list.toolbar}${list.count}<div class="operation-choices">${ops.map(o=>contentRow({o,name:o.nom,meta:[resOp(o),periode(o),o.cloture?'Clôturée':''],href:choiceTarget(kind,o)},'operations')).join('')||
+    ${list.toolbar}${list.count}<div class="operation-choices">${flowRows||ops.map(o=>contentRow({o,name:o.nom,meta:[resOp(o),periode(o),o.cloture?'Clôturée':''],href:choiceTarget(kind,o)},'operations')).join('')||
     (status==='ok'?vide(list.changed?'Aucune opération ne correspond à votre recherche.':'Aucune opération disponible.'):'')}</div></section>`;
 }
 function vDirectory(kind){
@@ -551,7 +553,7 @@ function vAccueil(){
  operationQuery=directoryState().q;
  const ops=sorted().filter(o=>suivi(o)&&!o.cloture);
  const header=`<div class="hd" id="home-top" tabindex="-1"><div><h1>Plan d’action commerciale</h1></div>
- <div class="row"><a class="btn pri" href="operation/?op=bd-2704-deco&amp;parcours=production">Production Brico-déco</a><a class="btn" href="#contenus--assets?destination=flux&amp;parcours=production">Mes flux</a><a class="btn" href="operation/?op=bd-2704-deco&amp;assistant=1">✦ &nbsp; Ouvrir la démo Brico-déco</a><button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div></div>${banner()}`;
+ <div class="row"><a class="btn pri" href="operation/?op=bd-2704-deco&amp;parcours=production">Production Brico-déco</a><a class="btn" href="#contenus--assets?destination=flux&amp;${ROLE==='responsable'?'mode=partage':'parcours=production'}">Mes flux</a><a class="btn" href="operation/?op=bd-2704-deco&amp;assistant=1">✦ &nbsp; Ouvrir la démo Brico-déco</a><button class="btn pri" data-act="new-op"><span aria-hidden="true">+</span> Créer une opération</button></div></div>${banner()}`;
  const covers={operations:'preparation',produits:'produits',assets:'production'};
  const nav=`<nav class="content-doors" aria-label="Accès aux contenus">${Object.entries(covers).map(([k,file])=>`<a href="${directoryLink(k)}"><img src="assets/${file}.webp" width="520" height="520" alt=""><span class="door-caption"><span><strong>${directories[k].label}</strong><small>${directories[k].hint}</small></span><span class="door-open" aria-hidden="true">${uiIcon('arrow')}</span></span></a>`).join('')}</nav>`;
  if(status!=='ok'&&!S.operations.length)return header+nav;
@@ -637,7 +639,7 @@ function tOffres(o,context){
   <section class="card"><div class="row" style="justify-content:space-between"><h2>Produits et offres</h2><span class="row"><button class="btn sm" data-act="import">Importer ou réimporter une matrice</button><button class="btn sm" data-act="csv">Copier toutes les offres (CSV)</button><button class="btn sm pri" data-act="new-prod">Ajouter une offre</button></span></div>${list.toolbar}${list.count}${rows?`<div class="scroll"><table><thead><tr><th>Offre</th><th>Rayon</th><th>Prix</th><th>Mécanique</th><th>Utilisée dans</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:vide(list.changed?'Aucune offre avec ces filtres.':'Aucune offre dans cette opération.')}</section>`}
 const varPour=(b,m)=>varsDe(b).find(v=>(v.magasinsVar||[]).includes(m.id));
 function tMagasins(o,context){
- if(['bd-2704-deco','u-2649-pbs'].includes(o.id))return '<section class="card"><h2>Proposition par groupe</h2><p>Choisissez une version commerciale et son assortiment, puis ciblez le groupe par format, région ou type de zone.</p><a class="btn pri" href="'+esc(dossierUrl(o,'magasins').replace('#participants','#configurer'))+'">Proposer une version par groupe</a></section>';
+ if(['bd-2704-deco','u-2649-pbs'].includes(o.id))return '<section class="card"><h2>Participants</h2><p>Consultez les engagements des magasins et les versions retenues pour cette opération.</p><a class="btn" href="'+esc(dossierUrl(o,'magasins'))+'">Suivre les participants</a></section>';
  const ms=magsDe(o),bs=basesOf(o.id),ne=ms.filter(m=>eng(o,m).statut==='engage'),choisi=(e,b)=>!e.supports||e.supports.includes(b.id);
   const list=filterList(ms.map(m=>{
     const e=eng(o,m);
@@ -727,7 +729,7 @@ function tCalendrier(o){const ts=tachesDe(o),ss=supsOf(o.id),ligne=x=>`<label><s
     groups+(general.length?`<section class="card"><h2>Jalons généraux</h2><div class="list">${general.map(r=>ligne(r.record)).join('')}</div></section>`:'');
 }
 function dossierUrl(o,tab,context,revision){
- const pages={cadrage:'informations',offres:'produits',magasins:'participants',dispositif:'supports',calendrier:'informations',production:'production'};
+ const pages={cadrage:'informations',offres:'produits',magasins:'participants',dispositif:'supports',calendrier:'informations',production:'production',configurer:'configurer'};
  const q=new URLSearchParams();if(context)q.set('id',context);if(tab==='calendrier')q.set('jalons','1');
  if(tab==='production' && context && supsOf(o.id).some(x=>x.id===context && /flux/i.test(x.type)))pages.production='flux';
  if(tab==='production' && /^rev-[0-9]+$/.test(revision||''))q.set('revision',revision.slice(4));
@@ -853,6 +855,9 @@ function render(){
  $('#view').innerHTML=trail+VUES[r.v](r.tab,r.context)+`<footer class="app-footer"><span><strong>BigOne Studio</strong> · Nanotera</span><span>Version ${VERSION}</span></footer>`;
  const urls={pilotage:'#accueil',preparation:scopedId?lien('preparation',scopedId,'cadrage'):directoryLink('operations'),produits:directoryLink('produits',scopedId),production:directoryLink('assets',scopedId),administration:'#administration--magasins'};
  StudioNavigation.draw(StudioNavigation.spaces(urls),active);
+ const dossier=scopedId&&opById(scopedId);
+ const canConfigure=dossier&&!dossier.cloture&&(ROLE==='responsable'||['bd-2704-deco','u-2649-pbs'].includes(dossier.id));
+ StudioNavigation.settings(canConfigure?dossierUrl(dossier,'configurer'):null);
  const contextual=$('#view .workspace-menu');
  if(contextual)$('#studio-rail .rail-context').append(contextual);
  const referenceFilter=r.v==='administration'&&({droits:['tbody tr','Filtrer les profils'],connexions:['.card .list > div','Filtrer les services']})[r.tab];

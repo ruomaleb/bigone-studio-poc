@@ -1,6 +1,6 @@
 import {bricoId} from '../server/brico.mjs?v=20261128.5';
-import {pilotIntro,pilotParticipants,shopYear,shopView,shopPayload,kitView,kitReviewView,mountKit,kitAction} from './kit.mjs?v=20261128.3';
-import {monitor} from './monitor.mjs?v=20261128.5';
+import {pilotIntro,pilotParticipants,shopYear,shopView,shopPayload,pilotFrame,kitView,kitReviewView,mountKit,kitAction} from './kit.mjs?v=20261128.6';
+import {monitor} from './monitor.mjs?v=20261128.6';
 import {editorController} from './editor.mjs?v=20261128.3';
 import {axes, matches, targetPlan, participantsOf} from '../server/targeting.mjs';
 import {
@@ -19,7 +19,6 @@ import {
   pim,
   productForm,
   supports,
-  flows,
   route,
   link,
   btn,
@@ -30,7 +29,7 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=20261128.5';
+} from './views.mjs?v=20261128.6';
 import {
   setupChat
 } from './chat.mjs?v=8';
@@ -59,7 +58,7 @@ const sections = [
   ]]
 ];
 const names = Object.fromEntries(sections.flatMap(x => x[1]).concat([
-  ['configurer', 'Proposition aux magasins'],
+  ['configurer', 'Administration de la mécanique'],
   ['participation', 'Ma participation']
 ]));
 const groupFor = page => page === 'configurer' || page === 'participation' ? 0 : Math.max(0, sections.findIndex(([, l]) => l.some(x => x[0] === page)));
@@ -70,6 +69,7 @@ let ctx = null,
   pending = false,
   dialogSave = null;
 let timer;
+let flowFiltersOpen=false;
 
 function notify(text) {
   $('#notice').textContent = text;
@@ -130,7 +130,7 @@ function summaryFrame(pg, q) {
   const t = ctx.state.stores.find(x => x.id === q.get('id')) || participantsOf(ctx.state)[0];
   if ((!t || t.targeted === false) && pg === 'participation') return '<section class="sheet">Aucun participant affecté.</section>';
   return '<div class="hrow sectionhead"><h2>' + esc(names[pg]) + '</h2>' + (ctx.role === 'enseigne' ? link('#participants', 'Revenir aux participants') : '') +
-    '</div><label class="wizard-filter">Filtrer les étapes<input type="search" id="wizard-filter"></label><iframe src="participants/?v=9" class="wizard" title="Choix des participants"></iframe>'
+    '</div><label class="wizard-filter">Filtrer les étapes<input type="search" id="wizard-filter"></label><iframe src="participants/?v=10" class="wizard" title="Choix des participants"></iframe>'
 }
 
 function selectedProduct() {
@@ -156,7 +156,7 @@ function operationRecord() {
     })
   }));
   if(s.kit?.product===p.id)pieces.push({name:'Kit digital Gaia',detail:'Carré et vertical',href:route('production',{vue:'kit'})});
-  if(s.op.id===bricoId && ['bd-03','bd-01','bd-06','bd-04'].includes(p.id) && p.versions.includes('V1'))pieces.push({name:'Accueil É-catalogue · Sud',detail:'Visuel de l’édition NT-V1-SUD',href:route('flux',{vue:'visuels',edition:'NT-V1-SUD'})});
+  if(s.op.id===bricoId && ['bd-03','bd-01','bd-06','bd-04'].includes(p.id) && p.versions.includes('V1'))pieces.push({name:'Accueil E-catalogue · Sud',detail:'Visuel de l’édition NT-V1-SUD',href:route('flux',{vue:'visuels',edition:'NT-V1-SUD'})});
   const exports = s.flows.filter(f => p.versions.includes(f.v)).map(f => ({
     name: f.name,
     detail: 'Flux · assortiment ' + f.v + ' · ' + f.stage,
@@ -220,6 +220,7 @@ function operationChoice(destination){
 }
 function dossierMenu(page) {
   const role=ctx?.role || (kitSlot||reviewerSlot?'relecteur':slot?'magasin':'enseigne');
+  StudioNavigation.settings(ctx?.role==='enseigne'&&!ctx.state.op.closed?'#configurer':null,page==='configurer');
   if(role==='enseigne'){
     const urls={pilotage:'../#accueil',preparation:'#informations',produits:'#produits',production:'#production',administration:'../#administration--magasins'};
     const items=StudioNavigation.spaces(urls);
@@ -227,10 +228,10 @@ function dossierMenu(page) {
       for(const [index,[key,entries]] of sections.entries()){
         if(entries.length<2)continue;
         const item=items.find(item=>item.label===key);
-        item.group={index,open:groupState[index],items:entries,current:['configurer','participation'].includes(page)?'participants':page};
+        item.group={index,open:groupState[index],items:entries,current:page==='participation'?'participants':page};
       }
     }
-    StudioNavigation.draw(items,['preparation','produits','production'][groupFor(page)],ctx?.state.op.title);
+    StudioNavigation.draw(items,page==='configurer'?null:['preparation','produits','production'][groupFor(page)],ctx?.state.op.title);
   }else if(role==='magasin'){
     const year=current().q.get('vue')==='annee';
     const items=[{key:'preparation',label:'Ma participation',href:'#participation'}];
@@ -262,7 +263,7 @@ function render() {
   lastPage = page;
   dossierMenu(ctx.role==='relecteur'?'production':page);
   document.title = names[page] + ' · ' + s.op.title + ' · BigOne Studio';
-  $('#bar').innerHTML = shop ? '' : link('../#accueil', 'Pilotage', 'toplink') + sections.map(([name, items], i) => '<a href="#' + items[0][0] + '" ' + (i === g ?
+  $('#bar').innerHTML = shop ? '' : link('../#accueil', 'Pilotage', 'toplink') + sections.map(([name, items], i) => '<a href="#' + items[0][0] + '" ' + (i === g && page!=='configurer' ?
     'aria-current="page"' : '') + '>' + name + '</a>').join('');
   const atelier=(page==='production'||ctx.role==='relecteur')&&editor.current();
   const digitalBat=page==='production' && s.kit && q.get('vue')==='bat';
@@ -283,12 +284,12 @@ function render() {
     supports: () => supports(s, q),
     produits: () => pim(s, q),
     production: () => s.kit && q.has('vue') ? kitView(s,q) : (s.kit?pilotIntro(s):'')+supports(s,q,true),
-    flux: () => s.op.id===bricoId && !q.has('id') ? monitor(s,q) : (s.op.id===bricoId?link(q.get('depuis')==='reseau'?route('flux',{...Object.fromEntries(q),id:null,vue:'reseau'}):'#flux',q.get('depuis')==='reseau'?'← Mes flux':'← Flux de l’opération'):'')+flows(s,q),
-    configurer: () => summaryFrame(page, q),
+    flux: () => monitor(s,q),
+    configurer: () => summaryFrame(page, q)+(s.kit?pilotFrame(s,true):''),
     participation: () => s.config.productionPilot && shop && q.get('vue')==='annee' ? shopYear(s,shopDossiers) : s.config.productionPilot ? shopView(s,q.get('id'),shop) : summaryFrame(page,q)
   } [page]();
   $('#main').innerHTML = '<div class="crumb">' + (shop ? 'Studio' : link('../#accueil', 'Studio', 'toplink')) + ' &nbsp; › &nbsp; ' + esc(shop ? 'Participation' :
-      sections[g][0]) + ' &nbsp; › &nbsp; ' + esc(s.op.id === 'u-2649-pbs' ? 'S49' : s.op.title) + '</div><div class="ophead"><div><h1>' + esc(s.op.title) +
+      page==='configurer'?'Réglages de l’opération':sections[g][0]) + ' &nbsp; › &nbsp; ' + esc(s.op.id === 'u-2649-pbs' ? 'S49' : s.op.title) + '</div><div class="ophead"><div><h1>' + esc(s.op.title) +
     '</h1><div class="meta"><span>' + esc(shop ? s.stores[0].name : s.op.network) + '</span> · <span>' + esc(s.op.start) + ' au ' + esc(s.op.end) +
     '</span> · <span>' + esc(s.op.scope) + '</span>'+(shop?'':' · '+link(operationChoice(page),'Changer d’opération','quiet'))+'</div></div>' + tag(ctx.workspace.startsWith('shared:') ? 'Dossier partagé' : 'Dossier de démonstration',
       'violet') + '</div><div><div id="content">' + content + (!shop &&
@@ -300,6 +301,8 @@ function render() {
   const search=page==='participation'?(view==='annee'?['tbody tr','Filtrer mes opérations']:['#kit-response fieldset > label','Filtrer mes choix']):
     page==='flux'?({editions:['tbody tr','Filtrer les éditions'],visuels:['.kit-gallery > a','Filtrer les visuels']})[view]:
     page==='production'&&view==='remises'?['.inset','Filtrer les bordereaux']:null;
+  const flowToggle=$('[data-flow-toggle]');
+  if(flowToggle)flowToggle.setAttribute('aria-expanded',String(flowFiltersOpen));
   StudioNavigation.filters($('#main'),search);
   if(shop && s.config.productionPilot && q.get('vue')==='annee' && !shopLoaded)loadShopYear();
   chat.render();
@@ -607,6 +610,12 @@ document.addEventListener('input',e=>{
   if(e.target.id==='wizard-filter')$('.wizard')?.contentWindow?.filterSteps?.(e.target.value);
 });
 document.addEventListener('click', async e => {
+  const toggle=e.target.closest('[data-flow-toggle]');
+  if(toggle){
+    flowFiltersOpen=!flowFiltersOpen;
+    toggle.setAttribute('aria-expanded',String(flowFiltersOpen));
+    return;
+  }
   const g = e.target.closest('[data-group]');
   if (g) {
     const i = Number(g.dataset.group);
@@ -628,6 +637,10 @@ document.addEventListener('click', async e => {
   }
 });
 document.addEventListener('change', async e => {
+  if(e.target.form?.id==='flow-filters' && e.target.type!=='search'){
+    e.target.form.requestSubmit();
+    return;
+  }
   const n = e.target.name;
   const {
     q
@@ -673,7 +686,12 @@ document.addEventListener('toggle', e => {
   }
 }, true);
 document.addEventListener('submit', async e => {
-  if(['kit-response','kit-filter','pilot-date','pilot-network'].includes(e.target.id)){
+  if(e.target.id==='flow-filters'){
+    e.preventDefault();
+    location.hash=route('flux',{tri:current().q.get('tri'),...Object.fromEntries(new FormData(e.target))});
+    return;
+  }
+  if(['kit-response','kit-filter','pilot-date'].includes(e.target.id)){
     e.preventDefault();const form=e.target, data=Object.fromEntries(new FormData(form));
     if(form.id==='kit-response'){
       const button=e.submitter;if(button)button.disabled=true;
@@ -766,7 +784,7 @@ window.studioWizard = () => {
   };
   return {
     pimLink:v=>location.pathname+location.search+route("produits",{v}),
-    shop, axes, matches, targetPlan, network: shop ? [] : s.stores, groups:s.targetGroups || [], legacy:!!s.legacyAssignments,
+    shop, canConfigure:!shop && page==='configurer', axes, matches, targetPlan, network: shop ? [] : s.stores, groups:s.targetGroups || [], legacy:!!s.legacyAssignments,
     confirmed:shop ? [] : stores.filter(t=>s.replies[t.id]?.confirmed).map(t=>t.id),
     applyGroups: async groups=>{await save('targeting',{groups}); notify('Proposition appliquée aux groupes de magasins.');},
     mode: page === 'configurer' && !shop ? 'admin' : 'shop',

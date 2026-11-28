@@ -103,7 +103,7 @@ L’extrait compte **3 produits distincts** et 5 liens d’éligibilité. Le cha
 
 ## Participants · paramétrage enseigne et réponse du magasin
 
-Depuis Informations ou Participants, « Proposer une version par groupe » ouvre le paramétrage de l’opération. Ce parcours comporte cinq étapes internes à Participants. Le responsable peut basculer vers un aperçu du parcours magasin et revenir à sa configuration. Les six entrées du menu principal restent celles de la section Navigation.
+Dans le dossier, le menu de réglages en haut à droite ouvre « Administration de la mécanique ». Ce parcours comporte cinq étapes internes à Participants. Le responsable peut basculer vers un aperçu du parcours magasin et revenir à sa configuration. Les six entrées du menu principal restent celles de la section Navigation.
 
 Le réseau de démonstration Nanotera comprend 900 magasins fictifs. Trois groupes de format contiennent initialement 300 magasins chacun. Les valeurs d’un même critère se cumulent (Bretagne ou Normandie). Deux critères différents se croisent (hypermarché en Bretagne). La proposition affiche le nombre correspondant avant application. L’ordre des groupes est modifiable et le premier groupe correspondant fournit l’unique version du magasin. Une nouvelle règle prend la première position. Les magasins sans correspondance sortent de la proposition. Le serveur conserve leurs données et ferme leur accès à la réponse. La liste des participants se consulte par pages de 25.
 

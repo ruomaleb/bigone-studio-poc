@@ -457,7 +457,7 @@ function render() {
   sanitize();
   const menu = tabs();
   if (!menu.some(t => t[0] === tab)) tab = menu[0][0];
-  document.querySelector('#modes').innerHTML = (core.shop ? '' : modeBtn('admin', 'Paramétrer les choix') + (stores.length ? modeBtn('shop', 'Aperçu magasin') : ''));
+  document.querySelector('#modes').innerHTML = (!core.canConfigure ? '' : modeBtn('admin', 'Paramétrer les choix') + (stores.length ? modeBtn('shop', 'Aperçu magasin') : ''));
   document.querySelector('#nav').innerHTML = '<div class="navHead">' + ico(mode === 'admin' ? 'setup' : 'shop') + (mode === 'admin' ? 'Choix proposés' :
       'Ma participation') + '</div><div class="navBody">' + menu.map(([k, t, ic]) => '<button type="button" data-action="go:' + k + '" class="navItem ' + (tab ===
       k ? 'active' : '') + '" ' + (tab === k ? 'aria-current="page"' : '') + '>' + ico(ic) + esc(t) + '</button>').join('') +
@@ -617,7 +617,7 @@ document.addEventListener('click', async e => {
     return
   }
   if (a === 'mode') {
-    if (core.shop) return;
+    if (!core.canConfigure) return;
     mode = arg;
     navigate(mode === 'admin' ? 'rules' : 'entry');
     return

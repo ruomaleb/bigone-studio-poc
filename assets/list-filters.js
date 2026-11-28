@@ -1,6 +1,6 @@
 /* Les filtres portent uniquement sur la liste affichée. Leur état voyage avec son URL. */
 const filterLabels={
-  op:'Opération',reseau:'Réseau',phase:'Phase',periode:'Période commerciale',contenu:'Type de contenu',
+  op:'Opération',portee:'Portée',reseau:'Réseau',phase:'Phase',periode:'Période commerciale',contenu:'Type de contenu',
   rayon:'Rayon',marque:'Marque',mecanique:'Type d’offre',qualite:'Données produit',
   famille:'Famille',type:'Type de support',zone:'Déclinaison',magasin:'Magasin engagé',etat:'État',
   version:'Version',fichier:'Fichier',engagement:'Engagement',support:'Support',jalon:'Jalon',
@@ -52,7 +52,7 @@ function filterList(rows,keys,sorts,{prefix='',searchKey='',query='',matches,ids
     if(!active.some(k=>k!==key)||key==='contenu')for(const v of options[key]||[])values.add(v);
     if(selected[key])values.add(selected[key]);
     const choices=[...values].map(v=>[v,facetLabel(key,v)]).sort((a,b)=>compareFrench.compare(a[1],b[1]));
-    const all=['op','phase','periode','marque','qualite','famille','zone','version','composition','nature','priorite'].includes(key)?'Toutes':'Tous';
+    const all=['op','portee','phase','periode','marque','qualite','famille','zone','version','composition','nature','priorite'].includes(key)?'Toutes':'Tous';
     return select(key,filterLabels[key],[['',all],...choices],selected[key],ids[key]);
   }).join('');
   const sortChoices=sorts.map((k,i)=>[i?k:'',sortLabels[k]]);

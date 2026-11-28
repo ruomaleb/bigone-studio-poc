@@ -1,6 +1,6 @@
 import {formats,kitDemand,currentProof,verifyFrame} from '../server/kit.mjs';
 import {blank} from '../server/model.mjs';
-import {esc,route,btn,link,card,tag,table,euros,field,sel,viewFilter} from './views.mjs?v=20261128.3';
+import {esc,route,btn,link,card,tag,table,euros,field,sel,viewFilter} from './views.mjs?v=20261128.6';
 import {drawOutput,encodeOutput,downloadBlob,fromBase64,archive} from './kit-export.mjs';
 
 const tr=(...cells)=>'<tr>'+cells.map(c=>'<td>'+c+'</td>').join('')+'</tr>';
@@ -14,10 +14,12 @@ const tabs=(s,selected)=>'<nav class="kit-tabs" aria-label="Kit digital">'+[['ki
 const humanDay=v=>new Date(v+'T12:00:00Z').toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
 const participantLink=(filter,value,label)=>'<a class="stat" href="'+esc(route('participants',{filtre:filter}))+'"><strong>'+value+'</strong><span>'+esc(label)+'</span></a>';
 const frameLabels={revision:'Révision',start:'Début commercial',end:'Fin commerciale',open:'Ouverture des engagements',close:'Clôture des engagements',kit:'Kit digital'};
-export function pilotIntro(s) {
+export function pilotFrame(s,settings=false) {
   const f=s.kitFrame;
-  const frame=f?card('Cadre de l’opération', '<p><b>BD-2704</b> · PAC Nanotera · Révision '+f.revision+'</p><p>Engagements du '+humanDay(f.open)+' au '+humanDay(f.close)+'. Kit digital '+esc(f.kit)+' pour le groupe témoin V1.</p><div class="actions">'+btn('kit-frame-export','Télécharger le cadre JSON')+btn('kit-frame-import','Importer une révision')+'</div>'):'';
-  return frame+card('Production du kit digital', '<div class="kit-intro"><img src="../assets/brico-deco/bd-03.webp" alt="Lampe Gaia"><div><h3>Brico-déco · Lampe Gaia</h3><p>Du choix du magasin aux fichiers carrés et verticaux.</p><div class="actions">'+link('#participants','Voir les engagements','primary')+to('production','kit','Atelier digital')+to('flux','suivi','Suivi des flux')+'</div></div></div>');
+  return f?card('Cadre de l’opération', '<p><b>BD-2704</b> · PAC Nanotera · Révision '+f.revision+'</p><p>Engagements du '+humanDay(f.open)+' au '+humanDay(f.close)+'. Kit digital '+esc(f.kit)+' pour le groupe témoin V1.</p>'+(settings?'<div class="actions">'+btn('kit-frame-export','Télécharger le cadre JSON')+btn('kit-frame-import','Importer une révision')+'</div>':'')):'';
+}
+export function pilotIntro(s) {
+  return pilotFrame(s)+card('Production du kit digital', '<div class="kit-intro"><img src="../assets/brico-deco/bd-03.webp" alt="Lampe Gaia"><div><h3>Brico-déco · Lampe Gaia</h3><p>Du choix du magasin aux fichiers carrés et verticaux.</p><div class="actions">'+link('#participants','Voir les engagements','primary')+to('production','kit','Atelier digital')+to('flux','suivi','Suivi des flux')+'</div></div></div>');
 }
 export function pilotParticipants(s,q) {
   const {counts}=kitDemand(s),filter=q.get('filtre')||'',bySupport=q.get('par')==='support',included=s.kitFrame?.kit==='inclus';

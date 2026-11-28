@@ -87,7 +87,7 @@ export function info(s, q) {
         id: miss[0]?.id
       }), 'Ouvrir le PIM')) + (next ? row('Relire les supports', next.name + ' · ' + next.state, link(route('production', {
       id: next.id
-    }), 'Ouvrir le BAT')) : ''), link('#configurer', 'Proposer une version par groupe')) +
+    }), 'Ouvrir le BAT')) : '')) +
     card('Engagement du réseau', '<div class="stats">' + metric(t.engage, 'Engagés', '#participants?filtre=engage') + metric(t.attente, 'En attente',
       '#participants?filtre=attente') + metric(t.non, 'Non participant', '#participants?filtre=non') + '</div>');
 }
@@ -120,7 +120,7 @@ export function participants(s, q) {
           'À affecter'), esc(r?.review ? 'À revoir' : r?.confirmed ? 'Confirmés' : stateOf(s, t) === 'engage' ? 'Hérités' : '—'), btn('invite',
           'Accès magasin', t.id))
       })) + (rows.length>25?'<div class="actions">'+(page>1?link(route('participants',{filtre:f,page:page-1}),'Précédente'):'')+'<span>Page '+page+' sur '+Math.ceil(rows.length/25)+'</span>'+(page*25<rows.length?link(route('participants',{filtre:f,page:page+1}),'Suivante'):'')+'</div>':'') + (rows.length ? '' : none('Aucun participant dans cette sélection.')) + '<div class="actions">' + btn('reminder', 'Préparer une relance', f) + btn(
-      'refresh', 'Actualiser les réponses') + '</div>', link('#configurer', 'Proposer une version par groupe', 'primary')) +
+      'refresh', 'Actualiser les réponses') + '</div>') +
     (x ? card(x.name, row('Version affectée', x.assigned || 'À affecter', esc(s.targetGroups?.find(g=>g.id===x.groupId)?.name || '')) + row('Réponse du magasin', r?.review ? 'À revoir' : r?.confirmed ? 'Confirmée' : r ? 'Brouillon' : 'À recueillir', link(route(
       'participation', {
         id: x.id
@@ -252,11 +252,11 @@ export function supports(s, q, prodMode = false) {
     none(
       'Aucune nouvelle décision enregistrée.'));
 }
-export function flows(s, q) {
+export function flows(s, q, back) {
   const id = q.get('id');
   const stage=q.get('statut')||'';
   const selected=s.flows.filter(f=>id?f.id===id:!stage||f.stage===stage);
-  return card('Flux', none('Contrôler l’offre par version, générer un fichier et consigner sa remise.') + (id ? link('#flux', 'Tous les flux') : '<div class="filters">'+viewFilter('statut','État du flux',[...new Set(s.flows.map(f=>f.stage))],stage)+'</div>') + (!id&&!selected.length?none('Aucun flux pour ces critères.'):'') + (id && !
+  return card('Flux', none('Contrôler l’offre par version, générer un fichier et consigner sa remise.') + (id ? (back||link('#flux', 'Tous les flux')) : '<div class="filters">'+viewFilter('statut','État du flux',[...new Set(s.flows.map(f=>f.stage))],stage)+'</div>') + (!id&&!selected.length?none('Aucun flux pour ces critères.'):'') + (id && !
     selected.length ? none('Ce flux est indisponible dans le dossier.') : '') + selected.map(f => {
     const errors = anomalies(s, f.v);
     const missingUnit = missingBonialUnit(s,f);
