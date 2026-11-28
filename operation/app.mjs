@@ -1,5 +1,6 @@
+import {bricoId} from '../server/brico.mjs?v=20261128.5';
 import {pilotIntro,pilotParticipants,shopYear,shopView,shopPayload,kitView,kitReviewView,mountKit,kitAction} from './kit.mjs?v=20261128.3';
-import {monitor} from './monitor.mjs?v=20261128.3';
+import {monitor} from './monitor.mjs?v=20261128.5';
 import {editorController} from './editor.mjs?v=20261128.3';
 import {axes, matches, targetPlan, participantsOf} from '../server/targeting.mjs';
 import {
@@ -29,7 +30,7 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=20261128.3';
+} from './views.mjs?v=20261128.5';
 import {
   setupChat
 } from './chat.mjs?v=8';
@@ -155,7 +156,7 @@ function operationRecord() {
     })
   }));
   if(s.kit?.product===p.id)pieces.push({name:'Kit digital Gaia',detail:'Carré et vertical',href:route('production',{vue:'kit'})});
-  if(s.kit && ['bd-03','bd-01','bd-06','bd-04'].includes(p.id) && p.versions.includes('V1'))pieces.push({name:'Accueil É-catalogue · Sud',detail:'Visuel de l’édition NT-V1-SUD',href:route('flux',{vue:'visuels',edition:'NT-V1-SUD'})});
+  if(s.op.id===bricoId && ['bd-03','bd-01','bd-06','bd-04'].includes(p.id) && p.versions.includes('V1'))pieces.push({name:'Accueil É-catalogue · Sud',detail:'Visuel de l’édition NT-V1-SUD',href:route('flux',{vue:'visuels',edition:'NT-V1-SUD'})});
   const exports = s.flows.filter(f => p.versions.includes(f.v)).map(f => ({
     name: f.name,
     detail: 'Flux · assortiment ' + f.v + ' · ' + f.stage,
@@ -282,7 +283,7 @@ function render() {
     supports: () => supports(s, q),
     produits: () => pim(s, q),
     production: () => s.kit && q.has('vue') ? kitView(s,q) : (s.kit?pilotIntro(s):'')+supports(s,q,true),
-    flux: () => s.kit && !q.has('id') ? monitor(s,q) : (s.kit?link(q.get('depuis')==='reseau'?route('flux',{...Object.fromEntries(q),id:null,vue:'reseau'}):'#flux',q.get('depuis')==='reseau'?'← Mes flux':'← Flux de l’opération'):'')+flows(s,q),
+    flux: () => s.op.id===bricoId && !q.has('id') ? monitor(s,q) : (s.op.id===bricoId?link(q.get('depuis')==='reseau'?route('flux',{...Object.fromEntries(q),id:null,vue:'reseau'}):'#flux',q.get('depuis')==='reseau'?'← Mes flux':'← Flux de l’opération'):'')+flows(s,q),
     configurer: () => summaryFrame(page, q),
     participation: () => s.config.productionPilot && shop && q.get('vue')==='annee' ? shopYear(s,shopDossiers) : s.config.productionPilot ? shopView(s,q.get('id'),shop) : summaryFrame(page,q)
   } [page]();

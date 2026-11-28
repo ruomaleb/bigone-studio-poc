@@ -24,7 +24,6 @@ export function initPilot(s, blank) {
   s.kitFrame = {source:'PAC-NANOTERA',operation:s.op.id,revision:1,start:s.op.start,end:s.op.end,
     open:'2027-01-05',close:'2027-01-14',kit:'facultatif'};
   s.kit = {product:'bd-03', theme:'sauge', proofs:[], deliveries:[]};
-  s.flows.push({id:"bd-bonial",name:"Bonial",v:"V1",stage:"À contrôler"});
   return s;
 }
 

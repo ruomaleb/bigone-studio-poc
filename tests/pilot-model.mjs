@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {blank,bricoExample,mutate,forRole} from '../server/model.mjs';
+import {blank,bricoExample,mutate,forRole,upgradeDemo,importRows} from '../server/model.mjs';
 import {initPilot,kitDemand} from '../server/kit.mjs';
 const s=initPilot(bricoExample(),blank);
 const [a,b,c,d]=s.stores;
@@ -23,3 +23,21 @@ const gaia=s.products.find(p=>p.id==='bd-03');
 gaia.media=[];assert.equal(content().length,0);assert(demand().issues.every(m=>m.includes('visuel PIM manquant')));
 gaia.media=[{kind:'image',url:'https://example.org/gaia.webp'}];assert(demand().outputs.every(o=>o.spec.image===gaia.media[0].url));
 console.log('PASS PAC identique, obsolète, dates invalides, révision incluse ciblée, budget indépendant et visuel du PIM.');
+
+const legacy=structuredClone(bricoExample());
+legacy.flows=[];
+const preserved=structuredClone([legacy.stores,legacy.replies,legacy.products,legacy.supports,legacy.config]);
+upgradeDemo(legacy);
+assert.deepEqual(legacy.flows,[{id:'bd-bonial',name:'Bonial',v:'V1',stage:'À contrôler'}]);
+assert.deepEqual([legacy.stores,legacy.replies,legacy.products,legacy.supports,legacy.config],preserved);
+const flow=legacy.flows[0];
+flow.id='bonial-configure';flow.receipt='reçu existant';flow.archive=[{v:'V2'}];
+const saved=structuredClone(legacy);upgradeDemo(legacy);assert.deepEqual(legacy,saved);
+mutate(legacy,'flow',{id:flow.id,step:'check'},null);
+assert.equal(flow.stage,'À corriger');
+legacy.products.find(p=>p.id==='bd-03').pack='1 pièce';
+mutate(legacy,'flow',{id:flow.id,step:'check'},null);assert.equal(flow.stage,'Contrôlé');
+mutate(legacy,'flow',{id:flow.id,step:'generate'},null);assert(flow.rows.length>0);
+const imported=importRows([{col:'operations',id:'bd-2704-deco',data:{nom:'Brico-déco'}}],'bd-2704-deco');
+assert.equal(imported.flows.filter(f=>f.name==='Bonial').length,1);
+console.log('PASS import partagé et reprise des dossiers Brico-déco, conservation des données et contrôle Bonial.');
