@@ -7,6 +7,17 @@ const {
 } = require('node:url');
 const root = path.resolve(__dirname, '..'),
   api = 'https://bigone-studio-operations.github-46e.workers.dev';
+async function checkWorkspaceStart(page) {
+  const layout=await page.evaluate(()=>{
+    const header=document.querySelector('.app-header,.mast').getBoundingClientRect();
+    const menu=document.querySelector('#studio-rail').getBoundingClientRect();
+    const start=document.querySelector('main').firstElementChild.getBoundingClientRect().top;
+    return {gap:start-header.bottom,offset:Math.abs(start-menu.top),inset:menu.left};
+  });
+  assert(layout.gap>0 && layout.gap<=48,'Le contenu commence juste sous le bandeau.');
+  assert(layout.offset<=1,'Le menu et le contenu démarrent au même niveau.');
+  assert(layout.inset>0,'Le menu est détaché du bord de la fenêtre.');
+}
 (async () => {
   const mod = (await import(pathToFileURL(root + '/server/worker.mjs'))).default,
     db = new DatabaseSync(':memory:');
@@ -89,6 +100,9 @@ const root = path.resolve(__dirname, '..'),
     p.setDefaultTimeout(7000);
     const errors = [];
     p.on('pageerror', err => errors.push(err.message));
+    await p.goto(url+'?op=bd-2704-deco#participants?filtre=confirmed');
+    await p.getByRole('heading',{name:'Participants',exact:true}).waitFor();
+    await checkWorkspaceStart(p);
     await p.goto(url+'?op=bd-2704-deco');
     await p.getByRole('heading',{level:1,name:'Brico-déco'}).waitFor();
     await p.getByRole('link',{name:'Feuilleter le catalogue',exact:true}).click();
@@ -457,6 +471,7 @@ const root = path.resolve(__dirname, '..'),
     assert(!(await p.locator('#view').innerText()).includes('FANTASTIC COLORS'));
     await p.getByRole('link',{name:'Changer d’opération'}).click();
     await p.setViewportSize({width:390,height:844});
+    await checkWorkspaceStart(p);
     const mobileRail=p.getByRole('navigation',{name:'Navigation principale',exact:true});
     assert(await mobileRail.getByRole('link',{name:'Production'}).isVisible());
     await p.getByRole('button',{name:'Déployer le menu'}).click();
