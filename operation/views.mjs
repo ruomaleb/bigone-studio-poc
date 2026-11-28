@@ -129,22 +129,28 @@ export function participants(s, q) {
     (s.reminders.length ? card('Brouillons de relance', s.reminders.slice(-5).reverse().map(r => row(r.stores.length + ' destinataire(s)', r.text, tag(
       'Brouillon'))).join('')) : '');
 }
+export function viewFilter(key,label,values,selected,all='Tous') {
+  return '<label class="field">'+esc(label)+'<select aria-label="'+esc(label)+'" data-screen-filter="'+esc(key)+'">'+
+    [[ '',all],...values.map(v=>Array.isArray(v)?v:[v,v])].map(([value,name])=>'<option value="'+esc(value)+'"'+(value===selected?' selected':'')+'>'+esc(name)+'</option>').join('')+'</select></label>';
+}
 export function pim(s, q) {
   const v = q.get('v') || '',
-    ps = v ? eligible(s, v) : s.products;
+    assortment = v ? eligible(s, v) : s.products,
+    rayon=q.get('rayon')||'',
+    ps=assortment.filter(p=>!rayon||(p.rayon||'À renseigner')===rayon);
   const rows = ps.map(p => {
     const href = route('produits', {
-      v,
+      v,rayon,
       id: p.id
     });
     return tr(link(href, p.name, 'quiet'), esc(p.pack), p.versions.map(id => tag(id, 'violet')).join(' ') || tag('À affecter', 'warn'),
       p.price == null ? tag('Prix manquant', 'warn') : esc(euros(p.price)), link(href, 'Ouvrir', 'quiet'));
   });
-  return card('Produits', '<p class="sub">Offre commerciale de l’opération · ' + s.products.length + ' références distinctes.</p><div class="filters">' + [
+  return card('Produits', '<div class="filters">'+viewFilter('rayon','Rayon',[...new Set(s.products.map(p=>p.rayon||'À renseigner'))].sort(),rayon,'Tous les rayons')+'</div><p class="sub">Offre commerciale de l’opération · ' + s.products.length + ' références distinctes.</p><div class="filters">' + [
       ['', 'Toutes les versions'], ...s.config.versions.map(x => [x.id, x.id + ' · ' + x.name])
     ].map(([key, label]) =>
       link(route('produits', {
-        v: key
+        v: key,rayon
       }), label, 'chip ' + (key === v ? 'active' : ''))).join('') + '</div>' +
     table(['Produit', 'Conditionnement', 'Versions éligibles', 'Prix / anomalie', 'Fiche'], rows) + none(ps.length +
       ' référence(s) dans cette sélection.'), btn('new-product', 'Ajouter une référence'));
@@ -185,12 +191,14 @@ function editorLinks(id,page=1) {
 }
 export function supports(s, q, prodMode = false) {
   const page = prodMode ? 'production' : 'supports',
-    x = s.supports.find(x => x.id === q.get('id'));
+    x = s.supports.find(x => x.id === q.get('id')),
+    key=prodMode?'state':'format',value=q.get(key)||'',
+    visible=s.supports.filter(y=>!value||y[key]===value),
+    filters='<div class="filters">'+viewFilter(key,prodMode?'État du support':'Format',[...new Set(s.supports.map(y=>y[key]).filter(Boolean))].sort(),value)+'</div>';
   const listing = card(prodMode ? 'Supports en production' : 'Supports à préparer', none(prodMode ? 'Révisions, fichiers de travail et décisions de BAT.' :
-    'Formats, produits retenus et variantes du dispositif.') + table(prodMode ? ['Support', 'Révision', 'État', ''] : ['Support', 'Format', 'Produits', ''], s
-    .supports.map(y => tr(esc(y.name), esc(prodMode ? 'R' + y.revision : y.format), prodMode ? tag(y.state, y.review ? 'warn' : '') : esc(y.products.length),
+    'Formats, produits retenus et variantes du dispositif.') + filters + (!visible.length?none('Aucun support pour ces critères.'):'') + table(prodMode ? ['Support', 'Révision', 'État', ''] : ['Support', 'Format', 'Produits', ''], visible.map(y => tr(esc(y.name), esc(prodMode ? 'R' + y.revision : y.format), prodMode ? tag(y.state, y.review ? 'warn' : '') : esc(y.products.length),
       link(route(page, {
-        id: y.id
+        [key]:value,id: y.id
       }), prodMode ? 'Voir le BAT' : 'Voir le dispositif') + editorLinks(y.id)))), prodMode ? '' : btn('new-device', 'Ajouter un support'));
   if (!x) return listing;
   const ps = s.products.filter(p => x.products.includes(p.id)),
@@ -246,8 +254,9 @@ export function supports(s, q, prodMode = false) {
 }
 export function flows(s, q) {
   const id = q.get('id');
-  const selected = id ? s.flows.filter(f => f.id === id) : s.flows;
-  return card('Flux', none('Contrôler l’offre par version, générer un fichier et consigner sa remise.') + (id ? link('#flux', 'Tous les flux') : '') + (id && !
+  const stage=q.get('statut')||'';
+  const selected=s.flows.filter(f=>id?f.id===id:!stage||f.stage===stage);
+  return card('Flux', none('Contrôler l’offre par version, générer un fichier et consigner sa remise.') + (id ? link('#flux', 'Tous les flux') : '<div class="filters">'+viewFilter('statut','État du flux',[...new Set(s.flows.map(f=>f.stage))],stage)+'</div>') + (!id&&!selected.length?none('Aucun flux pour ces critères.'):'') + (id && !
     selected.length ? none('Ce flux est indisponible dans le dossier.') : '') + selected.map(f => {
     const errors = anomalies(s, f.v);
     const missingUnit = s.kit && f.id==='bd-bonial' && eligible(s,f.v).find(p=>p.id===s.kit.product && !p.pack?.trim());

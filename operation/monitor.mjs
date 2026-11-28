@@ -1,4 +1,4 @@
-import {esc,tag,btn,card,table,route,link,sel,field,euros,flows} from './views.mjs';
+import {esc,tag,btn,card,table,route,link,sel,field,euros,flows,viewFilter} from './views.mjs?v=20261128.3';
 import {eligible} from '../server/model.mjs';
 import {photo} from '../server/edition.mjs';
 
@@ -51,9 +51,11 @@ export function monitor(s,q) {
     return card('Mes flux · '+s.op.title,filters+(visible.length?table(['Opération',...visible.map(c=>c.name)],[tr(esc(s.op.title),...visible.map(c=>(c.url?link(c.url,c.label,'quiet'):tag(c.label))+(c.detail?'<br><small>'+esc(c.detail)+'</small>':'')))]):'<p>Aucun flux pour ces critères.</p>')+go('suivi','Retour au suivi de l’opération'));
   }
   const bonial=s.flows.find(f=>f.id==='bd-bonial');
-  return card('Flux de l’opération',table(['Destination','Configuration','Dernier contrôle','Remise','Publication'],[
+  const destination=q.get('destination')||'',names=['É-catalogue','Bonial','Tiendeo'];
+  const filters='<div class="filters">'+viewFilter('destination','Destination',names,destination,'Toutes les destinations')+'</div>';
+  return card('Flux de l’opération',filters+table(['Destination','Configuration','Dernier contrôle','Remise','Publication'],[
     tr(go('editions','É-catalogue',{depuis:'suivi'}),tag('Actif','good'),'Aperçu de recette','EC-001 · exemple','À confirmer'),
     tr(link(route('flux',{id:'bd-bonial'}),'Bonial'),tag('Actif','good'),esc(s.products.some(p=>p.id===s.kit.product && !p.pack?.trim())?'À vérifier · unité de Gaia':bonial?.stage||'À contrôler'),esc(bonial?.receipt||'En attente'),'À confirmer'),
-    tr('Tiendeo',tag('Non prévu'),'—','—','—')])+go('reseau','Vue par destination'))+
-    (bonial?flows(s,new URLSearchParams({id:bonial.id})):'');
+    tr('Tiendeo',tag('Non prévu'),'—','—','—')].filter((_,i)=>!destination||destination===names[i]))+go('reseau','Vue par destination'))+
+    (bonial&&(!destination||destination==='Bonial')?flows(s,new URLSearchParams({id:bonial.id})):'');
 }

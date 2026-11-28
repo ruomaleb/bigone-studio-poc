@@ -3,6 +3,7 @@
 Prototype Nanotera : Pilotage, Préparation, Production et Administration.
 
 - Application : https://ruomaleb.github.io/bigone-studio-poc/
+- Version **2026-11-28.3**. Le menu de gauche accompagne le choix d’opération, les dossiers et l’administration. Sur mobile, les icônes restent accessibles. Le chemin de fer et les BAT proposent un plein écran avec retour par le bouton ou la touche Échap.
 - Version **2026-11-28.2**. Les entrées Produits, Production et Supports demandent d’abord une opération. L’adresse et la navigation entre Produits et Production conservent le dossier sélectionné. Les flux, les filtres et les révisions s’appliquent à ce dossier.
 - Version **2026-11-28.1**. [Ouvrir le pilote Nanotera](https://ruomaleb.github.io/bigone-studio-poc/operation/?op=bd-2704-deco&parcours=production) et [consulter les flux](https://ruomaleb.github.io/bigone-studio-poc/operation/?op=bd-2704-deco&parcours=production#flux?vue=reseau). Chaque navigateur dispose d’une copie Brico-déco isolée avec six magasins témoins. Les invitations magasin et relecteur donnent accès à cette même copie.
 - Version **2026-11-27.8**. [Ouvrir la démo Brico-déco avec Assistant](https://ruomaleb.github.io/bigone-studio-poc/operation/?op=bd-2704-deco&assistant=1). Les 21 offres Nanotera sont reliées aux pages du catalogue original. Le dossier partagé est accessible au Responsable depuis une opération.

@@ -116,10 +116,20 @@ const root = path.resolve(__dirname, '..'),
     await p.getByRole('button',{name:'Visuels',exact:true}).click();
     await p.getByRole('button',{name:'Placer le visuel Logo Nanotera'}).click();
     await paper.locator('.ed-image').waitFor();
-    await p.getByRole('button',{name:'Produits',exact:true}).click();
+    await p.locator('.ed-side').getByRole('button',{name:'Produits',exact:true}).click();
     await p.locator('[data-filter="rayon"]').selectOption('Bricolage');
     const search=p.getByRole('searchbox',{name:'Rechercher un produit'});
     await search.fill('NINA');
+    const rail=p.getByRole('navigation',{name:'Navigation principale',exact:true});
+    assert(await rail.getByRole('link',{name:'Production'}).isVisible());
+    const atelierUrl=p.url();
+    await p.getByRole('button',{name:'Plein écran',exact:true}).click();
+    assert(await rail.isHidden());
+    assert.equal(await search.inputValue(),'NINA');
+    await p.keyboard.press('Escape');
+    assert(await rail.isVisible());
+    assert.equal(p.url(),atelierUrl);
+    assert.equal(await search.inputValue(),'NINA');
     assert.equal(await p.locator('.ed-item').count(),1);
     await p.locator('.ed-item[data-from="bd-06"]').dragTo(paper,{targetPosition:{x:80,y:120}});
     await p.getByText('Placement enregistré sur la page 2.').waitFor();
@@ -215,7 +225,7 @@ const root = path.resolve(__dirname, '..'),
     await box.press('Escape');
     assert(await p.locator('#open-ai').evaluate(el => el === document.activeElement));
     const prep = p.getByRole('button', {
-      name: 'Préparation',
+      name: 'Rubriques de Préparation',
       exact: true
     });
     await prep.focus();
@@ -447,6 +457,13 @@ const root = path.resolve(__dirname, '..'),
     assert(!(await p.locator('#view').innerText()).includes('FANTASTIC COLORS'));
     await p.getByRole('link',{name:'Changer d’opération'}).click();
     await p.setViewportSize({width:390,height:844});
+    const mobileRail=p.getByRole('navigation',{name:'Navigation principale',exact:true});
+    assert(await mobileRail.getByRole('link',{name:'Production'}).isVisible());
+    await p.getByRole('button',{name:'Déployer le menu'}).click();
+    assert.equal(await p.getByRole('button',{name:'Réduire le menu'}).getAttribute('aria-expanded'),'true');
+    await p.keyboard.press('Escape');
+    await p.getByRole('button',{name:'Filtres',exact:true}).click();
+    assert(await p.locator('#view').evaluate(el=>el.contains(document.activeElement)));
     await p.getByLabel('Rechercher une opération').fill('Brico');
     assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await p.setViewportSize({width:1850,height:914});

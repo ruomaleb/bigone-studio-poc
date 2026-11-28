@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-28.2b">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-28.3">
 <link rel="stylesheet" href="assets/product-sheet.css?v=8">
 </head>
 <body>
@@ -23,7 +23,7 @@
       </svg>
     </button>
   </header>
-  <main id="view" tabindex="-1"></main>
+  <div class="studio-frame"><aside class="studio-rail" id="studio-rail" aria-label="Menu Studio"></aside><main id="view" tabindex="-1"></main></div>
 </div>
 <dialog id="product-dialog" class="ps-dialog" aria-labelledby="product-dialog-title"></dialog>
 <dialog id="atelier-dialog" aria-labelledby="art-titre"></dialog>
@@ -42,12 +42,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="assets/visuels.js?v=2026-11-28.2"></script>
 <script src="assets/product-sheet.js?v=8"></script>
-<script src="assets/list-filters.js?v=2026-11-26.8"></script>
+<script src="assets/studio-navigation.js?v=20261128.3"></script>
+<script src="assets/list-filters.js?v=20261128.3"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PUBLIC=true;
-const VERSION='2026-11-28.2';
+const VERSION='2026-11-28.3';
 const STATUTS=[['amonter','À monter'],['maquette','BAT en préparation'],['bat','BAT prêt à relire'],['corrections','Corrections'],['valide','Approuvé'],['livre','Remis']];
 const CHECKS=[['donnees','Prix et libellés conformes aux données'],['mentions','Mentions légales présentes'],['logos','Logos et signature'],['charte','Charte graphique respectée'],['fiche','Conforme à la fiche technique'],['comparaison','PDF de comparaison relu'],['natifs','Fichiers natifs déposés']];
 const RAYONS=['Fruits et légumes','Boucherie','Poissonnerie','Crèmerie','Épicerie salée','Épicerie sucrée','Vins et alcools','Entretien','Décoration de Noël','Jouets','Fêtes','Bricolage','Mode','High Tech','Frais','Épicerie'];
@@ -500,12 +501,15 @@ function choiceTarget(kind,o) {
 }
 function operationChooser(kind,unavailable=false){
   const query=filterParams().get('choix')||'',d=directories[kind];
-  const ops=sorted().filter(o=>suivi(o)&&matchesOperation(o,query)).sort((a,b)=>Number(!!a.cloture)-Number(!!b.cloture)||compareFrench.compare(a.nom,b.nom));
+  const rows=sorted().filter(suivi).map(o=>({o,name:o.nom,reseau:resOp(o),etat:o.cloture?'Clôturé':'Ouvert'}))
+    .sort((a,b)=>Number(!!a.o.cloture)-Number(!!b.o.cloture)||compareFrench.compare(a.name,b.name));
+  const list=filterList(rows,['reseau','etat'],['dossier','nom','nomDesc'],{prefix:'choix-',query,searchKey:'choix',matches:(row,term)=>matchesOperation(row.o,term)});
+  const ops=list.visible.map(row=>row.o);
   return `<div class="icon-heading scope-heading">${iconBadge(kind)}<h1>${d.label}</h1></div>${banner()}<section class="card operation-choice" aria-labelledby="choice-title">
     <h2 id="choice-title">Choisir une opération</h2>${unavailable&&status==='ok'?'<p role="status">L’opération demandée est indisponible. Sélectionnez un autre dossier.</p>':''}
     <label class="home-search" for="scope-query">${uiIcon('search')}<span class="visually-hidden">Rechercher une opération</span><input id="scope-query" type="search" data-facet="choix" value="${esc(query)}" placeholder="Rechercher par nom, code ou enseigne"></label>
-    <div class="operation-choices">${ops.map(o=>contentRow({o,name:o.nom,meta:[resOp(o),periode(o),o.cloture?'Clôturée':''],href:choiceTarget(kind,o)},'operations')).join('')||
-    (status==='ok'?vide(query?'Aucune opération ne correspond à votre recherche.':'Aucune opération disponible.'):'')}</div></section>`;
+    ${list.toolbar}${list.count}<div class="operation-choices">${ops.map(o=>contentRow({o,name:o.nom,meta:[resOp(o),periode(o),o.cloture?'Clôturée':''],href:choiceTarget(kind,o)},'operations')).join('')||
+    (status==='ok'?vide(list.changed?'Aucune opération ne correspond à votre recherche.':'Aucune opération disponible.'):'')}</div></section>`;
 }
 function vDirectory(kind){
   const d=directories[kind],{q,op}=directoryState(),ops=sorted().filter(suivi);
@@ -847,6 +851,12 @@ function render(){
  const label=dir?directories[dir].label:r.v==='administration'?'Administration':'Pilotage';
  const trail=r.v==='accueil'?'':`<nav class="breadcrumb" aria-label="Fil d’Ariane"><a href="#accueil">Studio</a><span aria-hidden="true">›</span>${inOp?`<a href="${directoryLink(dir,needsOperation(dir)?scopedId:null)}">${label}</a>`:`<span>${label}</span>`}</nav>`;
  $('#view').innerHTML=trail+VUES[r.v](r.tab,r.context)+`<footer class="app-footer"><span><strong>BigOne Studio</strong> · Nanotera</span><span>Version ${VERSION}</span></footer>`;
+ const urls={pilotage:'#accueil',preparation:scopedId?lien('preparation',scopedId,'cadrage'):directoryLink('operations'),produits:directoryLink('produits',scopedId),production:directoryLink('assets',scopedId),administration:'#administration--magasins'};
+ StudioNavigation.draw(StudioNavigation.spaces(urls),active);
+ const contextual=$('#view .workspace-menu');
+ if(contextual)$('#studio-rail .rail-context').append(contextual);
+ const referenceFilter=r.v==='administration'&&({droits:['tbody tr','Filtrer les profils'],connexions:['.card .list > div','Filtrer les services']})[r.tab];
+ StudioNavigation.filters($('#view'),referenceFilter);
  const access=$('#acces-studio');
  access.hidden=!PUBLIC;
  access.title=CODE?'Changer de code d’accès · '+profilAcces():'Saisir un code d’accès';
