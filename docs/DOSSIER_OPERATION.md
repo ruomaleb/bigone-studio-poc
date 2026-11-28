@@ -12,7 +12,7 @@ Le [dossier Brico-déco](https://ruomaleb.github.io/bigone-studio-poc/operation/
 
 Les 21 fiches PIM reprennent les références existantes. Les pages 2, 3, 4 et 5 en regroupent respectivement 5, 5, 4 et 7. Chaque fiche montre la photographie extraite du catalogue. Son onglet « Supports associés » ouvre la page correspondante en Production. Les prix des fiches sont modifiables dans la copie d’essai. Le PDF conserve les prix imprimés.
 
-Pour illustrer le ciblage du réseau fictif de 900 points de vente, les supermarchés reçoivent la version V1 « Luminaires et miroirs » (17 références), les hypermarchés la V2 « Catalogue intégral » (21) et les supérettes la V3 « Ampoules LED » (4). Ces assortiments et le flux d’export sont des choix de démonstration. Les groupes se modifient dans Participants.
+Pour illustrer le ciblage du réseau fictif de 900 points de vente, les supermarchés reçoivent la version classique (luminaires et miroirs) (17 références), les hypermarchés la version large (catalogue intégral) (21) et les supérettes la version restreinte (ampoules LED) (4). Ces assortiments et le flux d’export sont des choix de démonstration. Les groupes se modifient dans Participants.
 
 ## Chemin de fer et BAT collaboratif
 

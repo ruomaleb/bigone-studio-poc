@@ -3,7 +3,7 @@
 Prototype Nanotera : Pilotage, Préparation, Production et Administration.
 
 - Application : https://ruomaleb.github.io/bigone-studio-poc/
-- Version **2026-11-28.7**. Dans Pilotage → Créer une opération, sélectionner le réseau Nanotera et le modèle **Brico-déco · démonstration Nanotera**. Le nouveau dossier contient les assortiments V1/V2/V3 et six magasins fictifs. Dans Participants, ouvrir les engagements puis charger les réponses de démonstration. Les consultations effectuées depuis un accès magasin sont conservées. Pour le parcours V1, compléter le conditionnement de Gaia, placer la lampe dans l’E-catalogue, valider le BAT et déposer le CSV Bonial en recette. Studio affiche le reçu de test dans la fiche du flux.
+- Version **2026-11-28.8**. Dans Pilotage → Créer une opération, sélectionner le réseau Nanotera et le modèle **Brico-déco · démonstration Nanotera**. Le nouveau dossier contient les versions restreinte, classique et large et six magasins fictifs. Dans Participants, ouvrir les engagements puis charger les réponses de démonstration pour consulter par magasin la version retenue, les exemplaires du tract, les kits PLV et le pack digital. Pour la version classique, compléter le conditionnement de Gaia, placer la lampe dans l’E-catalogue, valider le BAT et déposer le CSV Bonial en recette. Studio affiche le reçu de test dans la fiche du flux.
 - Version **2026-11-28.6**. La matrice de flux par version et destination ouvre les contrôles et les éditions territoriales. L’administration réseau se trouve dans le menu latéral. Les réglages de la mécanique sont accessibles en haut à droite du dossier.
 - Version **2026-11-28.5**. Production → Flux ouvre le suivi E-catalogue, Bonial et Tiendeo dans le dossier partagé Brico-déco, avec les contrôles et reçus du dossier.
 - Version **2026-11-28.4**. Les pages du catalogue et des dossiers s’alignent sous le bandeau. Le menu latéral reprend le panneau compact de BigOne Media.
@@ -43,6 +43,6 @@ Version publiée avant cette évolution : **2026-11-16.2**, commit `bfdbaf6e768b
 1. Relire et intégrer la branche de refonte dans `main`.
 2. Reporter la version validée sur `gh-pages` par avance rapide ou fusion normale, sans forcer l'historique.
 3. Attendre la réussite du déploiement Pages.
-4. Vérifier l'URL publique, la version `2026-11-27.5` en pied de page, les polices, le logo et les routes profondes.
+4. Vérifier l'URL publique, la version publiée en pied de page et sur `/health` côté Worker, les polices, le logo et les routes profondes.
 
 Retour arrière : revert explicite. Les modalités de reprise pour le service du dossier et les données des essais figurent dans la note de publication.
