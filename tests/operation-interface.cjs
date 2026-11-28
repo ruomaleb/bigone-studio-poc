@@ -100,6 +100,15 @@ async function checkWorkspaceStart(page) {
     p.setDefaultTimeout(7000);
     const errors = [];
     p.on('pageerror', err => errors.push(err.message));
+    await p.goto(url+'?op=bd-2704-deco#flux');
+    await p.getByRole('heading',{name:'Flux de l’opération'}).waitFor();
+    await p.getByRole('link',{name:'É-catalogue',exact:true}).click();
+    assert.equal(await p.locator('tbody tr').count(),4);
+    assert(!(await p.locator('#content').innerText()).includes('EC-001'));
+    await p.getByRole('link',{name:'Ouvrir le support É-catalogue'}).click();
+    await p.getByRole('link',{name:'Flux',exact:true}).click();
+    await p.getByRole('link',{name:'Bonial',exact:true}).click();
+    await p.getByRole('link',{name:'Corriger dans le PIM'}).first().waitFor();
     await p.goto(url+'?op=bd-2704-deco#participants?filtre=confirmed');
     await p.getByRole('heading',{name:'Participants',exact:true}).waitFor();
     await checkWorkspaceStart(p);

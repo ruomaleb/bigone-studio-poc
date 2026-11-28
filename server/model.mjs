@@ -1,6 +1,6 @@
 import {storeKits,changeKit} from './kit.mjs';
 import {editLayout, submitLayout, annotate, preserveProof} from './edition.mjs';
-import {bricoId, catalogueId, catalogueUrl, bricoProducts, bricoVersions} from './brico.mjs';
+import {bricoId, catalogueId, catalogueUrl, bricoProducts, bricoVersions, bonialId, bricoBonial, missingBonialUnit} from './brico.mjs';
 import {axes, demoNetwork, demoGroups, participantsOf, targetPlan, networkText, demoId, demoFields} from './targeting.mjs';
 const MODELES = {
   imprime: [
@@ -249,6 +249,9 @@ function catalogue(products) {
   };
 }
 
+function initialBonial(versions){
+  return {id:bonialId,name:'Bonial',v:versions.some(v=>v.id==='V1')?'V1':'',stage:'À contrôler'};
+}
 export function bricoExample() {
   const products = bricoProducts();
   return {
@@ -257,7 +260,7 @@ export function bricoExample() {
     config:{...config(), pages:6, versions:structuredClone(bricoVersions)}, products,
     stores:demoNetwork(), targetGroups:demoGroups(), networkEdition:1, bricoEdition:1, replies:{},
     supports:[catalogue(products)],
-    flows:[{id:'bd-flux-offre', name:'Flux offre Brico-déco', v:'V2', stage:'À contrôler'}],
+    flows:[{id:'bd-flux-offre', name:'Flux offre Brico-déco', v:'V2', stage:'À contrôler'},initialBonial(bricoVersions)],
     tasks:[{id:'bd-relecture',name:'Relire les prix du catalogue',support:catalogueId,due:'2027-01-11',done:false}],
     reminders:[], audit:[]
   };
@@ -290,7 +293,11 @@ function enrichBrico(s) {
 
 // Upgrade only the S49 demonstration. Existing store IDs, replies and custom assignments survive.
 export function upgradeDemo(s) {
-  if (s.op.id === bricoId) return enrichBrico(s);
+  if (s.op.id === bricoId) {
+    enrichBrico(s);
+    if(!s.op.closed&&!bricoBonial(s))s.flows.push(initialBonial(s.config.versions));
+    return s;
+  }
   if (s.networkEdition === 1 || !demoId(s.op.id)) return s;
   if (s.op.id !== 'u-2649-pbs') {
     const branded = demoFields(s),
@@ -1038,12 +1045,12 @@ export function mutate(s, action, p, scope) {
       delete f.validated
     } else if (p.step === 'check') {
       archiveFlow(f);
-      const ok = eligible(s, f.v).length && !anomalies(s, f.v).length && !(s.kit && f.id==='bd-bonial' && eligible(s,f.v).some(p=>p.id===s.kit.product && !p.pack?.trim()));
+      const ok = eligible(s, f.v).length && !anomalies(s, f.v).length && !missingBonialUnit(s,f);
       f.stage = ok ? 'Contrôlé' : 'À corriger';
       f.validated = !!ok;
       f.checked = date()
     } else if (p.step === 'generate') {
-      required(f.stage === 'Contrôlé' && f.validated && !anomalies(s, f.v).length, 'Contrôlez les données avant génération.');
+      required(f.stage === 'Contrôlé' && f.validated && !anomalies(s, f.v).length && !missingBonialUnit(s,f), 'Contrôlez les données avant génération.');
       f.rows = eligible(s, f.v).map(x => ({
         reference: x.id,
         libelle: x.name,
