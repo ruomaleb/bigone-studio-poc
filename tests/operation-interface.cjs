@@ -163,6 +163,17 @@ async function checkWorkspaceStart(page) {
     await sheet.getByRole('tab',{name:'Caractéristiques'}).waitFor();
     await sheet.locator('.ps-stage img').evaluate(im=>im.decode());
     assert((await sheet.locator('.ps-stage img').getAttribute('src')).includes('bd-01.webp'));
+    for(const viewport of [{width:390,height:844},{width:1850,height:914}]){
+      await p.setViewportSize(viewport);
+      const fits=await sheet.locator('.ps-stage img').evaluate(image=>{
+        const frame=image.parentElement.getBoundingClientRect(),media=image.getBoundingClientRect();
+        return media.width>0 && media.height>0 && media.left>=frame.left && media.right<=frame.right &&
+          media.top>=frame.top && media.bottom<=frame.bottom &&
+          Math.abs((media.left+media.right)-(frame.left+frame.right))<2 &&
+          Math.abs((media.top+media.bottom)-(frame.top+frame.bottom))<2;
+      });
+      assert(fits,'L’image entière est centrée dans la galerie de la fiche produit.');
+    }
     await sheet.getByRole('tab',{name:'Supports associés'}).click();
     await sheet.getByRole('link',{name:/E-catalogue Brico-déco.*Page 2/}).click();
     await p.locator('.catalogue-page[href$="#page=2"]').waitFor();
