@@ -87,6 +87,10 @@ module.exports=async function pilot(context,url) {
     await p.getByLabel('Simuler la date').fill('2027-01-25');await p.getByRole('button',{name:'Afficher'}).click();
     await p.waitForFunction(()=>[...document.querySelectorAll('tbody .tag')].filter(t=>t.textContent==='Actif').length===3);
     await go('#flux?vue=reseau');await p.getByRole('heading',{name:'Mes flux',exact:true}).waitFor();
+    const partnerMarks=p.locator('.flow-head .flow-partner img');
+    assert.equal(await partnerMarks.count(),3);
+    assert.deepEqual(await partnerMarks.evaluateAll(images=>images.map(img=>new URL(img.src).pathname.split('/').at(-1))),['bigone-logo.png','bonial.png','tiendeo.png']);
+    await partnerMarks.evaluateAll(images=>Promise.all(images.map(img=>img.decode())));
     await p.getByLabel('Publication prévue',{exact:true}).fill('2027-01-18');
     await p.waitForURL(/publication=2027-01-18/);
     assert.equal(await p.locator('.flow-cell a').count(),3);
@@ -98,7 +102,7 @@ module.exports=async function pilot(context,url) {
     await p.locator('[data-flow-toggle]').click();
     await p.getByLabel('Version',{exact:true}).selectOption('V2');
     await p.waitForURL(/version=V2/);
-    await p.getByRole('link',{name:/E-catalogue.*V2/}).click();
+    await p.getByRole('link',{name:/E-catalogue.*Version large/}).click();
     await p.getByText('NT-V2-EST',{exact:true}).waitFor();
     await p.setViewportSize({width:390,height:844});await go('#production?vue=kit');assert(await p.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
     assert.deepEqual(issues,[]);console.log('PASS pilote Nanotera · 6 magasins, 30 affiches, 4 vrais PNG, 6 affectations, révision locale, BAT à deux accès, ZIP de C et flux territoriaux');

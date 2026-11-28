@@ -1,6 +1,6 @@
-import {flowBoard,boardParams} from './flow-board.mjs?v=20261128.7';
-import {catalogueId,bricoId} from '../server/brico.mjs?v=20261128.7';
-import {esc,tag,btn,card,table,route,link,field,euros,flows} from './views.mjs?v=20261128.7';
+import {flowBoard,boardParams} from './flow-board.mjs?v=20261128.8';
+import {catalogueId,bricoId} from '../server/brico.mjs?v=20261128.8';
+import {esc,tag,btn,card,table,route,link,field,euros,flows} from './views.mjs?v=20261128.8';
 import {eligible} from '../server/model.mjs';
 import {photo} from '../server/edition.mjs';
 

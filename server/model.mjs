@@ -1,6 +1,6 @@
 import {storeKits,changeKit} from './kit.mjs';
 import {editLayout, submitLayout, annotate, preserveProof} from './edition.mjs';
-import {bricoId, isBricoDemo, catalogueId, catalogueUrl, bricoProducts, bricoVersions, bonialId, bricoBonial, missingBonialUnit} from './brico.mjs';
+import {bricoId, isBricoDemo, catalogueId, catalogueUrl, bricoProducts, bricoVersions, usesBricoVersions, updateBricoVersionNames, bonialId, bricoBonial, missingBonialUnit} from './brico.mjs?v=20261128.8';
 import {axes, demoNetwork, demoGroups, participantsOf, targetPlan, networkText, demoId, demoFields} from './targeting.mjs';
 const MODELES = {
   imprime: [
@@ -292,16 +292,24 @@ function enrichBrico(s) {
 }
 
 const demoChoices = [
-  [['V1', 'V2'], 'V1'], [['V1', 'V2', 'V3'], 'V2'], [['V1'], 'V1'],
-  [['V2', 'V3'], 'V3'], [['V1', 'V2'], 'V2'], [['V1', 'V3'], 'V1']
+  {v:'V1', copies:1500, counts:{kit1:2}, digital:'mix'},
+  {v:'V2', copies:3000, counts:{vitrine:3}, digital:'display'},
+  {v:'V1', copies:1200, counts:{kit1:1}, digital:'social'},
+  {v:'V3', copies:350, counts:{rayon:1}, digital:'social'},
+  {v:'V2', copies:2200, counts:{vitrine:2}, digital:'mix'},
+  {v:'V1', copies:950, counts:{rayon:2}, digital:'display'}
 ];
 function bricoRecording(op) {
   const s = bricoExample();
   s.op = {...op, scenario:'brico-demo', objective:'Préparer et diffuser l’offre Brico-déco du réseau Nanotera.'};
   s.config.localVersion = true;
+  s.config.kits.push(
+    {id:'rayon',name:'Kit rayon',price:9,on:true,parts:{a1:1,stop:5}},
+    {id:'vitrine',name:'Kit vitrine',price:24,on:true,parts:{a1:4,stop:5}}
+  );
   delete s.targetGroups;
   s.stores = s.stores.slice(0, demoChoices.length).map((store, i) => ({
-    ...store, status:'attente', rule:'free', assigned:demoChoices[i][1]
+    ...store, status:'attente', rule:'free', assigned:demoChoices[i].v
   }));
   s.products = s.products.map(product => ({
     ...product, priority:product.id==='bd-03'?'star':'standard',
@@ -333,8 +341,9 @@ function recordConsultation(s, store, version) {
   return true;
 }
 
-// Upgrade only the S49 demonstration. Existing store IDs, replies and custom assignments survive.
+// Refresh demonstration defaults while preserving existing store IDs, replies and custom assignments.
 export function upgradeDemo(s) {
+  if (usesBricoVersions(s)) updateBricoVersionNames(s);
   if (s.op.id === bricoId) {
     enrichBrico(s);
     if(!s.op.closed&&!bricoBonial(s))s.flows.push(initialBonial(s.config.versions));
@@ -807,12 +816,9 @@ export function mutate(s, action, p, scope) {
     const pending = s.stores.filter(t=>t.targeted!==false && !s.replies[t.id]);
     if (!pending.length) return false;
     for (const store of pending) {
-      const [viewed, choice] = demoChoices[s.stores.indexOf(store)];
-      const version = s.config.localVersion ? choice : store.assigned;
-      for (const v of s.config.localVersion ? viewed : [version]) {
-        if (eligible(s,v).length) recordConsultation(s,store,v);
-      }
-      s.replies[store.id] = {...normalize(s,store,{yn:'yes',v:version},true), demo:true};
+      const choice = demoChoices[s.stores.indexOf(store) % demoChoices.length];
+      const version = s.config.localVersion ? choice.v : store.assigned;
+      s.replies[store.id] = {...normalize(s,store,{...choice,yn:'yes',v:version,media:{0:true,1:true}},true), demo:true};
     }
   } else if (action === 'consultVersion') {
     required(scope && (!isBricoDemo(s) || s.engagementsOpened), 'La consultation requiert un accès magasin et des engagements ouverts.',403);

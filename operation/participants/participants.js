@@ -149,7 +149,8 @@ const composition = k => Object.entries(k.parts).map(([id, n]) => {
   const s = data.items.find(x => x.id === id);
   return s && n > 0 ? n + ' × ' + s.name : null
 }).filter(Boolean).join(' + ') || 'Composition à définir';
-const verOpts = () => data.versions.map(v => [v.id, v.id + ' · ' + v.name]);
+const nameVersion = v => core.namedVersions ? v.name : v.id + ' · ' + v.name;
+const verOpts = () => data.versions.map(v => [v.id, nameVersion(v)]);
 const modeBtn = (id, label) => '<button class="' + (mode === id ? 'chosen' : '') + '" aria-pressed="' + (mode === id) + '" data-action="mode:' + id + '">' + esc(
   label) + '</button>';
 
@@ -175,10 +176,10 @@ const chosenOffers = () => products.filter((_, i) => data.eligibility[i]?.[draft
 const opt = (val, label, chosen) => '<option value="' + esc(val) + '" ' + (val === chosen ? 'selected' : '') + '>' + esc(label) + '</option>';
 
 function groupEditor() {
-  const version = fld('Version proposée', '<select id="group-version">' + data.versions.map(v => opt(v.id, v.id + ' · ' + v.name, draft.version)).join(
+  const version = fld('Version proposée', '<select id="group-version">' + data.versions.map(v => opt(v.id, nameVersion(v), draft.version)).join(
     '') + '</select>');
   const items = chosenOffers();
-  const assortment = '<div class="assort"><strong>Assortiment de ' + esc(draft.version) + ' · ' + items.length + ' référence' + (items.length > 1 ? 's' :
+  const assortment = '<div class="assort"><strong>' + (core.namedVersions ? 'Assortiment · ' + esc(V(draft.version).name) : 'Assortiment de ' + esc(draft.version)) + ' · ' + items.length + ' référence' + (items.length > 1 ? 's' :
       '') + '</strong><p>' + esc(items.map(p => p.name).join(' · ') || 'Associez des produits à cette version dans le PIM.') +
     '</p><a target="_parent" href="' + esc(core.pimLink(draft.version)) + '">Consulter cette version dans le PIM</a></div>';
   const facets = Object.entries(axes).map(([key, label]) => {
@@ -267,7 +268,7 @@ function offer() {
   return title('Offre produits à personnaliser', 'Sélectionnez les références du PIM qui composent chaque version de l’offre.') + section('Offre de l’opération',
     '<div class="rows">' + row('<b>Offre commerciale de l’opération</b><span class="hint">Source · Espace Produits de BigOne Studio</span>', ck('offer', data
       .offer, 'Associer cette offre')) + '</div>') + (data.offer ? section('Composition des versions', tbl(['Produit', 'Conditionnement', ...data.versions.map(
-      v => esc(v.id) + ' · ' + esc(v.name))],
+      v => esc(nameVersion(v)))],
     products.map((p, i) => tr('<b>' + esc(p.name) + '</b>', esc(p.pack), ...data.versions.map(v =>
       '<input type="checkbox" aria-label="' + esc(p.name + ' · ' + v.id) + '" data-path="eligibility.' + i + '.' + v.id + '" ' + (data.eligibility[i][v
         .id] ? 'checked' : '') + '>'
@@ -281,12 +282,12 @@ function offer() {
 function entry() {
   const reply = R();
   const version = V(reply.v || data.assigned[store]);
-  const preview = v => core.consultVersion ? btn('Consulter '+v.id,'consult:'+v.id) + (consultedVersion===v.id ? assortment(v.id) : '') : assortment(v.id);
+  const preview = v => core.consultVersion ? btn('Consulter '+(core.namedVersions ? v.name.toLocaleLowerCase('fr') : v.id),'consult:'+v.id) + (consultedVersion===v.id ? assortment(v.id) : '') : assortment(v.id);
   const versionCard = '<div class="tile">' + tag(version.id) + ' <b>' + esc(version.name) +
     '</b><span>' + esc(version.desc) + '</span>' + (version.id ? preview(version) : '') + '</div>';
   const choices = data.localVersion && (yes() || core.consultVersion) ? '<div class="threecol">' + data.versions.map(v =>
     '<div class="tile"><label class="choice"><input type="radio" name="ver" data-path="reply.v" value="' + esc(v.id) + '" ' +
-    (reply.v === v.id ? 'checked' : '') + '><span><b>' + esc(v.id + ' · ' + v.name) + '</b><small>' + esc(v.desc) +
+    (reply.v === v.id ? 'checked' : '') + '><span><b>' + esc(nameVersion(v)) + '</b><small>' + esc(v.desc) +
     '</small></span></label>' + preview(v) + '</div>').join('') + '</div>' : versionCard;
   const participation = must() ? '<div class="rows">' + row('<b>Participation obligatoire</b><span class="hint">Votre enseigne a inscrit ce magasin à l’opération.</span>', tag('Obligatoire', 'green')) + '</div>' :
     '<div class="pills">' + radio('reply.yn', 'yes', reply.yn, 'Oui, je participe') +

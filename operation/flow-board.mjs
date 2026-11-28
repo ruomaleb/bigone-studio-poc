@@ -1,11 +1,8 @@
-import {esc,route} from './views.mjs?v=20261128.7';
-import {eligible} from '../server/model.mjs';
-import {bricoId,missingBonialUnit} from '../server/brico.mjs?v=20261128.7';
+import {esc,route} from './views.mjs?v=20261128.8';
+import {eligible} from '../server/model.mjs?v=20261128.8';
+import {bricoId,missingBonialUnit,displayVersions,usesBricoVersions,versionLabel} from '../server/brico.mjs?v=20261128.8';
 
 const icons={
-  catalogue:'<path d="M3 5c3-1 6 0 9 2 3-2 6-3 9-2v13c-3-1-6 0-9 2-3-2-6-3-9-2zM12 7v13"/>',
-  bonial:'<path d="M4 5h15v13H4zM8 9h7M8 13h4M8 21h13V9"/>',
-  tiendeo:'<path d="m3 11 8-8h9v9l-8 8z"/><circle cx="16" cy="7" r="1"/>',
   export:'<path d="M13 3H5v18h14V9zM13 3v6h6M8 15h8m-3-3 3 3-3 3"/>',
   search:'<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/>'
 };
@@ -21,7 +18,16 @@ export function boardParams(q){
   return p;
 }
 const flowFamily=name=>/\bbonial\b/i.test(name)?'Bonial':/\btiendeo\b/i.test(name)?'Tiendeo':name;
-const familyIcon=name=>({'E-catalogue':'catalogue',Bonial:'bonial',Tiendeo:'tiendeo'})[name]||'export';
+const partnerMarks=new Map([
+  ['E-catalogue','../assets/bigone-logo.png'],
+  ['Bonial','../assets/partenaires/bonial.png'],
+  ['Tiendeo','../assets/partenaires/tiendeo.png']
+]);
+function destinationMark(name) {
+  const asset=partnerMarks.get(name);
+  return asset ? '<span class="flow-symbol flow-partner" aria-hidden="true"><img src="'+asset+'" alt="" width="30" height="30"></span>' :
+    '<span class="flow-symbol symbol-export">'+svg('export')+'</span>';
+}
 function filterSelect(key,label,options,value,all){
   return '<label class="board-select"><span class="visually-hidden">'+label+'</span><select name="'+key+'" aria-label="'+label+'"><option value="">'+all+'</option>'+
     options.map(([id,name])=>'<option value="'+esc(id)+'"'+(value===id?' selected':'')+'>'+esc(name)+'</option>').join('')+'</select></label>';
@@ -54,15 +60,15 @@ function statusTone(stage){
   if(['Validé','Contrôlé','Remis','Généré','Déposé en recette'].includes(stage))return 'good';
   return 'pending';
 }
-function badge(record,version,duplicate){
-  const icon=familyIcon(record.name),label=[record.label,version,record.stage,record.reason].filter(Boolean).join(' · ');
+function badge(record,version,duplicate,versionName){
+  const label=[record.label,versionName,record.stage,record.reason].filter(Boolean).join(' · ');
   return '<a class="flow-badge" href="'+esc(record.url(version))+'" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+
-    '<span class="flow-symbol symbol-'+icon+'">'+svg(icon)+'</span><span class="flow-reading">'+
+    destinationMark(record.name)+'<span class="flow-reading">'+
     (duplicate?'<strong>'+esc(record.label)+'</strong>':'')+'<span class="flow-state tone-'+statusTone(record.stage)+'">'+esc(record.stage)+'</span>'+
     (record.observed?'<time datetime="'+esc(record.observed)+'">'+french(record.observed)+'</time>':'')+'</span></a>';
 }
 export function flowBoard(s,q,editions){
-  const p=boardParams(q),records=entries(s,editions,p),configured=s.config.versions;
+  const p=boardParams(q),records=entries(s,editions,p),configured=displayVersions(s), named=usesBricoVersions(s);
   const names=[...new Set([...(s.op.id===bricoId?['E-catalogue','Bonial','Tiendeo']:[]),...records.map(c=>c.name)])];
   const states=[...new Set(records.map(c=>c.stage))];
   if(names.length)states.push('Non prévu');
@@ -83,23 +89,29 @@ export function flowBoard(s,q,editions){
     rows.push({version,cells,matching});
   }
   const sort=p.tri||'version',byName=sort.replace(/^-/,'')==='nom';
-  rows.sort((a,b)=>String(a.version[byName?'name':'id']).localeCompare(String(b.version[byName?'name':'id']),'fr',{numeric:true})*(sort.startsWith('-')?-1:1));
+  const order = version => byName ? version.name : named ? versions.indexOf(version) : version.id;
+  rows.sort((a,b)=>String(order(a.version)).localeCompare(String(order(b.version)),'fr',{numeric:true})*(sort.startsWith('-')?-1:1));
   const sortable=(key,title)=>'<th scope="col"'+(sort.replace(/^-/,'')===key?' aria-sort="'+(sort.startsWith('-')?'descending':'ascending')+'"':'')+'><a href="'+esc(route('flux',{...p,tri:sort===key?'-'+key:key}))+'">'+title+' <span aria-hidden="true">'+(sort===key?'↑':sort==='-'+key?'↓':'↕')+'</span></a></th>';
   const activeFilters=Object.keys(p).filter(k=>!['tri','recherche'].includes(k)).length;
   const filters='<form id="flow-filters" class="board-filters" role="search"><label class="board-query">'+svg('search')+'<input type="search" name="recherche" aria-label="Rechercher dans les flux" placeholder="Rechercher…" value="'+esc(p.recherche)+'"></label>'+
     '<button type="button" class="board-toggle" data-flow-toggle aria-expanded="false" aria-controls="board-options">Filtres'+(activeFilters?' ('+activeFilters+')':'')+'</button><div id="board-options" class="board-options">'+
     filterSelect('destination','Destination',names.map(v=>[v,v]),p.destination,'Tous les flux')+
-    filterSelect('version','Version',versions.map(v=>[v.id,v.id==='sans-version'?v.name:v.id]),p.version,'Versions')+
+    filterSelect('version','Version',versions.map(v=>[v.id,v.id==='sans-version'?v.name:versionLabel(s,v.id)]),p.version,'Versions')+
     filterSelect('statut','État du flux',states.map(v=>[v,v]),p.statut,'États')+
     filterDate('validite','Validité',p.validite)+filterDate('publication','Publication prévue',p.publication)+'</div>'+
     '<button type="submit" class="board-apply">Filtrer</button>'+(Object.keys(p).length?'<a href="#flux" class="board-reset">Réinitialiser</a>':'')+'</form>';
   const head='<thead><tr>'+sortable('version','Version')+sortable('nom','Assortiment')+'<th scope="col">Validité</th><th scope="col">Publication prévue</th>'+
-    columns.map(n=>'<th scope="col" class="flow-head">'+(n==='E-catalogue'&&s.op.id===bricoId&&editions.length&&s.supports.some(x=>x.id==='bd-ecatalogue')?'<a href="'+esc(route('flux',{...p,vue:'editions'}))+'" title="Toutes les éditions E-catalogue">'+esc(n)+'</a>':esc(n))+'</th>').join('')+'</tr></thead>';
+    columns.map(name=>{
+      const label=partnerMarks.has(name)?destinationMark(name)+esc(name):esc(name);
+      const target=name==='E-catalogue'&&s.op.id===bricoId&&editions.length&&s.supports.some(x=>x.id==='bd-ecatalogue');
+      return '<th scope="col" class="flow-head">'+(target?'<a class="flow-destination" href="'+esc(route('flux',{...p,vue:'editions'}))+
+        '" title="Toutes les éditions E-catalogue">'+label+'</a>':'<span class="flow-destination">'+label+'</span>')+'</th>';
+    }).join('')+'</tr></thead>';
   const body=rows.map(({version:v,cells,matching})=>{
     const planned=[...new Set(matching.flat().map(c=>c.planned).filter(Boolean))].sort();
-    return '<tr><th scope="row"><span class="version-code">'+esc(v.id==='sans-version'?'—':v.id)+'</span></th><td class="assortment"><strong>'+esc(v.name)+'</strong>'+
+    return '<tr><th scope="row"><span class="version-code">'+esc(v.id==='sans-version'?'—':versionLabel(s,v.id))+'</span></th><td class="assortment"><strong>'+esc(named && v.desc?v.desc:v.name)+'</strong>'+
       (v.count!==null?'<small>'+v.count+' offre'+(v.count===1?'':'s')+'</small>':'')+'</td><td data-label="Validité"><span class="flow-period"><span>'+french(s.op.start)+'</span><span>'+french(s.op.end)+'</span></span></td><td data-label="Publication prévue">'+(planned.length?planned.map(french).join('<br>'):'—')+'</td>'+
-      columns.map((name,i)=>'<td data-label="'+esc(name)+'" class="flow-cell">'+(matching[i].length?matching[i].map(c=>badge(c,v.id,matching[i].length>1)).join(''):!cells[i].length?'<span class="flow-off"><span class="flow-symbol">'+svg(familyIcon(name))+'</span>Non prévu</span>':'<span class="flow-muted">Hors filtre</span>')+'</td>').join('')+'</tr>';
+      columns.map((name,i)=>'<td data-label="'+esc(name)+'" class="flow-cell">'+(matching[i].length?matching[i].map(c=>badge(c,v.id,matching[i].length>1,versionLabel(s,v.id))).join(''):!cells[i].length?'<span class="flow-off">'+destinationMark(name)+'Non prévu</span>':'<span class="flow-muted">Hors filtre</span>')+'</td>').join('')+'</tr>';
   }).join('');
   return '<section class="flow-board" aria-labelledby="flow-title"><div class="board-heading"><h2 id="flow-title">Mes flux</h2></div>'+filters+
     (!records.length?'<div class="flow-empty"><p>Aucun flux configuré pour cette opération.</p><a href="#supports">Ouvrir les supports en préparation</a></div>':

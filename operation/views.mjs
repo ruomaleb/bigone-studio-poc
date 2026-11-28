@@ -1,4 +1,4 @@
-import {bricoId, isBricoDemo, catalogueId, missingBonialUnit} from '../server/brico.mjs?v=20261128.7';
+import {bricoId, isBricoDemo, catalogueId, missingBonialUnit, displayVersions, versionLabel, versionOptions} from '../server/brico.mjs?v=20261128.8';
 import {participantsOf} from '../server/targeting.mjs';
 import {
   pageFor,
@@ -8,7 +8,7 @@ import {
   totals,
   eligible,
   anomalies
-} from '../server/model.mjs?v=8';
+} from '../server/model.mjs?v=20261128.8';
 export const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({
   '&': '&amp;',
   '<': '&lt;',
@@ -92,6 +92,16 @@ export function info(s, q) {
     card('Engagement du réseau', '<div class="stats">' + metric(t.engage, 'Engagés', '#participants?filtre=engage') + metric(t.attente, 'En attente',
       '#participants?filtre=attente') + metric(t.non, 'Non participant', '#participants?filtre=non') + '</div>');
 }
+const quantities = new Intl.NumberFormat('fr-FR');
+function confirmedChoices(s, answer) {
+  if (!answer?.confirmed || answer.yn !== 'yes') return ['—', '—', '—'];
+  const printed = answer.media?.[0] && answer.copies > 0 ? quantities.format(answer.copies) : 'Aucun';
+  const kits = s.config.kits.filter(kit => answer.counts?.[kit.id] > 0)
+    .map(kit => quantities.format(answer.counts[kit.id]) + ' × ' + kit.name);
+  const digital = answer.media?.[1] ? s.config.digitalKits.find(kit => kit.id === answer.digital)?.name : null;
+  return [printed, kits.join(' · ') || 'Aucun', digital || 'Aucun'];
+}
+
 export function participants(s, q) {
   const stores = participantsOf(s), t = totals(s), demo = isBricoDemo(s);
   const opened = !!s.engagementsOpened;
@@ -104,16 +114,15 @@ export function participants(s, q) {
   const x = stores.find(t => t.id === q.get('id'));
   const r = x && s.replies[x.id];
   const url = (params={}) => route('participants',{filtre:f||'tous',version,...params});
-  const consulted = t => (s.consultations?.[t.id] || []).map(v => tag(v,'violet')).join(' ') || '—';
-  const versions = '<div class="stats">' + s.config.versions.map(v => {
+  const versions = '<div class="stats">' + displayVersions(s).map(v => {
     const count = eligible(s,v.id).length;
-    return '<div class="stat"><h3>' + esc(v.id+' · '+v.name) + '</h3>' +
+    return '<div class="stat"><h3>' + esc(versionLabel(s,v.id)) + '</h3>' +
       (v.desc ? '<span>'+esc(v.desc)+'</span>' : '') +
       link(route('produits',{v:v.id}),count+' référence(s)','quiet') + '</div>';
   }).join('') + '</div>';
-  const counts = '<div class="stats">' + s.config.versions.map(v => metric(
+  const counts = '<div class="stats">' + displayVersions(s).map(v => metric(
     stores.filter(store=>confirmed(store) && s.replies[store.id].v===v.id).length,
-    v.id+' · '+v.name,url({filtre:'engagements',version:v.id})
+    versionLabel(s,v.id),url({filtre:'engagements',version:v.id})
   )).join('') + '</div>';
   const setup = demo ? card('Versions de l’offre',versions+
     '<div class="actions">'+link('#configurer','Configurer les versions et les groupes')+
@@ -129,25 +138,24 @@ export function participants(s, q) {
       metric(t.heritage,'Sélections à confirmer',url({filtre:'heritage',version:''}))+metric(t.confirmed?t.quantity:'—','Affiches A1 confirmées',url({filtre:'confirmed',version:''}))+'</div>')+
     '<div class="filters">' + filters.map(([key,label]) => link(url({filtre:key,version:''}),label,
       'chip '+ (key === (f||'tous') && !version ? 'active' : ''))).join('')+
-    (version ? tag('Version '+version,'violet') : '')+'</div>'+
-    table(['Point de vente','Participation','Version proposée','Versions consultées','Version confirmée','Choix de supports',''],
+    (version ? tag(versionLabel(s,version),'violet') : '')+'</div>'+
+    table(['Point de vente','Participation','Version retenue','Exemplaires du tract','Kit PLV','Pack digital',''],
       rows.slice((page-1)*25,page*25).map(store => {
         const answer=s.replies[store.id], state=stateOf(s,store);
-        const status=state==='engage'&&!confirmed(store)?'À confirmer':statNames[state]||'À renseigner';
-        return tr(link(url({id:store.id,page}),store.name,'quiet'),tag(status,confirmed(store)?'good':''),
-          esc(store.assigned || 'À affecter'),consulted(store),confirmed(store)?tag(answer.v,'violet'):'—',
-          esc(answer?.review?'À revoir':answer?.confirmed?'Confirmés':state==='engage'?'Hérités':'—'),
-          btn('invite','Accès magasin',store.id));
+        const status=answer?.review?'À revoir':state==='engage'&&!confirmed(store)?'À confirmer':statNames[state]||'À renseigner';
+        return tr(link(url({id:store.id,page}),store.name,'quiet'),tag(status,confirmed(store)&&!answer.review?'good':''),
+          confirmed(store)?tag(versionLabel(s,answer.v),'violet'):'—',
+          ...confirmedChoices(s,answer).map(esc),btn('invite','Accès magasin',store.id));
       }))+
     (rows.length ? '' : none('Aucun participant dans cette sélection.'))+
     (rows.length<=25 ? '' : '<div class="actions">'+(page>1?link(url({page:page-1}),'Précédente'):'')+
       '<span>Page '+page+' sur '+Math.ceil(rows.length/25)+'</span>'+(page*25<rows.length?link(url({page:page+1}),'Suivante'):'')+'</div>')+
     '<div class="actions">'+btn('reminder','Préparer une relance',f==='tous'?'':f)+btn('refresh','Actualiser les réponses')+'</div>',responseAction)+
-    (x ? card(x.name,row('Version affectée',x.assigned||'À affecter',esc(s.targetGroups?.find(g=>g.id===x.groupId)?.name||''))+
-      row('Versions consultées','',consulted(x))+
+    (x ? card(x.name,row('Version affectée',x.assigned?versionLabel(s,x.assigned):'À affecter',esc(s.targetGroups?.find(g=>g.id===x.groupId)?.name||''))+
       row('Réponse du magasin',r?.review?'À revoir':r?.confirmed?'Confirmée':r?'Brouillon':'À recueillir',
         link(route('participation',{id:x.id}),'Ouvrir le parcours magasin'))+
-      (r?.confirmed && r.yn==='yes' ? row('Version confirmée',r.v,'') : '')+
+      (confirmed(x) ? row('Version retenue',versionLabel(s,r.v),'')+
+        confirmedChoices(s,r).map((value,i)=>row(['Exemplaires du tract','Kit PLV','Pack digital'][i],value,'')).join('') : '')+
       (r?.demo?none('Réponse de démonstration'):'')) : '');
 }
 
@@ -165,11 +173,11 @@ export function pim(s, q) {
       v,rayon,
       id: p.id
     });
-    return tr(link(href, p.name, 'quiet'), esc(p.pack), p.versions.map(id => tag(id, 'violet')).join(' ') || tag('À affecter', 'warn'),
+    return tr(link(href, p.name, 'quiet'), esc(p.pack), p.versions.map(id => tag(versionLabel(s,id), 'violet')).join(' ') || tag('À affecter', 'warn'),
       p.price == null ? tag('Prix manquant', 'warn') : esc(euros(p.price)), link(href, 'Ouvrir', 'quiet'));
   });
   return card('Produits', '<div class="filters">'+viewFilter('rayon','Rayon',[...new Set(s.products.map(p=>p.rayon||'À renseigner'))].sort(),rayon,'Tous les rayons')+'</div><p class="sub">Offre commerciale de l’opération · ' + s.products.length + ' références distinctes.</p><div class="filters">' + [
-      ['', 'Toutes les versions'], ...s.config.versions.map(x => [x.id, x.id + ' · ' + x.name])
+      ['', 'Toutes les versions'], ...versionOptions(s)
     ].map(([key, label]) =>
       link(route('produits', {
         v: key,rayon
@@ -184,8 +192,7 @@ export function productForm(s, p) {
     field('brand', 'Marque', p.brand) + field('rayon', 'Rayon', p.rayon) +
     sel('priority','Priorité de l’offre',Object.entries(priorityNames),p.priority || 'standard') +
     '</div><label class="field">Description<textarea name="description" maxlength="1800">' + esc(p.description || '') +
-    '</textarea></label>' + field('note', 'Mentions', p.note) + '<fieldset><legend>Versions éligibles</legend>' + checks('versions', s.config.versions.map(
-      v => [v.id, v.id + ' · ' + v.name]), p.versions) +
+    '</textarea></label>' + field('note', 'Mentions', p.note) + '<fieldset><legend>Versions éligibles</legend>' + checks('versions', versionOptions(s), p.versions) +
     '</fieldset><div class="actions"><button class="btn" type="button" data-ps-back>Annuler</button>' + submit('Enregistrer la fiche') + '</div></form>';
 }
 
@@ -229,7 +236,7 @@ export function supports(s, q, prodMode = false) {
   if (!prodMode) return listing + card(x.name, editorLinks(x.id,pg) + '<form id="support" data-id="' + esc(x.id) + '"><div class="fields">' + (x.participantItemId === 'a1' ?
         '<p>Quantité d’affiches à saisir par point de vente dans Ma participation.</p>' : '') + field('format', 'Format attendu', x.format) +
       sel('scope', 'Version commerciale', [
-        ['Toutes', 'Toutes les versions'], ...s.config.versions.map(v => [v.id, v.id + ' · ' + v.name])
+        ['Toutes', 'Toutes les versions'], ...versionOptions(s)
       ], x.scope || 'Toutes') + field('note', 'Consignes et quantités attendues', x.note) + '</div><fieldset><legend>Offres utilisées</legend>' + checks(
         'products', s.products.map(p => [p.id, p.name]), x.products) + '</fieldset>' + submit('Enregistrer le dispositif') + '</form><div class="actions">' +
       link(route('production', {
@@ -285,7 +292,7 @@ export function flows(s, q, back) {
     const missingUnit = missingBonialUnit(s,f);
     return '<section class="inset" style="margin:12px 0"><div class="hrow"><h3>' + esc(f.name) + '</h3>' + tag(f.stage, f.stage === 'À corriger' ? 'warn' :
         '') + '</div><div class="filters">' + sel('flow-' + f.id, 'Version commerciale', [
-        ['', 'À affecter'], ...s.config.versions.map(v => [v.id, v.id + ' · ' + v.name])
+        ['', 'À affecter'], ...versionOptions(s)
       ], f.v) + '</div>' + (missingUnit?row(missingUnit.name,'Conditionnement à renseigner pour le flux Bonial',link(route('produits',{id:missingUnit.id}),'Corriger dans le PIM')):'') + errors.map(p => row(p.name, 'Prix national manquant', link(route('produits', {
         v: f.v,
         id: p.id
@@ -294,7 +301,7 @@ export function flows(s, q, back) {
         .rows?.length ? btn('download', 'Télécharger le fichier généré', f.id) : '') + (f.stage === 'Généré' ? (isBricoDemo(s) ? btn('test-deposit','Déposer le CSV en recette',f.id,'primary') : btn('deliver', 'Enregistrer la remise', f.id)) :
         '') + '</div>' + (f.review ? none('L’offre a évolué depuis la remise. Relancez le contrôle.') : '') + (f.receipt ? none((isBricoDemo(s)?'Reçu de dépôt en recette · ':'Reçu de remise · ') + f
         .receipt) : '') + (f.rows?.length ? '<details><summary>Aperçu du CSV · '+f.rows.length+' offres</summary>'+
-        table(['Référence','Offre','Conditionnement','Prix TTC','Version'],f.rows.slice(0,50).map(r=>tr(esc(r.reference),esc(r.libelle),esc(r.conditionnement),esc(euros(r.prix_ttc)),esc(r.version))))+'</details>' : '') + (f.archive?.length ? '<details><summary>Fichiers précédents (' + f.archive.length + ')</summary>' + f.archive.map((h, i) => row(h
+        table(['Référence','Offre','Conditionnement','Prix TTC','Version'],f.rows.slice(0,50).map(r=>tr(esc(r.reference),esc(r.libelle),esc(r.conditionnement),esc(euros(r.prix_ttc)),esc(versionLabel(s,r.version)))))+'</details>' : '') + (f.archive?.length ? '<details><summary>Fichiers précédents (' + f.archive.length + ')</summary>' + f.archive.map((h, i) => row(h
         .v + ' · ' + new Date(h.generated).toLocaleDateString('fr-FR'), h.receipt ? 'Reçu · ' + h.receipt : 'Fichier généré', btn('historic-flow',
           'Télécharger', f.id + '|' + i))).reverse().join('') + '</details>' : '') + '</section>'
   }).join(''))
