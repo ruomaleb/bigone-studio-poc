@@ -7,7 +7,7 @@
 <title>BigOne Studio</title>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/gilmer-400.otf" crossorigin>
 <link rel="preload" as="font" type="font/otf" href="assets/fonts/diagramm-700.otf" crossorigin>
-<link rel="stylesheet" href="assets/studio.css?v=2026-11-28.2">
+<link rel="stylesheet" href="assets/studio.css?v=2026-11-28.2b">
 <link rel="stylesheet" href="assets/product-sheet.css?v=8">
 </head>
 <body>
@@ -501,7 +501,7 @@ function choiceTarget(kind,o) {
 function operationChooser(kind,unavailable=false){
   const query=filterParams().get('choix')||'',d=directories[kind];
   const ops=sorted().filter(o=>suivi(o)&&matchesOperation(o,query)).sort((a,b)=>Number(!!a.cloture)-Number(!!b.cloture)||compareFrench.compare(a.nom,b.nom));
-  return `<div class="hd icon-heading">${iconBadge(kind)}<h1>${d.label}</h1></div>${banner()}<section class="card operation-choice" aria-labelledby="choice-title">
+  return `<div class="icon-heading scope-heading">${iconBadge(kind)}<h1>${d.label}</h1></div>${banner()}<section class="card operation-choice" aria-labelledby="choice-title">
     <h2 id="choice-title">Choisir une opération</h2>${unavailable&&status==='ok'?'<p role="status">L’opération demandée est indisponible. Sélectionnez un autre dossier.</p>':''}
     <label class="home-search" for="scope-query">${uiIcon('search')}<span class="visually-hidden">Rechercher une opération</span><input id="scope-query" type="search" data-facet="choix" value="${esc(query)}" placeholder="Rechercher par nom, code ou enseigne"></label>
     <div class="operation-choices">${ops.map(o=>contentRow({o,name:o.nom,meta:[resOp(o),periode(o),o.cloture?'Clôturée':''],href:choiceTarget(kind,o)},'operations')).join('')||
