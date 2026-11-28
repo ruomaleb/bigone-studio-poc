@@ -1,6 +1,6 @@
 import {formats,kitDemand,currentProof,verifyFrame} from '../server/kit.mjs';
 import {blank} from '../server/model.mjs';
-import {esc,route,btn,link,card,tag,table,euros,field,sel} from './views.mjs';
+import {esc,route,btn,link,card,tag,table,euros,field,sel,viewFilter} from './views.mjs?v=20261128.3';
 import {drawOutput,encodeOutput,downloadBlob,fromBase64,archive} from './kit-export.mjs';
 
 const tr=(...cells)=>'<tr>'+cells.map(c=>'<td>'+c+'</td>').join('')+'</tr>';
@@ -59,6 +59,12 @@ export function shopPayload(form,submit) {
     picks:{'bd-03':true},prices:price?{'bd-03':Number(price)}:{}}};
 }
 
+function notesPanel(notes,q,renderNote){
+  const filter=q.get('notes')||'';
+  const visible=notes.filter(n=>!filter||(filter==='resolus')===!!n.resolved);
+  return '<div class="filters">'+viewFilter('notes','Commentaires',[['ouverts','À corriger'],['resolus','Résolus']],filter)+'</div>'+
+    (visible.length?visible.map(renderNote).join(''):'<p>Aucun commentaire dans cette sélection.</p>');
+}
 export function kitView(s,q) {
   const area=q.get('vue')||'kit',k=s.kit,{outputs,issues,counts}=kitDemand(s);
   const here=tabs(s,area);
@@ -69,7 +75,7 @@ export function kitView(s,q) {
     if(!f)return card('BAT digital',here+'<p>Générez les PNG dans Rendus pour ouvrir les épreuves.</p>');
     const old=k.proofs.filter(p=>p.id!==f.id&&p.spec.format===f.spec.format&&p.shops.some(t=>f.shops.includes(t))&&p.at<f.at).at(-1);
     const proofImage=(proof)=>'<figure class="kit-proof"><img data-kit-proof="'+esc(proof.id)+'" alt="Épreuve enregistrée '+esc(formats[proof.spec.format].name)+'"><figcaption>R'+proof.revision+' · '+esc(euros(proof.spec.cents/100))+'</figcaption></figure>';
-    return card('BAT digital · '+formats[f.spec.format].name,here+'<div class="filters">'+k.proofs.map(v=>to('production','bat',formats[v.spec.format].name+' · '+euros(v.spec.cents/100)+' · R'+v.revision,{epreuve:v.id},v===f?'chip active':'chip')).join('')+'</div><div class="kit-bat"><div class="kit-proofs">'+(old?proofImage(old):'')+proofImage(f)+'</div><section class="inset"><h3>Commentaires</h3>'+tag(status(f),f.approved?'good':'warn')+btn('kit-invite','Inviter un relecteur',f.id)+'<p>'+esc(f.shops.map(id=>s.stores.find(t=>t.id===id)?.name||id).join(', '))+'</p>'+f.notes.map(n=>'<div class="rowline"><span>'+esc(n.zone||'Ensemble du rendu')+' · '+esc(n.text)+'<small> · '+esc(n.author||'Studio')+' · '+esc(dates(n.at))+'</small></span>'+(n.resolved?tag('Résolu','good'):btn('kit-resolve','Résoudre',f.id+'|'+n.id))+'</div>').join('')+(!f.approved?'<div class="actions">'+btn('kit-note','Demander une correction',f.id)+btn('kit-approve','Valider ce BAT',f.id,'primary')+'</div>':'')+'</section></div>');
+    return card('BAT digital · '+formats[f.spec.format].name,here+'<div class="filters">'+k.proofs.map(v=>to('production','bat',formats[v.spec.format].name+' · '+euros(v.spec.cents/100)+' · R'+v.revision,{epreuve:v.id},v===f?'chip active':'chip')).join('')+'</div><div class="kit-bat"><div class="kit-proofs">'+(old?proofImage(old):'')+proofImage(f)+'</div><section class="inset"><h3>Commentaires</h3>'+tag(status(f),f.approved?'good':'warn')+btn('kit-invite','Inviter un relecteur',f.id)+'<p>'+esc(f.shops.map(id=>s.stores.find(t=>t.id===id)?.name||id).join(', '))+'</p>'+notesPanel(f.notes,q,n=>'<div class="rowline"><span>'+esc(n.zone||'Ensemble du rendu')+' · '+esc(n.text)+'<small> · '+esc(n.author||'Studio')+' · '+esc(dates(n.at))+'</small></span>'+(n.resolved?tag('Résolu','good'):btn('kit-resolve','Résoudre',f.id+'|'+n.id))+'</div>')+(!f.approved?'<div class="actions">'+btn('kit-note','Demander une correction',f.id)+btn('kit-approve','Valider ce BAT',f.id,'primary')+'</div>':'')+'</section></div>');
   }
   const filter=q.get('format')||'',store=q.get('magasin')||'';
   const ix=Math.max(0,Number(q.get('rendu'))||0);
@@ -87,9 +93,9 @@ export function kitView(s,q) {
   }
   return card('Kit digital · Lampe Gaia',here+'<div class="stats kit-stats">'+metric(outputs.length,'Fichiers distincts')+metric(counts.shops,'Magasins engagés')+metric(outputs.reduce((n,o)=>n+o.shops.length,0),'Affectations')+'</div>'+controls+(issues.length?'<p class="issue">'+issues.map(esc).join('<br>')+'</p>':'')+'<div class="kit-work"><div class="kit-wall">'+(tiles||'<p>Aucun rendu pour cette sélection.</p>')+'</div>'+detail+'</div><div class="actions">'+btn('kit-generate','Générer les PNG manquants','','primary')+btn('kit-theme','Modifier le modèle')+'</div>');
 }
-export function kitReviewView(s) {
+export function kitReviewView(s,q=new URLSearchParams()) {
   const f=s.proofs.at(-1);
-  return card('BAT digital · '+formats[f.format].name, '<p>'+esc(s.op.title)+' · Accès relecteur</p><div class="kit-bat"><div class="kit-proofs">'+s.proofs.map(p=>'<figure class="kit-proof"><img data-kit-proof="'+esc(p.id)+'" alt="Épreuve R'+p.revision+'"><figcaption>R'+p.revision+' · '+esc(euros(p.cents/100))+'</figcaption></figure>').join('')+'</div><section class="inset"><h3>Commentaires</h3>'+tag(status(f)) +f.notes.map(n=>'<p>'+esc(n.text)+' · '+esc(n.author||'Studio')+' · '+esc(dates(n.at))+(n.resolved?' · Résolu':'')+'</p>').join('')+(!f.approved?btn('kit-note','Demander une correction',f.id):'')+'</section></div>');
+  return card('BAT digital · '+formats[f.format].name, '<p>'+esc(s.op.title)+' · Accès relecteur</p><div class="kit-bat"><div class="kit-proofs">'+s.proofs.map(p=>'<figure class="kit-proof"><img data-kit-proof="'+esc(p.id)+'" alt="Épreuve R'+p.revision+'"><figcaption>R'+p.revision+' · '+esc(euros(p.cents/100))+'</figcaption></figure>').join('')+'</div><section class="inset"><h3>Commentaires</h3>'+tag(status(f)) +notesPanel(f.notes,q,n=>'<p>'+esc(n.text)+' · '+esc(n.author||'Studio')+' · '+esc(dates(n.at))+(n.resolved?' · Résolu':'')+'</p>')+(!f.approved?btn('kit-note','Demander une correction',f.id):'')+'</section></div>');
 }
 export function mountKit(s,api) {
   const outputs=s.kit?kitDemand(s).outputs:[];

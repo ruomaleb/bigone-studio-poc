@@ -10,7 +10,7 @@ const sortLabels={
   nom:'Nom (A à Z)',nomDesc:'Nom (Z à A)',prix:'Prix croissant',prixDesc:'Prix décroissant',
   debut:'Début le plus ancien',debutDesc:'Début le plus récent',date:'Échéance la plus proche',
   dateDesc:'Échéance la plus lointaine',revDesc:'Révision décroissante',code:'Code point de vente',
-  recent:'Plus récent en premier',ancien:'Plus ancien en premier',groupe:'Par support',urgence:'Priorité puis échéance'
+  recent:'Plus récent en premier',ancien:'Plus ancien en premier',groupe:'Par support',dossier:'Dossiers ouverts en premier',urgence:'Priorité puis échéance'
 };
 const compareFrench=new Intl.Collator('fr',{numeric:true,sensitivity:'base'});
 function filterParams(){return new URLSearchParams(location.hash.split('?').slice(1).join('?'))}
@@ -31,7 +31,7 @@ function facetLabel(key,value){
   return value;
 }
 function compareRows(a,b,sort){
-  if(['groupe','urgence'].includes(sort))return 0;
+  if(['groupe','urgence','dossier'].includes(sort))return 0;
   const field=({prixDesc:'prix',debutDesc:'debut',dateDesc:'date',revDesc:'rev',nom:'name',nomDesc:'name',recent:'date',ancien:'date'})[sort]||sort;
   const x=a[field],y=b[field];
   if(x==null||x===''||y==null||y==='')return Number(x==null||x==='')-Number(y==null||y==='');

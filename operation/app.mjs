@@ -1,6 +1,6 @@
-import {pilotIntro,pilotParticipants,shopYear,shopView,shopPayload,kitView,kitReviewView,mountKit,kitAction} from './kit.mjs';
-import {monitor} from './monitor.mjs?v=20261128.2';
-import {editorController} from './editor.mjs?v=8';
+import {pilotIntro,pilotParticipants,shopYear,shopView,shopPayload,kitView,kitReviewView,mountKit,kitAction} from './kit.mjs?v=20261128.3';
+import {monitor} from './monitor.mjs?v=20261128.3';
+import {editorController} from './editor.mjs?v=20261128.3';
 import {axes, matches, targetPlan, participantsOf} from '../server/targeting.mjs';
 import {
   blank,
@@ -29,7 +29,7 @@ import {
   checks,
   filterStores,
   euros
-} from './views.mjs?v=20261128.1';
+} from './views.mjs?v=20261128.3';
 import {
   setupChat
 } from './chat.mjs?v=8';
@@ -64,7 +64,7 @@ const names = Object.fromEntries(sections.flatMap(x => x[1]).concat([
 const groupFor = page => page === 'configurer' || page === 'participation' ? 0 : Math.max(0, sections.findIndex(([, l]) => l.some(x => x[0] === page)));
 let ctx = null,
   key = '',
-  groupState = [true, false, false],
+  groupState = [false, false, false],
   lastPage = '',
   pending = false,
   dialogSave = null;
@@ -125,21 +125,11 @@ function current() {
   }
 }
 
-function sectionMenu(pg) {
-  return '<nav class="sidenav" aria-label="Dossier de l’opération"><small>Dans cette opération</small>' + sections.map(([g, items], i) =>
-    '<button class="group" data-group="' + i + '" aria-controls="group-' + i + '" aria-expanded="' + groupState[i] + '"><span aria-hidden="true">' + ['▤', '◇',
-      '▧'
-    ][i] + '</span>' + g + '<span aria-hidden="true">' + (groupState[i] ? '⌄' : '›') + '</span></button><div role="group" aria-label="' + esc(g) +
-    '" id="group-' + i + '" ' + (groupState[i] ? '' :
-      'hidden') + '>' + items.map(([p, l]) => '<a href="#' + p + '" class="navpage" ' + ((p === pg || (p === 'participants' && ['configurer', 'participation']
-      .includes(pg))) ? 'aria-current="page"' : '') + '>' + l + '</a>').join('') + '</div>').join('') + '</nav>'
-}
-
 function summaryFrame(pg, q) {
   const t = ctx.state.stores.find(x => x.id === q.get('id')) || participantsOf(ctx.state)[0];
   if ((!t || t.targeted === false) && pg === 'participation') return '<section class="sheet">Aucun participant affecté.</section>';
   return '<div class="hrow sectionhead"><h2>' + esc(names[pg]) + '</h2>' + (ctx.role === 'enseigne' ? link('#participants', 'Revenir aux participants') : '') +
-    '</div><iframe src="participants/?v=8" class="wizard" title="Choix des participants"></iframe>'
+    '</div><label class="wizard-filter">Filtrer les étapes<input type="search" id="wizard-filter"></label><iframe src="participants/?v=9" class="wizard" title="Choix des participants"></iframe>'
 }
 
 function selectedProduct() {
@@ -227,11 +217,37 @@ function operationChoice(destination){
   if(params.get('mode')==='partage')q.set('mode','partage');
   return '../#contenus--'+kind+'?'+q;
 }
+function dossierMenu(page) {
+  const role=ctx?.role || (kitSlot||reviewerSlot?'relecteur':slot?'magasin':'enseigne');
+  if(role==='enseigne'){
+    const urls={pilotage:'../#accueil',preparation:'#informations',produits:'#produits',production:'#production',administration:'../#administration--magasins'};
+    const items=StudioNavigation.spaces(urls);
+    if(ctx){
+      for(const [index,[key,entries]] of sections.entries()){
+        if(entries.length<2)continue;
+        const item=items.find(item=>item.label===key);
+        item.group={index,open:groupState[index],items:entries,current:['configurer','participation'].includes(page)?'participants':page};
+      }
+    }
+    StudioNavigation.draw(items,['preparation','produits','production'][groupFor(page)],ctx?.state.op.title);
+  }else if(role==='magasin'){
+    const year=current().q.get('vue')==='annee';
+    const items=[{key:'preparation',label:'Ma participation',href:'#participation'}];
+    if(ctx?.state.config.productionPilot)items.push({key:'pilotage',label:'Mon année',href:'#participation?vue=annee'});
+    StudioNavigation.draw(items,year?'pilotage':'preparation');
+  }else{
+    StudioNavigation.draw([{key:'production',label:'BAT à relire',href:kitSlot?'#bat':route('production',{id:reviewerSlot,atelier:'bat',page:1})}],'production');
+  }
+  if(role!=='enseigne')$('.op-brand').removeAttribute('href');
+}
 function render() {
   if (!ctx) return;
   if(ctx.role==='relecteur-kit'){
     $('#bar').innerHTML='';$('#ai').hidden=true;$('#open-ai').hidden=true;
-    $('#main').innerHTML=kitReviewView(ctx.state);mountKit(ctx.state,api);
+    dossierMenu('production');
+    $('#main').innerHTML=kitReviewView(ctx.state,current().q);mountKit(ctx.state,api);
+    $('#main .sectionhead').insertAdjacentHTML('beforeend',StudioNavigation.focusButton());
+    StudioNavigation.filters($('#main'));
     document.title='BAT digital · '+ctx.state.op.title;return;
   }
   const s = ctx.state,
@@ -243,16 +259,19 @@ function render() {
     g = groupFor(page);
   if (lastPage !== page) groupState[g] = true;
   lastPage = page;
+  dossierMenu(ctx.role==='relecteur'?'production':page);
   document.title = names[page] + ' · ' + s.op.title + ' · BigOne Studio';
   $('#bar').innerHTML = shop ? '' : link('../#accueil', 'Pilotage', 'toplink') + sections.map(([name, items], i) => '<a href="#' + items[0][0] + '" ' + (i === g ?
     'aria-current="page"' : '') + '>' + name + '</a>').join('');
   const atelier=(page==='production'||ctx.role==='relecteur')&&editor.current();
+  const digitalBat=page==='production' && s.kit && q.get('vue')==='bat';
+  if(!atelier&&!digitalBat)StudioNavigation.focusMode(false);
   $('#main').classList.toggle('ed-main',!!atelier);
   if(atelier){
     if(ctx.role==='enseigne')$('#bar').innerHTML+=link(operationChoice(page),'Changer d’opération','toplink');
     if(ctx.role==='relecteur'){$('#bar').innerHTML='';$('#open-ai').hidden=true;$('#ai').hidden=true;}
     document.title=(atelier.mode==='fer'?'Chemin de fer':'BAT collaboratif')+' · '+atelier.x.name+' · BigOne Studio';
-    $('#main').innerHTML=editor.html(atelier);editor.mounted(atelier);
+    $('#main').innerHTML=editor.html(atelier);editor.mounted(atelier);StudioNavigation.filters($('#main'));
     if(productDialog.open)productDialog.close();
     if(ctx.role!=='relecteur')chat.render();
     return;
@@ -271,10 +290,16 @@ function render() {
       sections[g][0]) + ' &nbsp; › &nbsp; ' + esc(s.op.id === 'u-2649-pbs' ? 'S49' : s.op.title) + '</div><div class="ophead"><div><h1>' + esc(s.op.title) +
     '</h1><div class="meta"><span>' + esc(shop ? s.stores[0].name : s.op.network) + '</span> · <span>' + esc(s.op.start) + ' au ' + esc(s.op.end) +
     '</span> · <span>' + esc(s.op.scope) + '</span>'+(shop?'':' · '+link(operationChoice(page),'Changer d’opération','quiet'))+'</div></div>' + tag(ctx.workspace.startsWith('shared:') ? 'Dossier partagé' : 'Dossier de démonstration',
-      'violet') + '</div><div class="' + (shop ? 'shop-grid' : 'shell-grid') + '">' + (shop ? '' : sectionMenu(page)) + '<div id="content">' + content + (!shop &&
+      'violet') + '</div><div><div id="content">' + content + (!shop &&
       ctx.workspace.startsWith('shared:') ? '<p>' + link('../?classique=1#preparation--' + encodeURIComponent(s.op.id) + '--cadrage', 'Outils du dossier d’origine',
         'quiet') + '</p>' : '') + '</div></div>';
   if(s.kit && page==='production' && q.has('vue'))mountKit(s,api);
+  if(digitalBat)$('#content .sectionhead')?.insertAdjacentHTML('beforeend',StudioNavigation.focusButton());
+  const view=q.get('vue');
+  const search=page==='participation'?(view==='annee'?['tbody tr','Filtrer mes opérations']:['#kit-response fieldset > label','Filtrer mes choix']):
+    page==='flux'?({editions:['tbody tr','Filtrer les éditions'],visuels:['.kit-gallery > a','Filtrer les visuels']})[view]:
+    page==='production'&&view==='remises'?['.inset','Filtrer les bordereaux']:null;
+  StudioNavigation.filters($('#main'),search);
   if(shop && s.config.productionPilot && q.get('vue')==='annee' && !shopLoaded)loadShopYear();
   chat.render();
   const record=shop?null:operationRecord();
@@ -382,7 +407,8 @@ async function perform(a, id) {
   if(a==='pilot-copy'){const url=new URL(location.href);url.hash=id;await navigator.clipboard.writeText(url.href);return notify('Lien Studio copié.');}
   if(a.startsWith('kit-'))return kitAction(a,id,{context:()=>ctx,api,save,modal,notify,refresh,adopt:v=>{ctx=v;}});
   if (a === 'close') return $('#modal').close();
-  if (a === 'retry') return init();
+  if (a === 'retry') return dossierMenu(current().page);
+init();
   if (a === 'edit-info') return formInfo();
   if (a === 'refresh') {
     await refresh();
@@ -576,6 +602,9 @@ async function perform(a, id) {
     return notify(a === 'check' ? 'Contrôle terminé.' : 'Fichier généré.')
   }
 }
+document.addEventListener('input',e=>{
+  if(e.target.id==='wizard-filter')$('.wizard')?.contentWindow?.filterSteps?.(e.target.value);
+});
 document.addEventListener('click', async e => {
   const g = e.target.closest('[data-group]');
   if (g) {
@@ -602,6 +631,14 @@ document.addEventListener('change', async e => {
   const {
     q
   } = current();
+  if(e.target.hasAttribute('data-screen-filter')){
+    const field=e.target.dataset.screenFilter;
+    if(e.target.value)q.set(field,e.target.value);else q.delete(field);
+    if(['state','format','rayon'].includes(field))q.delete('id');
+    const page=ctx.role==='relecteur-kit'?'bat':current().page;
+    location.hash=route(page,Object.fromEntries(q));
+    return;
+  }
   if (n === 'taskfilter' || n === 'tasksupport') {
     q.set('jalons', '1');
     q.set(n === 'taskfilter' ? 'etat' : 'support', e.target.value);

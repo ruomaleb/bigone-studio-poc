@@ -179,7 +179,7 @@ for(const [hash,section] of [['#contenus--produits','produits'],['#production','
   location.hash=hash;
   assert.equal(run('route().tab'),section);
   const screen=run('vDirectory(route().tab)');
-  assert.match(screen,/Choisir une opération/);assert.doesNotMatch(screen,/Atelier visuel|Filtres et tri|Jardinière|Affiche-final|data-product-view/);
+  assert.match(screen,/Choisir une opération/);assert.match(screen,/data-facet="choix-etat"/);assert.doesNotMatch(screen,/Atelier visuel|data-facet="rayon"|Jardinière|Affiche-final|data-product-view/);
 }
 location.hash='#contenus--produits?op=clos';
 assert.doesNotMatch(run("vDirectory('produits')"),/id="catalog-op"|data-reset-filters="op|#preparation--op--offres/);

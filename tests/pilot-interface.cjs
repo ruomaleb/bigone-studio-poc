@@ -35,7 +35,7 @@ module.exports=async function pilot(context,url) {
     assert(await a.locator('#kit-response').evaluate(e=>e.getBoundingClientRect().right<=390));
     await a.reload();await a.getByText('Réponse confirmée').waitFor();
     await a.getByRole('link',{name:'← Mon année'}).click();await a.getByRole('heading',{name:'Mon année'}).waitFor();
-    assert.equal(await a.locator('tbody tr').count(),1);await a.getByRole('link',{name:'Ma participation'}).click();assert.equal(await a.getByLabel(/Affiches A3/).inputValue(),'2');
+    assert.equal(await a.locator('tbody tr').count(),1);await a.getByRole('table').getByRole('link',{name:'Ma participation'}).click();assert.equal(await a.getByLabel(/Affiches A3/).inputValue(),'2');
     await go('#participants');await p.getByText(/30 affiches confirmées/).waitFor();
     await go('#participants?filtre=sans-kit');assert.equal(await p.locator('tbody tr').count(),1);await row('D').waitFor();
     await go('#production?vue=kit');assert.equal(await p.locator('.kit-tile').count(),2);
@@ -49,7 +49,7 @@ module.exports=async function pilot(context,url) {
     await p.locator('.kit-proof img').first().waitFor({state:'attached'});assert.equal(await p.locator('.kit-proof').count(),2);
     await button('kit-invite').click();const urlReview=await p.getByLabel('Lien de relecture de cette épreuve').inputValue();
     await button('close',p.locator('#modal')).click();const rev=await context.newPage();await rev.goto(urlReview);
-    await button('kit-note',rev).click();await rev.getByLabel('Commentaire').fill('Vérifier aussi le prix du carré de Nanotera C.');
+    await button('kit-note',rev).click();await rev.getByRole('dialog').getByLabel('Commentaire',{exact:true}).fill('Vérifier aussi le prix du carré de Nanotera C.');
     await rev.locator('#modal button[type=submit]').click();await rev.getByText(/Vérifier aussi le prix du carré/).waitFor();
     assert.equal(await rev.locator('[data-do="kit-approve"]').count(),0);await p.reload();
     await button('kit-approve').click();await p.getByText(/Résolvez les corrections ouvertes/).waitFor();
